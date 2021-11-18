@@ -1,0 +1,64 @@
+---
+title: "Notes"
+author: "ADam"
+date: "11/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Elaborations on the GAMYE
+
+### Goals
+
+1.  Describe the spatial hierarchical version of a GAMYE
+
+2.  Demonstrate the similarity of the alternative parameterisations of the hierarchical structure
+
+    1.  hierarchical beta-terms (similar to Smith and Edwards 2020)
+
+    2.  Global and local smooths (similar to Pedersen et al. 2020)
+
+3.  Fake data simulation to demonstrate accuracy
+
+    1.  generate a balanced dataset with observations for all routes and all years, using the realised observer allocations.
+
+        1.  change-point
+
+        2.  linear trend
+
+        3.  smooth trajectory
+
+            1.  set the mean BETAs
+
+            2.  vary the betas in a deterministic way, based on the lat-long of the strata centroids
+
+            3.  generate the true trajectories for each stratum
+
+                1.  plot them to confirm
+
+            4.  generate the true trajectories for each route
+
+            5.  add in the observer intercepts
+
+            6.  add in the noise while generating the simulated counts
+
+4.  Test-cases: conduct 10-fold CV in each case (compare to non-spatial version).
+
+    1.  BBS
+
+        1.  spatial structure on abundance and smooth
+
+        2.  True observer effects (small mention, but in reality trivial, it's not an elaboration, this is a correction of a patently false ad-hoc structure)
+
+    2.  CBC
+
+        1.  additional effort parameters, which may also vary in space?
+
+    3.  Shorebirds
+
+        1.  additional seasonal parameters
+
+        2.  alternative year-effects and summary trajectory
