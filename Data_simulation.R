@@ -9,10 +9,9 @@ library(mgcv) #has functions to simulate data from a GAM
 
 BBS_data <- stratify("bbs_usgs")
 
+source("Functions/prepare-jags-data-alt.R")
 
-need to generate True observer information (not the observer-route combinations)
-
-real_data <- prepare_data(strat_data = BBS_data,
+real_data <- prepare_jags_data_alternate(strat_data = BBS_data,
                           species_to_run = "Pacific Wren",
                           model = "gamye",
                           min_year = NULL) #n-year time-series ???
@@ -21,16 +20,22 @@ min_year <- min(real_data$r_year)
 # Generate balanced dataset -----------------------------------------------
 
 # create full data frame 
-real_df <- get_prepared_data(real_data)#generates the dataframe of counts etc.
-
+real_df <- data.frame(Year = real_data$r_year,
+                      Year_Factored = real_data$year,
+                      Stratum = real_data$strat_name,
+                      Stratum_Factored = real_data$strat,
+                      Observer = real_data$ObsN,
+                      Route = real_data$route,
+                      First_Year = real_data$firstyr) %>% 
+  mutate(Route_Factored = as.integer(factor(Route)))
 # dataframe of routes and strata
 routes_df <- real_df %>% 
-  select(Route,Stratum,Stratum_Factored) %>% 
+  select(Route,Route_Factored,Stratum,Stratum_Factored) %>% 
   distinct() 
 
 # dataframe of first year for each observer on a route
 observer_route_df <- real_df %>% 
-  select(Route,Observer_Factored,Year,First_Year) %>%
+  select(Route,Route_Factored,Observer,Year,First_Year) %>%
   filter(First_Year == 1) %>% 
   distinct() %>% 
   arrange(Route,Year)
@@ -43,7 +48,8 @@ for(rr in unique(observer_route_df$Route)){
   if(nrow(tmp) > 1){
   for(i in 1:(nrow(tmp)-1)){
     tmp1 <- data.frame(Route = rr,
-                       Observer_Factored = tmp[i,"Observer_Factored"],
+                       Route_Factored = tmp[i,"Route_Factored"],
+                       Observer = tmp[i,"Observer"],
                        Year = tmp[i,"Year"]:(tmp[i+1,"Year"]-1))
     balanced <- bind_rows(balanced,tmp1)
   }
@@ -51,7 +57,8 @@ for(rr in unique(observer_route_df$Route)){
     i = 1
   }
   tmp1 <- data.frame(Route = rr,
-                     Observer_Factored = tmp[i,"Observer_Factored"],
+                     Route_Factored = tmp[i,"Route_Factored"],
+                     Observer = tmp[i,"Observer"],
                      Year = tmp[i,"Year"]:2019)
   balanced <- bind_rows(balanced,tmp1)
   
@@ -61,7 +68,7 @@ for(rr in unique(observer_route_df$Route)){
 
 # Fill in strata info on balanced
 balanced <- balanced %>% 
-  left_join(.,routes_df,by = c("Route"))
+  left_join(.,routes_df,by = c("Route","Route_Factored"))
 
 
 # Generate mean smooth ----------------------------------------
@@ -221,6 +228,6 @@ beta_True[,strat_mid] <- BETA_True
                                      by = c("Stratum","Year"))
   
   sdobs <- 0.2
-  nobservers <- length(unique(balanced$Observer_Factored))
+  nobservers <- length(unique(balanced$Observer))
   True_observers <- rnorm()
 
