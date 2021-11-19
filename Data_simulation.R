@@ -9,6 +9,9 @@ library(mgcv) #has functions to simulate data from a GAM
 
 BBS_data <- stratify("bbs_usgs")
 
+
+need to generate True observer information (not the observer-route combinations)
+
 real_data <- prepare_data(strat_data = BBS_data,
                           species_to_run = "Pacific Wren",
                           model = "gamye",
@@ -72,7 +75,8 @@ GAM_year <- gam_basis(years_df$Year,
                       nknots = nknots,
                       sm_name = "Year")
 
-BETA_True <- rnorm(GAM_year$nknots_Year,0,1)
+set.seed(2021)
+BETA_True <- rnorm(GAM_year$nknots_Year,0,1.5)
 
 mean_log_smooth <-  GAM_year$Year_basis %*% BETA_True
 
@@ -91,6 +95,15 @@ strata_map <- bbsBayes::load_map(stratify_by = "bbs_usgs") %>%
   rename(Stratum = ST_12) %>% 
   right_join(.,strata_df,by = "Stratum") %>% 
   arrange(Stratum_Factored) ### this arranging is critical to the correct neighbourhoods
+
+st_coord <- suppressWarnings(sf::st_centroid(strata_map)) %>% 
+  sf::st_coordinates()%>% 
+  as.data.frame() %>% 
+  mutate(Stratum_Factored = 1:nstrata)
+
+
+strata_df <- strata_df %>% 
+  left_join(.,st_coord,by = "Stratum_Factored")
 
 
 neighbours <- neighbours_define(real_strata_map = strata_map,
@@ -159,21 +172,55 @@ beta_True[,strat_mid] <- BETA_True
     pivot_longer(cols = starts_with("V"),
                  names_to = "Stratum_Factored",
                  names_prefix = "V",
-                 values_to = "Smooth") %>% 
-    arrange(Stratum_Factored,Year) %>% 
-    mutate(index = exp(Smooth))
+                 values_to = "Smooth")%>% 
+    mutate(index = exp(Smooth),
+           Stratum_Factored = as.integer(Stratum_Factored)) %>% 
+    left_join(.,strata_df,by = c("Stratum_Factored")) %>% 
+    arrange(Y,Year) 
 
-  pf <- ggplot(data = log_smooth_plot,aes(x = Year,y = index))+
-    geom_line()+
+  pf <- ggplot(data = log_smooth_plot,aes(x = Year,y = index,colour = Y))+
+    geom_line(size = 2)+
+    scale_color_viridis_c()+
     scale_y_continuous(limits = c(0,NA))+
-    facet_wrap(~Stratum_Factored,scales = "fixed",
+    facet_wrap(~Stratum_Factored,scales = "free_y",
                nrow = ceiling(sqrt(nstrata)),
                ncol = floor(sqrt(nstrata)))
   
   print(pf)
   
-  ## head ----------------------------------------
+  ## Add random annual fluctuations ----------------------------------------
 
+  sdyeareffect <- 0.1 # ~10% mean annual fluctuation
+  ye_funct <- function(x,sd = sdyeareffect){
+    ye = rnorm(length(x),0,sd)
+  }
+  
+  
+  log_true_traj <- log_smooth_plot %>% 
+    group_by(Stratum) %>% 
+    mutate(YearEffect = ye_funct(Smooth),
+           True_log_traj = Smooth + YearEffect,
+           True_traj = exp(True_log_traj))
+  
 
+  pf <- ggplot(data = log_true_traj,aes(x = Year,y = True_traj,colour = Y))+
+    geom_line(size = 2)+
+    scale_color_viridis_c()+
+    scale_y_continuous(limits = c(0,NA))+
+    facet_wrap(~Stratum_Factored,scales = "free_y",
+               nrow = ceiling(sqrt(nstrata)),
+               ncol = floor(sqrt(nstrata)))
+  
+  print(pf)
+  
+  
 
+# Add observer, route, and strata intercepts ----------------------------
+
+  balanced <- balanced %>% left_join(.,log_true_traj,
+                                     by = c("Stratum","Year"))
+  
+  sdobs <- 0.2
+  nobservers <- length(unique(balanced$Observer_Factored))
+  True_observers <- rnorm()
 
