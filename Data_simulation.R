@@ -17,6 +17,8 @@ real_data <- prepare_jags_data_alternate(strat_data = BBS_data,
                           min_year = NULL) #n-year time-series ???
 min_year <- min(real_data$r_year)
 
+to_save <- c("real_data","min_year")
+
 # Generate balanced dataset -----------------------------------------------
 
 # create full data frame 
@@ -28,10 +30,15 @@ real_df <- data.frame(Year = real_data$r_year,
                       Route = real_data$route,
                       First_Year = real_data$firstyr) %>% 
   mutate(Route_Factored = as.integer(factor(Route)))
+
+to_save <- c(to_save,"real_df")
+
+
 # dataframe of routes and strata
 routes_df <- real_df %>% 
   select(Route,Route_Factored,Stratum,Stratum_Factored) %>% 
   distinct() 
+to_save <- c(to_save,"routes_df")
 
 # dataframe of first year for each observer on a route
 observer_route_df <- real_df %>% 
@@ -39,6 +46,7 @@ observer_route_df <- real_df %>%
   filter(First_Year == 1) %>% 
   distinct() %>% 
   arrange(Route,Year)
+to_save <- c(to_save,"observer_route_df")
 
 # Generate balanced dataset with each year added in the realised first year it was surveyed
 balanced <- NULL
@@ -54,12 +62,12 @@ for(rr in unique(observer_route_df$Route)){
     balanced <- bind_rows(balanced,tmp1)
   }
   }else{
-    i = 1
+    i = 0
   }
   tmp1 <- data.frame(Route = rr,
-                     Route_Factored = tmp[i,"Route_Factored"],
-                     Observer = tmp[i,"Observer"],
-                     Year = tmp[i,"Year"]:2019)
+                     Route_Factored = tmp[i+1,"Route_Factored"],
+                     Observer = tmp[i+1,"Observer"],
+                     Year = tmp[i+1,"Year"]:2019)
   balanced <- bind_rows(balanced,tmp1)
   
   
@@ -82,26 +90,36 @@ GAM_year <- gam_basis(years_df$Year,
                       nknots = nknots,
                       sm_name = "Year")
 
+to_save <- c(to_save,"GAM_year")
+
 set.seed(2021)
 BETA_True <- rnorm(GAM_year$nknots_Year,0,1.5)
 
+to_save <- c(to_save,"BETA_True")
+
 mean_log_smooth <-  GAM_year$Year_basis %*% BETA_True
 
-plot(exp(mean_log_smooth),type = "l",ylim = c(0,max(exp(mean_log_smooth))))
+#plot(exp(mean_log_smooth),type = "l",ylim = c(0,max(exp(mean_log_smooth))))
 
 ## strata neighbourhoods Generate ---------------------------------
 source("Functions/neighbours_define.R")
+nstrata <- real_data$nstrata
+
 
 strata_df <- balanced %>% 
   select(Stratum,Stratum_Factored) %>% 
   distinct() %>% 
   arrange(Stratum_Factored)
 
+to_save <- c(to_save,"strata_df")
+
 
 strata_map <- bbsBayes::load_map(stratify_by = "bbs_usgs") %>% 
   rename(Stratum = ST_12) %>% 
   right_join(.,strata_df,by = "Stratum") %>% 
   arrange(Stratum_Factored) ### this arranging is critical to the correct neighbourhoods
+
+to_save <- c(to_save,"strata_map")
 
 st_coord <- suppressWarnings(sf::st_centroid(strata_map)) %>% 
   sf::st_coordinates()%>% 
@@ -117,16 +135,20 @@ neighbours <- neighbours_define(real_strata_map = strata_map,
                                 plot_dir = "maps/",
                                 species = "Simulated",
                                 alt_strat = "Stratum")
+to_save <- c(to_save,"neighbours")
 
 ## Generate stratum smooths ----------------------------------------
 
 sd_spat_beta <- 0.3
+to_save <- c(to_save,"sd_spat_beta")
+
 ## correlation matrix
 neigh_mat <- neighbours$adj_matrix
 
 ## centre stratum
 strat_mid <- which.max(colSums((neigh_mat)))
 strata_df[strat_mid,]
+to_save <- c(to_save,"strat_mid")
 
 
 nstrata <- nrow(strata_df)
@@ -165,6 +187,7 @@ beta_True[,strat_mid] <- BETA_True
     
   }
     
+  to_save <- c(to_save,"beta_True")
   
   
 
@@ -225,9 +248,71 @@ beta_True[,strat_mid] <- BETA_True
 # Add observer, route, and strata intercepts ----------------------------
 
   balanced <- balanced %>% left_join(.,log_true_traj,
-                                     by = c("Stratum","Year"))
+                                     by = c("Stratum","Year","Stratum_Factored")) %>% 
+    select(-c(index,True_traj))
   
+  ## OBserver Effects
   sdobs <- 0.2
   nobservers <- length(unique(balanced$Observer))
-  True_observers <- rnorm()
+  True_observer_effects <- rnorm(nobservers,0,sdobs) #True observer effects by 
+  
+  observer_df <- data.frame(True_observer_effects = True_observer_effects,
+                            Observer = unique(balanced$Observer)) %>% 
+    mutate(Observer_Factored = as.integer(factor(Observer)))
 
+  to_save <- c(to_save,"observer_df")
+  
+  balanced <- balanced %>% 
+    left_join(observer_df,by = "Observer")
+  
+  ## Route Effects
+  sdroute <- 0.2
+  nroutes <- max(routes_df$Route_Factored)
+  
+  routes_df <- routes_df %>% 
+    mutate(True_route_effects = rnorm(nroutes,0,sdroute))
+  
+  to_save <- c(to_save,"routes_df")
+  
+  balanced <- balanced %>% 
+    left_join(.,routes_df,
+              by = c("Route","Route_Factored","Stratum","Stratum_Factored"))
+    
+  
+  ## Stratum Effects
+  sdstrata <- 0.5
+  
+  strata_df <- strata_df %>% 
+    mutate(True_strata_effects = rnorm(nstrata,0,sdstrata))
+  
+  to_save <- c(to_save,"strata_df")
+  
+  balanced <- balanced %>% 
+    left_join(.,strata_df,
+              by = c("X","Y","Stratum","Stratum_Factored"))
+  
+  
+  
+  
+
+# Add simulated counts ----------------------------------------------------
+
+  sdnoise = 0.1
+  over_disp <- rnorm(nrow(balanced),0,sdnoise)
+balanced <- balanced %>% 
+    mutate(log_expected = over_disp + True_log_traj + True_observer_effects + True_route_effects + True_strata_effects,
+           expected_count = exp(log_expected),
+           count = rpois(nrow(balanced),expected_count))
+  
+to_save <- c(to_save,"balanced")
+
+
+realised <- real_df %>% select(-c("Observer")) %>% 
+  left_join(.,balanced)
+
+to_save <- c(to_save,"realised")
+
+
+
+save(list = to_save,
+     file = "Simulated_data.RData")
