@@ -302,17 +302,21 @@ beta_True[,strat_mid] <- BETA_True
 balanced <- balanced %>% 
     mutate(log_expected = over_disp + True_log_traj + True_observer_effects + True_route_effects + True_strata_effects,
            expected_count = exp(log_expected),
-           count = rpois(nrow(balanced),expected_count))
+           count = rpois(nrow(balanced),expected_count))%>% 
+  mutate(Year_Index = Year-(min(Year)-1))
+
   
 to_save <- c(to_save,"balanced")
 
 
 realised <- real_df %>% select(-c("Observer")) %>% 
-  left_join(.,balanced)
+  left_join(.,balanced) %>% 
+  mutate(Year_Index = Year-(min(Year)-1))
+
 
 to_save <- c(to_save,"realised")
 
 
 
 save(list = to_save,
-     file = "Simulated_data.RData")
+     file = "Simulated_data_BBS.RData")
