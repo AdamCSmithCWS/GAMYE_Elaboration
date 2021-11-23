@@ -50,7 +50,7 @@ for(i in 1:nstrata){
   ste_mat[i,1:nsites_strata[i]] <- routes_df[which(routes_df$Stratum_Factored == i),"Route_Factored"]
 }
 
-nonzeroweight <- rep(0,nstrata)
+nonzeroweight <- rep(1,nstrata)
 
 stan_data = list(#scalar indicators
                  nsites = nsites,

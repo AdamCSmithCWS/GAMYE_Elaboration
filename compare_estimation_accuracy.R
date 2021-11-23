@@ -1,0 +1,142 @@
+## compare estimation accuracy
+
+library(bbsBayes)
+library(tidyverse)
+library(cmdstanr)
+library(shinystan)
+library(posterior)
+
+source("functions/posterior_summary_functions.R")
+
+
+load("Simulated_data_BBS.RData")
+
+
+
+for(smpl in c("balanced","realised")){
+  # GEnerate data -----------------------------------------------------------
+  if(smpl == "balanced"){tmp_data = balanced}
+  if(smpl == "realised"){tmp_data = realised}
+ 
+  output_dir <- "output/"
+  
+  out_base <- paste0(smpl,"_BBS")
+  
+load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+
+  # fit_shiny <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
+  # 
+  # launch_shinystan(fit_shiny)
+  # 
+
+
+# Compare stratum level beta parameters -----------------------------------
+
+
+betas_sum <- stanfit$summary(variables = "beta")
+
+betas_est <- posterior_samples(stanfit,
+                               parm = "beta",
+                               dims = c("Stratum_Factored","k")) %>% 
+posterior_sums(.,
+               dims = c("Stratum_Factored","k")) 
+
+beta_comp <- beta_True %>% 
+  as.data.frame() %>% 
+  mutate(k = 1:13) %>% 
+  pivot_longer(cols = starts_with("V"),
+               names_prefix = "V",
+               names_to = "Stratum_Factored",
+               values_to = "beta_True") %>% 
+  mutate(Stratum_Factored = as.integer(Stratum_Factored)) %>% 
+  left_join(betas_est,by = c("Stratum_Factored","k"))
+
+
+betas_plot = ggplot(data = beta_comp,aes(x = beta_True,y = mean))+
+  geom_point(aes(colour = k))+
+  scale_colour_viridis_c()+
+  geom_errorbar(aes(ymin = Q_025,ymax = Q_975),width = 0,alpha = 0.2)+
+  geom_abline(slope = 1, intercept = 0)+ 
+  facet_wrap(~Stratum_Factored,nrow = ceiling(sqrt(stan_data$nstrata)),
+             ncol = ceiling(sqrt(stan_data$nstrata)))
+
+
+pdf(paste0("Figures/beta_comparison_",smpl,".pdf"),
+    width = 11,
+    height = 8)
+print(betas_plot)
+dev.off()
+
+
+
+# compare stratum level smoothed indices ----------------------------------
+
+true_inds <- balanced %>% 
+  select(Stratum,Stratum_Factored,Year,True_log_traj,True_strata_effects) %>% 
+  distinct() %>% 
+  mutate(True_nsmooth = exp(True_log_traj + True_strata_effects)) %>% 
+  arrange(Stratum_Factored)
+
+
+
+nsmooth_est <- posterior_samples(stanfit,
+                               parm = "nsmooth",
+                               dims = c("Stratum_Factored","Year_Index")) %>% 
+  posterior_sums(.,
+                 dims = c("Stratum_Factored","Year_Index")) %>% 
+  mutate(Year = Year_Index+min(balanced$Year)-1)
+
+
+nsmooth_comp <- nsmooth_est %>% 
+  left_join(true_inds,by = c("Stratum_Factored","Year"))
+
+
+
+nsmooth_plot = ggplot(data = nsmooth_comp,aes(x = True_nsmooth,
+                                              y = mean))+
+  geom_point(aes(colour = Year))+
+  scale_colour_viridis_c()+
+  geom_errorbar(aes(ymin = Q_025,ymax = Q_975),width = 0,alpha = 0.2)+
+  geom_abline(slope = 1, intercept = 0)+ 
+  facet_wrap(~Stratum_Factored,nrow = ceiling(sqrt(stan_data$nstrata)),
+             ncol = ceiling(sqrt(stan_data$nstrata)))
+
+
+# pdf(paste0("Figures/nsmooth_comparison_",smpl,".pdf"),
+#     width = 11,
+#     height = 8)
+# print(nsmooth_plot)
+# dev.off()
+
+
+true_inds <- true_inds %>% 
+  mutate(version = "True")
+
+nsmooth_comp2 <- nsmooth_est %>% 
+  select(mean,Q_025,Q_975,Stratum_Factored,Year) %>% 
+  rename(True_nsmooth = mean) %>% 
+  mutate(version = "Estimated") %>% 
+  bind_rows(.,true_inds)
+
+
+nsmooth_plot2 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
+                                              x = Year))+
+  geom_ribbon(aes(ymin = Q_025,ymax = Q_975,fill = version),alpha = 0.2)+
+  geom_line(aes(colour = version))+
+  scale_colour_viridis_d(aesthetics = c("colour","fill"))+
+  facet_wrap(~Stratum_Factored,nrow = ceiling(sqrt(stan_data$nstrata)),
+             ncol = ceiling(sqrt(stan_data$nstrata)),
+             scales = "free_y")
+
+
+pdf(paste0("Figures/nsmooth_comparison_",smpl,".pdf"),
+    width = 11,
+    height = 8)
+print(nsmooth_plot)
+print(nsmooth_plot2)
+dev.off()
+
+
+
+
+}
