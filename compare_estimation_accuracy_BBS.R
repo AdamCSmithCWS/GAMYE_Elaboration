@@ -61,11 +61,6 @@ betas_plot = ggplot(data = beta_comp,aes(x = beta_True,y = mean))+
              ncol = ceiling(sqrt(stan_data$nstrata)))
 
 
-pdf(paste0("Figures/beta_comparison_",smpl,".pdf"),
-    width = 11,
-    height = 8)
-print(betas_plot)
-dev.off()
 
 
 
@@ -124,14 +119,70 @@ nsmooth_plot2 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
              scales = "free_y")
 
 
-pdf(paste0("Figures/nsmooth_comparison_",smpl,".pdf"),
+
+
+true_BETA <- data.frame(True_BETA = BETA_True,
+                        k = 1:stan_data$nknots_year)
+
+BETA_est <- posterior_samples(stanfit,
+                                           parm = "BETA",
+                                           dims = c("k")) %>% 
+  posterior_sums(.,
+                 dims = c("k")) 
+
+BETA_comp <- BETA_est %>% 
+  left_join(true_BETA,by = c("k"))
+
+
+
+BETA_plot = ggplot(data = BETA_comp,aes(x = True_BETA,
+                                              y = mean))+
+  geom_point(aes(colour = k))+
+  scale_colour_viridis_c()+
+  geom_errorbar(aes(ymin = Q_025,ymax = Q_975),width = 0,alpha = 0.2)+
+  geom_abline(slope = 1, intercept = 0)
+
+
+
+# MEan Smooth comparison --------------------------------------------------
+
+true_SMOOTH <- data.frame(True_SMOOTH = stan_data$year_basis %*% BETA_True,
+                        y = 1:stan_data$nyears) %>% 
+  mutate(version = "TRUE")
+
+SMOOTH_est <- posterior_samples(stanfit,
+                              parm = "SMOOTH_pred",
+                              dims = c("y")) %>% 
+  posterior_sums(.,
+                 dims = c("y")) 
+
+
+
+SMOOTH_comp <- SMOOTH_est %>% 
+  select(mean,Q_025,Q_975,y) %>% 
+  rename(True_SMOOTH = mean) %>% 
+  mutate(version = "Estimated") %>% 
+  bind_rows(.,true_SMOOTH)
+
+
+SMOOTH_plot = ggplot(data = SMOOTH_comp,aes(y = True_SMOOTH,
+                                                x = y))+
+  geom_ribbon(aes(ymin = Q_025,ymax = Q_975,fill = version),alpha = 0.2)+
+  geom_line(aes(colour = version))+
+  scale_colour_viridis_d(aesthetics = c("colour","fill"))
+
+
+
+pdf(paste0("Figures/Comparisons_",smpl,".pdf"),
     width = 11,
     height = 8)
+print(betas_plot)
+print(BETA_plot)
 print(nsmooth_plot)
 print(nsmooth_plot2)
+print(SMOOTH_plot)
+
 dev.off()
-
-
 
 
 }
