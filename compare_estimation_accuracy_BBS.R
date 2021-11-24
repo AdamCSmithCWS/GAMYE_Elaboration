@@ -102,11 +102,6 @@ nsmooth_plot = ggplot(data = nsmooth_comp,aes(x = True_nsmooth,
              ncol = ceiling(sqrt(stan_data$nstrata)))
 
 
-# pdf(paste0("Figures/nsmooth_comparison_",smpl,".pdf"),
-#     width = 11,
-#     height = 8)
-# print(nsmooth_plot)
-# dev.off()
 
 
 true_inds <- true_inds %>% 
