@@ -22,12 +22,13 @@ data {
   int<lower=1> nstrata;
   int<lower=1> ncounts;
   int<lower=1> nyears;
+  int<lower=3> nu;
 
   int<lower=0> count[ncounts];              // count observations
   int<lower=1> strat[ncounts];               // strata indicators
   int<lower=1> year[ncounts]; // year index
   int<lower=1> site[ncounts]; // site index
- 
+  
 //  int<lower=0> firstyr[ncounts]; // first year index
   
   int<lower=1> observer[ncounts];              // observer indicators
@@ -137,7 +138,7 @@ for(s in 1:nstrata){
   
 model {
   sdnoise ~ normal(0,0.5); //prior on scale of extra Poisson log-normal variance
-  noise_raw ~ student_t(4,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
+  noise_raw ~ student_t(nu,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
    
   sdobs ~ normal(0,0.5); //prior on sd of observer effects
   sdste ~ std_normal(); //prior on sd of site effects

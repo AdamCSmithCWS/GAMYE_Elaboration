@@ -111,7 +111,8 @@ posterior_sums <- function(samples = n_samples,
                  median = median(.value),
                  sd = sd(.value),
                  lci = quantile(.value,cis[1]),
-                 uci = quantile(.value,cis[2])) %>% 
+                 uci = quantile(.value,cis[2]),
+                 .groups = "keep") %>% 
        rename_with(~gsub("d1",dims[1],.x,fixed = TRUE))
      
      if(!is.null(quantiles)){
@@ -122,7 +123,8 @@ posterior_sums <- function(samples = n_samples,
          
          sumt = samples %>% 
            group_by(d1) %>% 
-           summarise(tt = as.numeric(quantile(.value,qq))) %>% 
+           summarise(tt = as.numeric(quantile(.value,qq)),
+                     .groups = "keep") %>% 
            rename_with(~gsub(pattern = "tt",replacement = qn,.x,fixed = TRUE)) %>% 
            rename_with(~gsub("d1",dims[1],.x,fixed = TRUE)) 
            
@@ -139,7 +141,8 @@ posterior_sums <- function(samples = n_samples,
                    median = median(.value),
                    sd = sd(.value),
                    lci = quantile(.value,cis[1]),
-                   uci = quantile(.value,cis[2])) %>% 
+                   uci = quantile(.value,cis[2]),
+                   .groups = "keep") %>% 
          rename_with(~gsub("d1",dims[1],.x,fixed = TRUE)) %>% 
          rename_with(~gsub("d2",dims[2],.x,fixed = TRUE))
 
@@ -152,7 +155,8 @@ posterior_sums <- function(samples = n_samples,
            
            sumt = samples %>% 
              group_by(d1,d2) %>% 
-             summarise(tt = as.numeric(quantile(.value,qq))) %>% 
+             summarise(tt = as.numeric(quantile(.value,qq)),
+                       .groups = "keep") %>% 
              rename_with(~gsub(pattern = "tt",replacement = qn,.x,fixed = TRUE)) %>% 
              rename_with(~gsub("d1",dims[1],.x,fixed = TRUE))  %>% 
              rename_with(~gsub("d2",dims[2],.x,fixed = TRUE))
@@ -173,7 +177,8 @@ posterior_sums <- function(samples = n_samples,
                    median = median(.value),
                    sd = sd(.value),
                    lci = quantile(.value,cis[1]),
-                   uci = quantile(.value,cis[2])) %>% 
+                   uci = quantile(.value,cis[2]),
+                   .groups = "keep") %>% 
          rename_with(~gsub("d1",dims[1],.x,fixed = TRUE)) %>% 
          rename_with(~gsub("d2",dims[2],.x,fixed = TRUE)) %>% 
          rename_with(~gsub("d3",dims[3],.x,fixed = TRUE))
@@ -187,7 +192,8 @@ posterior_sums <- function(samples = n_samples,
            
            sumt = samples %>% 
              group_by(d1,d2,d3) %>% 
-             summarise(tt = as.numeric(quantile(.value,qq))) %>% 
+             summarise(tt = as.numeric(quantile(.value,qq)),
+                       .groups = "keep") %>% 
              rename_with(~gsub(pattern = "tt",replacement = qn,.x,fixed = TRUE)) %>% 
              rename_with(~gsub("d1",dims[1],.x,fixed = TRUE))  %>% 
              rename_with(~gsub("d2",dims[2],.x,fixed = TRUE))  %>% 
@@ -210,7 +216,8 @@ posterior_sums <- function(samples = n_samples,
                    median = median(.value),
                    sd = sd(.value),
                    lci = quantile(.value,cis[1]),
-                   uci = quantile(.value,cis[2])) %>% 
+                   uci = quantile(.value,cis[2]),
+                   .groups = "keep") %>% 
          rename_with(~gsub("d1",dims[1],.x,fixed = TRUE)) %>% 
          rename_with(~gsub("d2",dims[2],.x,fixed = TRUE)) %>% 
          rename_with(~gsub("d3",dims[3],.x,fixed = TRUE)) %>% 
@@ -225,7 +232,8 @@ posterior_sums <- function(samples = n_samples,
            
            sumt = samples %>% 
              group_by(d1,d2,d3,d4) %>% 
-             summarise(tt = as.numeric(quantile(.value,qq))) %>% 
+             summarise(tt = as.numeric(quantile(.value,qq)),
+                       .groups = "keep") %>% 
              rename_with(~gsub(pattern = "tt",replacement = qn,.x,fixed = TRUE)) %>% 
              rename_with(~gsub("d1",dims[1],.x,fixed = TRUE))  %>% 
              rename_with(~gsub("d2",dims[2],.x,fixed = TRUE))  %>% 
@@ -251,7 +259,8 @@ posterior_sums <- function(samples = n_samples,
               median = median(.value),
               sd = sd(.value),
               lci = quantile(.value,cis[1]),
-              uci = quantile(.value,cis[2]))
+              uci = quantile(.value,cis[2]),
+              .groups = "keep")
   
   if(!is.null(quantiles)){
     qs = paste0("Q_",gsub(quantiles,pattern = "0.",replacement = "",fix = TRUE))
@@ -260,7 +269,8 @@ posterior_sums <- function(samples = n_samples,
       qn = qs[i]
       
       sumt = samples %>% 
-        summarise(tt = as.numeric(quantile(.value,qq))) %>% 
+        summarise(tt = as.numeric(quantile(.value,qq)),
+                  .groups = "keep") %>% 
         rename_with(~gsub(pattern = "tt",replacement = qn,.x,fixed = TRUE))
       sums = bind_cols(sums,sumt)
     }

@@ -9,10 +9,13 @@ library(mgcv) #has functions to simulate data from a GAM
 
 BBS_data <- stratify("bbs_usgs")
 
+
+for(species in c("Pacific Wren","Bobolink")){
+  
 source("Functions/prepare-jags-data-alt.R")
 
 real_data <- prepare_jags_data_alternate(strat_data = BBS_data,
-                          species_to_run = "Pacific Wren",
+                          species_to_run = species,
                           model = "gamye",
                           min_year = NULL) #n-year time-series ???
 min_year <- min(real_data$r_year)
@@ -92,7 +95,9 @@ GAM_year <- gam_basis(years_df$Year,
 
 to_save <- c(to_save,"GAM_year")
 
-set.seed(2021)
+if(species == "Pacific Wren"){ss <- 2021}
+if(species == "Bobolink"){ss <- 2017}
+set.seed(ss)
 BETA_True <- rnorm(GAM_year$nknots_Year,0,1.5)
 
 to_save <- c(to_save,"BETA_True")
@@ -221,6 +226,7 @@ beta_True[,strat_mid] <- BETA_True
   ## Add random annual fluctuations ----------------------------------------
 
   sdyeareffect <- 0.1 # ~10% mean annual fluctuation
+  
   ye_funct <- function(x,sd = sdyeareffect){
     ye = rnorm(length(x),0,sd)
   }
@@ -319,4 +325,7 @@ to_save <- c(to_save,"realised")
 
 
 save(list = to_save,
-     file = "Simulated_data_BBS.RData")
+     file = paste0("Simulated_data_",gsub(species,pattern = " ",replacement = "_"),"_BBS.RData"))
+
+
+}

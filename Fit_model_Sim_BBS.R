@@ -3,11 +3,15 @@ library(bbsBayes)
 library(tidyverse)
 library(cmdstanr)
 
-load("Simulated_data_BBS.RData")
 
 
+for(species in c("Bobolink","Pacific Wren"))
 
-for(smpl in c("balanced","realised")){
+  species_f <- gsub(species,pattern = " ",replacement = "_")
+
+  load(paste0("Simulated_data_",species_f,"_BBS.RData"))
+
+  for(smpl in c("balanced","realised")){
 # GEnerate data -----------------------------------------------------------
 if(smpl == "balanced"){tmp_data = balanced}
   if(smpl == "realised"){tmp_data = realised}
@@ -51,6 +55,7 @@ for(i in 1:nstrata){
 }
 
 nonzeroweight <- rep(1,nstrata)
+nu <- 10 #fixed df for t-distributed noise
 
 stan_data = list(#scalar indicators
                  nsites = nsites,
@@ -83,7 +88,8 @@ stan_data = list(#scalar indicators
                  ste_mat = ste_mat,
                  
                  #weights
-                 nonzeroweight = nonzeroweight
+                 nonzeroweight = nonzeroweight,
+                 nu = nu
 )
 
 
@@ -91,7 +97,7 @@ stan_data = list(#scalar indicators
 
 # Fit model ---------------------------------------------------------------
 
-print(paste("beginning",smpl,"with",nstrata,"strata",Sys.time()))
+print(paste("beginning",species,smpl,"with",nstrata,"strata",Sys.time()))
 
 mod.file = "models/gamye_iCAR.stan"
 
@@ -119,7 +125,7 @@ init_def <- function(){ list(noise_raw = rnorm(ncounts,0,0.1),
                              beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
 
 output_dir <- "output/"
-out_base <- paste0(smpl,"_BBS")
+out_base <- paste0(species_f,"_",smpl,"_BBS")
 
 stanfit <- model$sample(
   data=stan_data,

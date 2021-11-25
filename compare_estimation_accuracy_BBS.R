@@ -8,6 +8,9 @@ library(posterior)
 
 source("functions/posterior_summary_functions.R")
 
+for(species in c("Pacific Wren","Bobolink")){
+  species_f <- gsub(species,pattern = " ",replacement = "_")
+  
 
 load("Simulated_data_BBS.RData")
 
@@ -19,15 +22,14 @@ for(smpl in c("balanced","realised")){
   if(smpl == "realised"){tmp_data = realised}
  
   output_dir <- "output/"
-  
-  out_base <- paste0(smpl,"_BBS")
+  out_base <- paste0(species_f,"_",smpl,"_BBS")
   
 load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
 
-  # fit_shiny <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
-  # 
-  # launch_shinystan(fit_shiny)
-  # 
+  fit_shiny <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
+
+  launch_shinystan(fit_shiny)
+
 
 
 # Compare stratum level beta parameters -----------------------------------
