@@ -1,17 +1,29 @@
 ### Fitting model to simulated BBS data
 library(bbsBayes)
 library(tidyverse)
-library(cmdstanr)
+#library(cmdstanr)
+
+
+species = "Bobolink"
+species_f <- gsub(species,pattern = " ",replacement = "_")
+
+load(paste0("Simulated_data_",species_f,"_BBS.RData"))
+smpl = "balanced"
+output_dir <- "output/"
+out_base <- paste0(species_f,"_",smpl,"_BBS")
+
+csv_files <- paste0(out_base,"-",1:3,".csv")
+stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
 
 
 
-for(species in c("Bobolink","Pacific Wren"))
+for(species in c("Bobolink","Pacific Wren")){
 
   species_f <- gsub(species,pattern = " ",replacement = "_")
 
   load(paste0("Simulated_data_",species_f,"_BBS.RData"))
 
-  for(smpl in c("balanced","realised")){
+  for(smpl in rev(c("balanced","realised"))){
 # GEnerate data -----------------------------------------------------------
 if(smpl == "balanced"){tmp_data = balanced}
   if(smpl == "realised"){tmp_data = realised}
@@ -143,6 +155,7 @@ stanfit <- model$sample(
 
 
 csv_files <- paste0(out_base,"-",1:3,".csv")
+stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
 
 
 save(list = c("stanfit","stan_data","csv_files"),
@@ -153,3 +166,5 @@ save(list = c("stanfit","stan_data","csv_files"),
 
 
 }#end smpl
+  
+}

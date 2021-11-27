@@ -25,15 +25,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
     1.  generate a balanced dataset with observations for all routes and all years, using the realised observer allocations.
 
-        1.  change-point
-
-        2.  linear trend
-
-        3.  smooth trajectory
+        1.  smooth trajectory
 
             1.  set the mean BETAs
 
-            2.  vary the betas in a deterministic way, based on the lat-long of the strata centroids
+            2.  vary the betas using the neighbourhood relationships and a known sd_beta
 
             3.  generate the true trajectories for each stratum
 
@@ -41,9 +37,31 @@ knitr::opts_chunk$set(echo = TRUE)
 
             4.  generate the true trajectories for each route
 
-            5.  add in the observer intercepts
+            5.  add in the observer intercepts and stratum intercepts
 
             6.  add in the noise while generating the simulated counts
+
+            7.  Confirm that the following parameters are accurately estimated:
+
+                1.  BETAs
+
+                2.  betas
+
+                3.  Mean trajectory
+
+                4.  stratum trajectories
+
+                5.  year-effects
+
+        2.  Simple trajectory with same year-effects across all strata - shorebird structural demo
+
+            1.  do same as above, but with hierarchical year-effects that have little variation among strata
+
+        3.  linear trend - same as above, but with only one BETA != 0
+
+        4.  breakpoint - same as above, but with only one (or two) BETA != 0
+
+        5.  
 
 4.  Test-cases: conduct 10-fold CV in each case (compare to non-spatial version).
 
