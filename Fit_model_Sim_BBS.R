@@ -1,23 +1,27 @@
 ### Fitting model to simulated BBS data
 library(bbsBayes)
 library(tidyverse)
-#library(cmdstanr)
+library(cmdstanr)
 
 
-species = "Bobolink"
-species_f <- gsub(species,pattern = " ",replacement = "_")
+# species = "Pacific Wren"
+# species_f <- gsub(species,pattern = " ",replacement = "_")
+# 
+# load(paste0("Simulated_data_",species_f,"_BBS.RData"))
+# smpl = "balanced"
+# output_dir <- "output/"
+# out_base <- paste0(species_f,"_",smpl,"_BBS")
+# 
+# csv_files <- paste0(out_base,"-",1:3,".csv")
+# fit_rstan <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
+# shinystan::launch_shinystan(shinystan::as.shinystan(fit_rstan))
+# 
+# 
+# stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
 
-load(paste0("Simulated_data_",species_f,"_BBS.RData"))
-smpl = "balanced"
-output_dir <- "output/"
-out_base <- paste0(species_f,"_",smpl,"_BBS")
-
-csv_files <- paste0(out_base,"-",1:3,".csv")
-stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
 
 
-
-for(species in c("Bobolink","Pacific Wren")){
+for(species in c("Cerulean Warbler","Pacific Wren")){
 
   species_f <- gsub(species,pattern = " ",replacement = "_")
 
@@ -67,7 +71,7 @@ for(i in 1:nstrata){
 }
 
 nonzeroweight <- rep(1,nstrata)
-nu <- 10 #fixed df for t-distributed noise
+nu <- 100 #fixed df for t-distributed noise
 
 stan_data = list(#scalar indicators
                  nsites = nsites,
@@ -98,10 +102,10 @@ stan_data = list(#scalar indicators
                  nsites_strata = nsites_strata,
                  maxnsites_strata = maxnsites_strata,
                  ste_mat = ste_mat,
+                 #nu = nu,
                  
                  #weights
-                 nonzeroweight = nonzeroweight,
-                 nu = nu
+                 nonzeroweight = nonzeroweight
 )
 
 
@@ -123,15 +127,16 @@ model <- cmdstan_model(mod.file)
 init_def <- function(){ list(noise_raw = rnorm(ncounts,0,0.1),
                              strata_raw = rnorm(nstrata,0,0.1),
                              STRATA = 0,
+                             sdstrata = runif(1,0.01,0.1),
                              #eta = 0,
                              yeareffect_raw = matrix(rnorm(nstrata*nyears,0,0.1),nrow = nstrata,ncol = nyears),
                              obs_raw = rnorm(nobservers,0,0.1),
                              ste_raw = rnorm(nsites,0,0.1),
-                             sdnoise = 0.2,
-                             sdobs = 0.1,
-                             sdste = 0.2,
+                             sdnoise = runif(1,0.01,0.2),
+                             sdobs = runif(1,0.01,0.1),
+                             sdste = runif(1,0.01,0.2),
                              sdbeta = runif(nknots_year,0.01,0.1),
-                             sdBETA = 0.1,
+                             sdBETA = runif(1,0.01,0.1),
                              sdyear = runif(nstrata,0.01,0.1),
                              BETA_raw = rnorm(nknots_year,0,0.1),
                              beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
@@ -155,7 +160,7 @@ stanfit <- model$sample(
 
 
 csv_files <- paste0(out_base,"-",1:3,".csv")
-stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
+#stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
 
 
 save(list = c("stanfit","stan_data","csv_files"),

@@ -8,15 +8,15 @@ library(posterior)
 
 source("functions/posterior_summary_functions.R")
 
-for(species in c("Pacific Wren","Bobolink")){
+for(species in c("Pacific Wren","Cerulean Warbler")){
   species_f <- gsub(species,pattern = " ",replacement = "_")
   
 
-load("Simulated_data_BBS.RData")
+  load(paste0("Simulated_data_",species_f,"_BBS.RData"))
+  
 
 
-
-for(smpl in c("balanced","realised")){
+for(smpl in rev(c("balanced","realised"))){
   # GEnerate data -----------------------------------------------------------
   if(smpl == "balanced"){tmp_data = balanced}
   if(smpl == "realised"){tmp_data = realised}
@@ -26,9 +26,9 @@ for(smpl in c("balanced","realised")){
   
 load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
 
-  fit_shiny <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
-
-  launch_shinystan(fit_shiny)
+  # fit_shiny <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
+  # 
+  # launch_shinystan(fit_shiny)
 
 
 
@@ -175,7 +175,7 @@ SMOOTH_plot = ggplot(data = SMOOTH_comp,aes(y = True_SMOOTH,
 
 
 
-pdf(paste0("Figures/Comparisons_",smpl,".pdf"),
+pdf(paste0("Figures/Comparisons_",species,"_",smpl,".pdf"),
     width = 11,
     height = 8)
 print(betas_plot)
@@ -186,5 +186,7 @@ print(SMOOTH_plot)
 
 dev.off()
 
+
+}
 
 }

@@ -25,7 +25,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
     1.  generate a balanced dataset with observations for all routes and all years, using the realised observer allocations.
 
-        1.  smooth trajectory
+        1.  smooth trajectory - model is correct
 
             1.  set the mean BETAs
 
@@ -53,15 +53,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
                 5.  year-effects
 
-        2.  Simple trajectory with same year-effects across all strata - shorebird structural demo
+        2.  False Model
+
+            1.  same as above, but with non-spatial variation in trajectories - mean trajectory and random variation among strata - using Pacific Wren...
+
+        3.  Simple trajectory with same year-effects across all strata - shorebird structural demo
 
             1.  do same as above, but with hierarchical year-effects that have little variation among strata
 
-        3.  linear trend - same as above, but with only one BETA != 0
+        4.  linear trend - same as above, but with only one BETA != 0
 
-        4.  breakpoint - same as above, but with only one (or two) BETA != 0
+        5.  breakpoint - same as above, but with only one (or two) BETA != 0
 
-        5.  
+        6.  
 
 4.  Test-cases: conduct 10-fold CV in each case (compare to non-spatial version).
 

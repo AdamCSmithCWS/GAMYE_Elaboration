@@ -10,7 +10,10 @@ library(mgcv) #has functions to simulate data from a GAM
 BBS_data <- stratify("bbs_usgs")
 
 
-for(species in c("Pacific Wren","Bobolink")){
+for(species in c("Pacific Wren","Cerulean Warbler")){
+  
+  species_f <- gsub(species,pattern = " ",replacement = "_")
+  
   
 source("Functions/prepare-jags-data-alt.R")
 
@@ -96,7 +99,7 @@ GAM_year <- gam_basis(years_df$Year,
 to_save <- c(to_save,"GAM_year")
 
 if(species == "Pacific Wren"){ss <- 2021}
-if(species == "Bobolink"){ss <- 2017}
+if(species == "Cerulean Warbler"){ss <- 2017}
 set.seed(ss)
 BETA_True <- rnorm(GAM_year$nknots_Year,0,1.5)
 
@@ -138,14 +141,22 @@ strata_df <- strata_df %>%
 
 neighbours <- neighbours_define(real_strata_map = strata_map,
                                 plot_dir = "maps/",
-                                species = "Simulated",
+                                species = paste0("Simulated",species_f),
                                 alt_strat = "Stratum")
 to_save <- c(to_save,"neighbours")
 
-## Generate stratum smooths ----------------------------------------
+## Generate stratum smooths and intercepts ----------------------------------------
 
-sd_spat_beta <- 0.3
+sd_spat_beta <- 0.07*sqrt(nstrata) #setting the spatial variation based on the number of strata
+
 to_save <- c(to_save,"sd_spat_beta")
+
+sd_spat_strata <- 0.03*nstrata #setting the spatial variation based on the number of strata
+
+to_save <- c(to_save,"sd_spat_strata")
+
+
+
 
 ## correlation matrix
 neigh_mat <- neighbours$adj_matrix
@@ -157,6 +168,9 @@ to_save <- c(to_save,"strat_mid")
 
 
 nstrata <- nrow(strata_df)
+STRATA_True <- 2 #mean abundance
+strata_True <- rep(NA,nstrata)
+strata_True[strat_mid] <- STRATA_True 
 beta_True <- matrix(NA,nrow = nknots,
                     ncol = nstrata)
 beta_True[,strat_mid] <- BETA_True
@@ -168,6 +182,10 @@ beta_True[,strat_mid] <- BETA_True
         bm = mean(beta_True[b,strat_mid],na.rm = TRUE)
         beta_True[b,sj] <- rnorm(1,bm,sd_spat_beta)
       }
+    }
+    if(is.na(strata_True[sj])){
+      sm = mean(strata_True[strat_mid],na.rm = TRUE)
+      strata_True[sj] <- rnorm(1,sm,sd_spat_strata)
     }
   }
   
@@ -187,12 +205,17 @@ beta_True[,strat_mid] <- BETA_True
           bm = mean(beta_True[b,wnx],na.rm = TRUE)
           beta_True[b,si] <- rnorm(1,bm,sd_spat_beta)
         }
-      }
-
+           }
+    if(is.na(strata_True[si])){
+      sm = mean(strata_True[wnx],na.rm = TRUE)
+      strata_True[si] <- rnorm(1,sm,sd_spat_strata)
+    }
+    
     
   }
     
   to_save <- c(to_save,"beta_True")
+  to_save <- c(to_save,"strata_True")
   
   
 
@@ -213,15 +236,15 @@ beta_True[,strat_mid] <- BETA_True
     left_join(.,strata_df,by = c("Stratum_Factored")) %>% 
     arrange(Y,Year) 
 
-  pf <- ggplot(data = log_smooth_plot,aes(x = Year,y = index,colour = Y))+
+  pfs <- ggplot(data = log_smooth_plot,aes(x = Year,y = index,colour = Y))+
     geom_line(size = 2)+
     scale_color_viridis_c()+
     scale_y_continuous(limits = c(0,NA))+
     facet_wrap(~Stratum_Factored,scales = "free_y",
                nrow = ceiling(sqrt(nstrata)),
-               ncol = floor(sqrt(nstrata)))
+               ncol = ceiling(sqrt(nstrata)))
   
-  print(pf)
+  #print(pf)
   
   ## Add random annual fluctuations ----------------------------------------
 
@@ -245,13 +268,19 @@ beta_True[,strat_mid] <- BETA_True
     scale_y_continuous(limits = c(0,NA))+
     facet_wrap(~Stratum_Factored,scales = "free_y",
                nrow = ceiling(sqrt(nstrata)),
-               ncol = floor(sqrt(nstrata)))
+               ncol = ceiling(sqrt(nstrata)))
   
+  
+  pdf(paste0("Figures/",species_f,"True_smooth.pdf"),
+      width = 11,
+      height = 8.5)
+  print(pfs)
   print(pf)
   
-  
+ dev.off()
+ 
 
-# Add observer, route, and strata intercepts ----------------------------
+# Add observer, route intercepts ----------------------------
 
   balanced <- balanced %>% left_join(.,log_true_traj,
                                      by = c("Stratum","Year","Stratum_Factored")) %>% 
@@ -286,10 +315,9 @@ beta_True[,strat_mid] <- BETA_True
     
   
   ## Stratum Effects
-  sdstrata <- 0.5
   
   strata_df <- strata_df %>% 
-    mutate(True_strata_effects = rnorm(nstrata,0,sdstrata))
+    mutate(True_strata_effects = strata_True)
   
   to_save <- c(to_save,"strata_df")
   
@@ -325,7 +353,7 @@ to_save <- c(to_save,"realised")
 
 
 save(list = to_save,
-     file = paste0("Simulated_data_",gsub(species,pattern = " ",replacement = "_"),"_BBS.RData"))
+     file = paste0("Simulated_data_",species_f,"_BBS.RData"))
 
 
 }

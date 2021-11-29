@@ -22,7 +22,7 @@ data {
   int<lower=1> nstrata;
   int<lower=1> ncounts;
   int<lower=1> nyears;
-  int<lower=3> nu;
+  //int<lower=3> nu;
 
   int<lower=0> count[ncounts];              // count observations
   int<lower=1> strat[ncounts];               // strata indicators
@@ -88,8 +88,6 @@ parameters {
 
 transformed parameters { 
   vector[ncounts] E;           // log_scale additive likelihood
-  vector[nstrata] strata;
-  vector[nsites] ste; // site intercepts
   matrix[nstrata,nknots_year] beta;         // spatial effect slopes (0-centered deviation from continental mean slope B)
   matrix[nyears,nstrata] smooth_pred;
   vector[nyears] SMOOTH_pred;  
@@ -116,20 +114,18 @@ for(s in 1:nstrata){
 
 }
 
-     ste = sdste*ste_raw;
-
-
 // intercepts and slopes
 
-  strata = (sdstrata*strata_raw) + STRATA;
   
-  
+
 
   for(i in 1:ncounts){
     real noise = sdnoise*noise_raw[i];
     real obs = sdobs*obs_raw[observer[i]];
+   real strata = (sdstrata*strata_raw[strat[i]]) + STRATA;
+  real ste = sdste*ste_raw[site[i]]; // site intercepts
 
-    E[i] =  smooth_pred[year[i],strat[i]] + strata[strat[i]] + yeareffect[strat[i],year[i]] + ste[site[i]] + obs + noise;
+    E[i] =  smooth_pred[year[i],strat[i]] + strata + yeareffect[strat[i],year[i]] + ste + obs + noise;
   }
   
   }
@@ -138,8 +134,8 @@ for(s in 1:nstrata){
   
 model {
   sdnoise ~ normal(0,0.5); //prior on scale of extra Poisson log-normal variance
-  noise_raw ~ student_t(nu,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
-   
+  //noise_raw ~ student_t(nu,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
+   noise_raw ~ normal(0,1);
   sdobs ~ normal(0,0.5); //prior on sd of observer effects
   sdste ~ std_normal(); //prior on sd of site effects
   sdyear ~ gamma(2,2); // prior on sd of yeareffects - stratum specific, and boundary-avoiding with a prior mode at 0.5 (1/2) - recommended by https://doi.org/10.1007/s11336-013-9328-2 
@@ -178,6 +174,8 @@ for(k in 1:nknots_year){
     beta_raw[,k] ~ icar_normal(nstrata, node1, node2);
 }
    strata_raw ~ icar_normal(nstrata, node1, node2);
+//   strata_raw ~ normal(0,1);
+  // sum(strata_raw) ~ normal(0,0.001*nstrata);
 
 
   count ~ poisson_log(E); //vectorized count likelihood with log-transformation
@@ -207,12 +205,16 @@ for(y in 1:nyears){
 
   real n_t[nsites_strata[s]];
   real nsmooth_t[nsites_strata[s]];
-
+  real retrans_yr = 0.5*(sdyear[s]^2);
+  real strata = (sdstrata*strata_raw[s]) + STRATA;
+  
         for(t in 1:nsites_strata[s]){
-            real retrans_yr = 0.5*(sdyear[s]^2);
 
-      n_t[t] = exp(strata[s]+ smooth_pred[y,s] + ste[ste_mat[s,t]] + yeareffect[s,y] + retrans_noise + retrans_obs);
-      nsmooth_t[t] = exp(strata[s] + smooth_pred[y,s] + ste[ste_mat[s,t]] + retrans_yr + retrans_noise + retrans_obs);
+  real ste = sdste*ste_raw[ste_mat[s,t]]; // site intercepts
+
+
+      n_t[t] = exp(strata+ smooth_pred[y,s] + ste + yeareffect[s,y] + retrans_noise + retrans_obs);
+      nsmooth_t[t] = exp(strata + smooth_pred[y,s] + ste + retrans_yr + retrans_noise + retrans_obs);
         }
         n[s,y] = nonzeroweight[s] * mean(n_t);
         nsmooth[s,y] = nonzeroweight[s] * mean(nsmooth_t);
