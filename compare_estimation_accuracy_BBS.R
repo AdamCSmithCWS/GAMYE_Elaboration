@@ -26,9 +26,9 @@ for(smpl in rev(c("balanced","realised"))){
   
 load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
 
-  # fit_shiny <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
-  # 
-  # launch_shinystan(fit_shiny)
+  fit_shiny <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
+
+  launch_shinystan(fit_shiny)
 
 
 
@@ -123,6 +123,9 @@ nsmooth_plot2 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
 
 
 
+# Hyperparameters ---------------------------------------------------------
+
+
 true_BETA <- data.frame(True_BETA = BETA_True,
                         k = 1:stan_data$nknots_year)
 
@@ -140,6 +143,29 @@ BETA_comp <- BETA_est %>%
 BETA_plot = ggplot(data = BETA_comp,aes(x = True_BETA,
                                               y = mean))+
   geom_point(aes(colour = k))+
+  scale_colour_viridis_c()+
+  geom_errorbar(aes(ymin = Q_025,ymax = Q_975),width = 0,alpha = 0.2)+
+  geom_abline(slope = 1, intercept = 0)
+
+
+
+# Hyperparameters realised ------------------------------------------------
+
+
+true_BETA_r <- data.frame(True_BETA = rowMeans(beta_True),
+                        k = 1:stan_data$nknots_year)
+
+
+
+BETA_comp_r <- BETA_est %>% 
+  left_join(true_BETA_r,by = c("k"))
+
+
+
+BETA_plot_r = ggplot(data = BETA_comp_r,aes(x = True_BETA,
+                                        y = mean))+
+  geom_point(aes(colour = k))+
+  labs(title = "Realised True BETA")+
   scale_colour_viridis_c()+
   geom_errorbar(aes(ymin = Q_025,ymax = Q_975),width = 0,alpha = 0.2)+
   geom_abline(slope = 1, intercept = 0)
@@ -174,15 +200,43 @@ SMOOTH_plot = ggplot(data = SMOOTH_comp,aes(y = True_SMOOTH,
   scale_colour_viridis_d(aesthetics = c("colour","fill"))
 
 
+# Hypersmooth realised ----------------------------------------------------
+
+
+
+true_SMOOTH_r <- data.frame(True_SMOOTH = stan_data$year_basis %*% rowMeans(beta_True),
+                          y = 1:stan_data$nyears) %>% 
+  mutate(version = "TRUE")
+
+
+
+
+SMOOTH_comp_r <- SMOOTH_est %>% 
+  select(mean,Q_025,Q_975,y) %>% 
+  rename(True_SMOOTH = mean) %>% 
+  mutate(version = "Estimated") %>% 
+  bind_rows(.,true_SMOOTH_r)
+
+
+SMOOTH_plot_r = ggplot(data = SMOOTH_comp_r,aes(y = True_SMOOTH,
+                                            x = y))+
+  geom_ribbon(aes(ymin = Q_025,ymax = Q_975,fill = version),alpha = 0.2)+
+  labs(title = "Realised True SMOOTH")+
+  geom_line(aes(colour = version))+
+  scale_colour_viridis_d(aesthetics = c("colour","fill"))
+
+
 
 pdf(paste0("Figures/Comparisons_",species,"_",smpl,".pdf"),
     width = 11,
     height = 8)
 print(betas_plot)
 print(BETA_plot)
+print(BETA_plot_r)
 print(nsmooth_plot)
 print(nsmooth_plot2)
 print(SMOOTH_plot)
+print(SMOOTH_plot_r)
 
 dev.off()
 

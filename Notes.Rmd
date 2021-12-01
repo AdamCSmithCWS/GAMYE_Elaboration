@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 1.  Describe the spatial hierarchical version of a GAMYE
 
-2.  Demonstrate the similarity of the alternative parameterisations of the hierarchical structure
+2.  Consider if it's worth the effort to demonstrate the similarity of the alternative parameterisations of the hierarchical structure
 
     1.  hierarchical beta-terms (similar to Smith and Edwards 2020)
 
@@ -27,21 +27,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
         1.  smooth trajectory - model is correct
 
-            1.  set the mean BETAs
+            1.  vary the betas using the neighbourhood relationships and a known sd_beta
 
-            2.  vary the betas using the neighbourhood relationships and a known sd_beta
+            2.  calculate the realised mean betas
 
-            3.  generate the true trajectories for each stratum
+            3.  generate the true trajectories for each stratum and the overall mean trajectory
 
                 1.  plot them to confirm
 
-            4.  generate the true trajectories for each route
-
-            5.  add in the observer intercepts and stratum intercepts
-
-            6.  add in the noise while generating the simulated counts
-
-            7.  Confirm that the following parameters are accurately estimated:
+            4.  Confirm that the following parameters are accurately estimated:
 
                 1.  BETAs
 
@@ -55,7 +49,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
         2.  False Model
 
-            1.  same as above, but with non-spatial variation in trajectories - mean trajectory and random variation among strata - using Pacific Wren...
+            1.  same as above, but with non-spatial variation in trajectories - mean trajectory and random variation among strata - using Cerulean Warbler...
 
         3.  Simple trajectory with same year-effects across all strata - shorebird structural demo
 

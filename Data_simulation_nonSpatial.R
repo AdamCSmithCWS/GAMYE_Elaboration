@@ -9,8 +9,7 @@ library(mgcv) #has functions to simulate data from a GAM
 
 BBS_data <- stratify("bbs_usgs")
 
-
-for(species in c("Pacific Wren","Cerulean Warbler")){
+species <- "Cerulean Warbler"
   
   species_f <- gsub(species,pattern = " ",replacement = "_")
   
@@ -216,7 +215,17 @@ beta_True[,strat_mid] <- BETA_True
     
     
   }
-    
+   
+  
+
+# Randomize the strata to remove the spatial dependency -------------------
+
+  set.seed(1999)
+  new_order_strata <- sample(1:nstrata)
+strata_True <- strata_True[new_order_strata]  
+   set.seed(2001)
+   new_order_beta <- sample(1:nstrata)
+   beta_True <- beta_True[,new_order_beta] 
   to_save <- c(to_save,"beta_True")
   to_save <- c(to_save,"strata_True")
   
@@ -274,7 +283,7 @@ beta_True[,strat_mid] <- BETA_True
                ncol = ceiling(sqrt(nstrata)))
   
   
-  pdf(paste0("Figures/",species_f,"True_smooth.pdf"),
+  pdf(paste0("Figures/",species_f,"Non_spatial_True_smooth.pdf"),
       width = 11,
       height = 8.5)
   print(pfs)
@@ -356,7 +365,7 @@ to_save <- c(to_save,"realised")
 
 
 save(list = to_save,
-     file = paste0("Simulated_data_",species_f,"_BBS.RData"))
+     file = paste0("Simulated_data_",species_f,"Non_spatial_BBS.RData"))
 
 
-}
+

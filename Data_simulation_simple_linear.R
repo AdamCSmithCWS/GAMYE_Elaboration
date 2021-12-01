@@ -9,8 +9,7 @@ library(mgcv) #has functions to simulate data from a GAM
 
 BBS_data <- stratify("bbs_usgs")
 
-
-for(species in c("Pacific Wren","Cerulean Warbler")){
+species <- "Cerulean Warbler"
   
   species_f <- gsub(species,pattern = " ",replacement = "_")
   
@@ -98,11 +97,9 @@ GAM_year <- gam_basis(years_df$Year,
 
 to_save <- c(to_save,"GAM_year")
 
-if(species == "Pacific Wren"){ss <- 2021}
-if(species == "Cerulean Warbler"){ss <- 2017}
-set.seed(ss)
-BETA_True <- rnorm(GAM_year$nknots_Year,0,1.5)
 
+BETA_True <- rep(0,GAM_year$nknots_Year)
+BETA_True[GAM_year$nknots_Year] <- -5 #log linear descending trend
 to_save <- c(to_save,"BETA_True")
 
 mean_log_smooth <-  GAM_year$Year_basis %*% BETA_True
@@ -148,7 +145,6 @@ to_save <- c(to_save,"neighbours")
 ## Generate stratum smooths and intercepts ----------------------------------------
 
 
-# Must center the smooths better, perhaps using geographic variation ------------------------------
 
 sd_spat_beta <- 0.07*sqrt(nstrata) #setting the spatial variation based on the number of strata
 
@@ -182,8 +178,12 @@ beta_True[,strat_mid] <- BETA_True
   for(sj in wn){
     if(any(is.na(beta_True[,sj]))){
       for(b in 1:nknots){
+        if(b < nknots){
+          beta_True[b,sj] <- 0
+        }else{
         bm = mean(beta_True[b,strat_mid],na.rm = TRUE)
         beta_True[b,sj] <- rnorm(1,bm,sd_spat_beta)
+        }
       }
     }
     if(is.na(strata_True[sj])){
@@ -205,8 +205,12 @@ beta_True[,strat_mid] <- BETA_True
 
       if(any(is.na(beta_True[,si]))){
         for(b in 1:nknots){
+          if(b < nknots){
+            beta_True[b,si] <- 0
+          }else{
           bm = mean(beta_True[b,wnx],na.rm = TRUE)
           beta_True[b,si] <- rnorm(1,bm,sd_spat_beta)
+          }
         }
            }
     if(is.na(strata_True[si])){
@@ -274,7 +278,7 @@ beta_True[,strat_mid] <- BETA_True
                ncol = ceiling(sqrt(nstrata)))
   
   
-  pdf(paste0("Figures/",species_f,"True_smooth.pdf"),
+  pdf(paste0("Figures/",species_f,"Simple_Linear_True_smooth.pdf"),
       width = 11,
       height = 8.5)
   print(pfs)
@@ -356,7 +360,6 @@ to_save <- c(to_save,"realised")
 
 
 save(list = to_save,
-     file = paste0("Simulated_data_",species_f,"_BBS.RData"))
+     file = paste0("Simulated_data_",species_f,"simple_linear_BBS.RData"))
 
 
-}
