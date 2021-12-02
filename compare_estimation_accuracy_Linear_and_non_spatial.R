@@ -7,24 +7,39 @@ library(shinystan)
 library(posterior)
 
 source("functions/posterior_summary_functions.R")
-
-for(species in c("Pacific Wren","Cerulean Warbler")){
+species <- "Cerulean Warbler"
   species_f <- gsub(species,pattern = " ",replacement = "_")
   
 
-  load(paste0("Simulated_data_",species_f,"_BBS.RData"))
-  
 
 
-for(smpl in rev(c("balanced","realised"))){
+smpl <- "realised"
+for(smpl2 in c("linear","non_spatial")){
   # GEnerate data -----------------------------------------------------------
-  if(smpl == "balanced"){tmp_data = balanced}
-  if(smpl == "realised"){tmp_data = realised}
- 
-  output_dir <- "output/"
-  out_base <- paste0(species_f,"_",smpl,"_BBS")
+
+  load(paste0("Simulated_data_",species_f,"simple_linear_BBS.RData"))
   
-load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+  
+    if(smpl2 == "linear"){
+      load(paste0("Simulated_data_",species_f,"simple_linear_BBS.RData"))
+    
+      output_dir <- "output/"
+      out_base <- paste0(species_f,"_",smpl,"Linear_BBS")
+    
+      load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+      }
+  if(smpl2 == "non_spatial"){
+    load(paste0("Simulated_data_",species_f,"Non_spatial_BBS.RData"))
+    
+    output_dir <- "output/"
+    out_base <- paste0(species_f,"_",smpl,"Non_spatial_BBS")
+    
+    load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+  }
+ 
+  tmp_data = realised
+  
+  
 
   # fit_shiny <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
   # 
@@ -226,7 +241,7 @@ SMOOTH_plot_r = ggplot(data = SMOOTH_comp_r,aes(y = True_SMOOTH,
 
 
 
-pdf(paste0("Figures/Comparisons_",species,"_",smpl,".pdf"),
+pdf(paste0("Figures/Comparisons_",species,"_",smpl2,".pdf"),
     width = 11,
     height = 8)
 print(betas_plot)
@@ -242,4 +257,3 @@ dev.off()
 
 }
 
-}
