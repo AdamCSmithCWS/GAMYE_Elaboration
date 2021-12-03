@@ -27,7 +27,7 @@ species <- "Cerulean Warbler"
   
    for(STRATA_True in rev(log(c(0.1,0.5,1,2,5)))){
 
-        
+        #STRATA_True <- log(2)
         output_dir <- "output/"
         out_base <- paste0(species_f,"_",round(STRATA_True,2),"_BBS")
         csv_files <- paste0(out_base,"-",1:3,".csv")
