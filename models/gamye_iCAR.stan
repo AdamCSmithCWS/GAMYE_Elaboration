@@ -189,11 +189,12 @@ for(k in 1:nknots_year){
    real<lower=0> nsmooth[nstrata,nyears];
    real<lower=0> retrans_noise;
    real<lower=0> retrans_obs;
-  vector[ncounts] log_lik;
+  // vector[ncounts] log_lik; // alternative value to track the observervation level log-likelihood
+  // potentially useful for estimating loo-diagnostics, such as looic
   
-  for(i in 1:ncounts){
-  log_lik[i] = poisson_log_lpmf(count[i] | E[i]);
-  }
+  // for(i in 1:ncounts){
+  // log_lik[i] = poisson_log_lpmf(count[i] | E[i]);
+  // }
   
   
 retrans_noise = 0.5*(sdnoise^2);

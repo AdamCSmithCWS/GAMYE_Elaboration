@@ -4,16 +4,16 @@ library(tidyverse)
 library(bbsBayes)
 library(mgcv) #has functions to simulate data from a GAM
 
-
-# select real BBS data for PAWR -------------------------------------------
+# select real BBS data for CEWA -------------------------------------------
 
 BBS_data <- stratify("bbs_usgs")
 
-species <- "Cerulean Warbler"
-  
+
+species = "Cerulean Warbler"  
   species_f <- gsub(species,pattern = " ",replacement = "_")
   
   
+  for(tp in c("non_linear","linear")){
 source("Functions/prepare-jags-data-alt.R")
 
 real_data <- prepare_jags_data_alternate(strat_data = BBS_data,
@@ -97,12 +97,14 @@ GAM_year <- gam_basis(years_df$Year,
 
 to_save <- c(to_save,"GAM_year")
 
+set.seed(2017)
+BETA_mid <- rnorm(GAM_year$nknots_Year,0,1.5)
+if(tp == "linear"){ #for linear trend sets all BETAs except 13 to 0
+BETA_mid[1:(GAM_year$nknots_Year-1)] <- 0
+}
+to_save <- c(to_save,"BETA_mid")
 
-BETA_True <- rep(0,GAM_year$nknots_Year)
-BETA_True[GAM_year$nknots_Year] <- -5 #log linear descending trend
-to_save <- c(to_save,"BETA_True")
-
-mean_log_smooth <-  GAM_year$Year_basis %*% BETA_True
+mean_log_smooth <-  GAM_year$Year_basis %*% BETA_mid
 
 #plot(exp(mean_log_smooth),type = "l",ylim = c(0,max(exp(mean_log_smooth))))
 
@@ -144,15 +146,19 @@ to_save <- c(to_save,"neighbours")
 
 ## Generate stratum smooths and intercepts ----------------------------------------
 
+### use simple, smooth, x-y coordinate variation in betas and stratas
+
+strata_df <- strata_df %>% 
+  mutate(yscale = scale(Y,scale = TRUE),
+         xscale = scale(X,scale = TRUE),
+         sumxy = yscale+xscale)
 
 
-sd_spat_beta <- 0.07*sqrt(nstrata) #setting the spatial variation based on the number of strata
-
-to_save <- c(to_save,"sd_spat_beta")
-
-sd_spat_strata <- 0.03*nstrata #setting the spatial variation based on the number of strata
-
-to_save <- c(to_save,"sd_spat_strata")
+# strat_tempplot <- ggplot(data = strata_df,aes(x = X,y = Y))+
+#   geom_point(aes(colour = sumxy),size = 3)+
+#   scale_colour_viridis_c()
+# 
+# print(strat_tempplot)
 
 
 
@@ -160,75 +166,39 @@ to_save <- c(to_save,"sd_spat_strata")
 ## correlation matrix
 neigh_mat <- neighbours$adj_matrix
 
-## centre stratum
-strat_mid <- which.max(colSums((neigh_mat)))
-strata_df[strat_mid,]
-to_save <- c(to_save,"strat_mid")
-
-
+### strata intercepts
 nstrata <- nrow(strata_df)
-STRATA_True <- 2 #mean abundance
-strata_True <- rep(NA,nstrata)
-strata_True[strat_mid] <- STRATA_True 
-beta_True <- matrix(NA,nrow = nknots,
+STRATA_True <- 4 #peak abundance
+strata_df <- strata_df %>% 
+  mutate(strata_True = STRATA_True - abs(sumxy))
+strata_True <- as.numeric(strata_df$strata_True)
+
+
+### strata betas
+Beta_True <- matrix(NA,nrow = nknots,
                     ncol = nstrata)
-beta_True[,strat_mid] <- BETA_True
+sum_xy <- as.numeric(strata_df$sumxy)
 
-  wn = which(neigh_mat[strat_mid,] == 1)
-  for(sj in wn){
-    if(any(is.na(beta_True[,sj]))){
-      for(b in 1:nknots){
-        if(b < nknots){
-          beta_True[b,sj] <- 0
-        }else{
-        bm = mean(beta_True[b,strat_mid],na.rm = TRUE)
-        beta_True[b,sj] <- rnorm(1,bm,sd_spat_beta)
-        }
-      }
-    }
-    if(is.na(strata_True[sj])){
-      sm = mean(strata_True[strat_mid],na.rm = TRUE)
-      strata_True[sj] <- rnorm(1,sm,sd_spat_strata)
-    }
-  }
+
+for(k in 1:nknots){
   
-  while(any(is.na(beta_True))){
-    wna <- which(is.na(beta_True[1,])) #strata that have no betas yet
-    if(length(wna) > 1){
-      ww <- which(!is.na(beta_True[1,])) # strata that do have betas
-      wnxa <- (neigh_mat[ww,wna]) #matrix of columns of missing
-      si <- wna[which.max(apply(wnxa,2,sum))]
-    }else{
-      si <- wna
-    }
-    wnx <- which(neigh_mat[,si] == 1)
+Beta_True[k,] <- sum_xy*0.5 + BETA_mid[k]
+if(tp == "linear" & k < nknots){ #for linear trend sets all BETAs except 13 to 0
+  Beta_True[k,] <- rep(0,nstrata)
+}
 
-      if(any(is.na(beta_True[,si]))){
-        for(b in 1:nknots){
-          if(b < nknots){
-            beta_True[b,si] <- 0
-          }else{
-          bm = mean(beta_True[b,wnx],na.rm = TRUE)
-          beta_True[b,si] <- rnorm(1,bm,sd_spat_beta)
-          }
-        }
-           }
-    if(is.na(strata_True[si])){
-      sm = mean(strata_True[wnx],na.rm = TRUE)
-      strata_True[si] <- rnorm(1,sm,sd_spat_strata)
-    }
-    
-    
   }
-    
-  to_save <- c(to_save,"beta_True")
+
+  to_save <- c(to_save,"Beta_True")
   to_save <- c(to_save,"strata_True")
   
+  BETA_True <- rowMeans(Beta_True)
+  to_save <- c(to_save,"BETA_True")
   
-
+ 
 ## stratum-level smooths ----------------------------------------
 
-  strat_log_smooths <- GAM_year$Year_basis %*% beta_True 
+  strat_log_smooths <- GAM_year$Year_basis %*% Beta_True 
 
   true_log_smooths <- as.data.frame(strat_log_smooths)
   true_log_smooths[,"Year"] <- min_year : 2019
@@ -247,11 +217,11 @@ beta_True[,strat_mid] <- BETA_True
     geom_line(size = 2)+
     scale_color_viridis_c()+
     scale_y_continuous(limits = c(0,NA))+
-    facet_wrap(~Stratum_Factored,scales = "free_y",
+    facet_wrap(~Stratum,scales = "free_y",
                nrow = ceiling(sqrt(nstrata)),
                ncol = ceiling(sqrt(nstrata)))
   
-  #print(pf)
+  #print(pfs)
   
   ## Add random annual fluctuations ----------------------------------------
 
@@ -273,12 +243,12 @@ beta_True[,strat_mid] <- BETA_True
     geom_line(size = 2)+
     scale_color_viridis_c()+
     scale_y_continuous(limits = c(0,NA))+
-    facet_wrap(~Stratum_Factored,scales = "free_y",
+    facet_wrap(~Stratum,scales = "free_y",
                nrow = ceiling(sqrt(nstrata)),
                ncol = ceiling(sqrt(nstrata)))
   
   
-  pdf(paste0("Figures/",species_f,"Simple_Linear_True_smooth.pdf"),
+  pdf(paste0("Figures/",species_f,"_",tp,"_True_smooth.pdf"),
       width = 11,
       height = 8.5)
   print(pfs)
@@ -359,7 +329,32 @@ to_save <- c(to_save,"realised")
 
 
 
+# remove all but two years from each observer and route in some st --------
+
+strata_mask <- c("CA-ON-13","CA-ON-12") #strata to reduce data to minimum necessary
+routes_mask <- routes_df %>% filter(Stratum %in% strata_mask)
+
+# minimum number of observation events to retain so that all routes and observers are included
+
+event_mask_retain <- realised %>% 
+  filter(Route %in% routes_mask$Route) %>% 
+  group_by(Route,Observer,First_Year) %>% 
+  sample_n(size = 1) %>% 
+  as.data.frame()
+
+realised_mask <- realised %>% 
+  filter(!Route %in% routes_mask$Route) %>% 
+  bind_rows(.,event_mask_retain)
+  
+
+to_save <- c(to_save,"realised_mask","strata_mask","event_mask_retain")
+
+
+
+
+
+
 save(list = to_save,
-     file = paste0("Simulated_data_",species_f,"simple_linear_BBS.RData"))
+     file = paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
 
-
+}
