@@ -9,7 +9,7 @@ library(mgcv) #has functions to simulate data from a GAM
 BBS_data <- stratify("bbs_usgs")
 
 
-species = "Cerulean Warbler"  
+species = "Pine Warbler"  
   species_f <- gsub(species,pattern = " ",replacement = "_")
   
   
@@ -97,8 +97,11 @@ GAM_year <- gam_basis(years_df$Year,
 
 to_save <- c(to_save,"GAM_year")
 
+#select random initial BETA values to seed the spatial variation in trajetories
 set.seed(2017)
 BETA_mid <- rnorm(GAM_year$nknots_Year,0,1.5)
+
+# if linear pattern is desired, set all but final BETA == 0
 if(tp == "linear"){ #for linear trend sets all BETAs except 13 to 0
 BETA_mid[1:(GAM_year$nknots_Year-1)] <- 0
 }
@@ -109,7 +112,6 @@ mean_log_smooth <-  GAM_year$Year_basis %*% BETA_mid
 #plot(exp(mean_log_smooth),type = "l",ylim = c(0,max(exp(mean_log_smooth))))
 
 ## strata neighbourhoods Generate ---------------------------------
-source("Functions/neighbours_define.R")
 nstrata <- real_data$nstrata
 
 
@@ -137,6 +139,7 @@ st_coord <- suppressWarnings(sf::st_centroid(strata_map)) %>%
 strata_df <- strata_df %>% 
   left_join(.,st_coord,by = "Stratum_Factored")
 
+source("Functions/neighbours_define.R")
 
 neighbours <- neighbours_define(real_strata_map = strata_map,
                                 plot_dir = "maps/",
@@ -168,9 +171,9 @@ neigh_mat <- neighbours$adj_matrix
 
 ### strata intercepts
 nstrata <- nrow(strata_df)
-STRATA_True <- 4 #peak abundance
+STRATA_True <- 3 #peak abundance ~ 20 birds/route
 strata_df <- strata_df %>% 
-  mutate(strata_True = STRATA_True - abs(sumxy))
+  mutate(strata_True = STRATA_True - abs(yscale)) # abundance peaks at middle latitudes
 strata_True <- as.numeric(strata_df$strata_True)
 
 
@@ -178,11 +181,11 @@ strata_True <- as.numeric(strata_df$strata_True)
 Beta_True <- matrix(NA,nrow = nknots,
                     ncol = nstrata)
 sum_xy <- as.numeric(strata_df$sumxy)
-
+yscale <- as.numeric(strata_df$yscale)
 
 for(k in 1:nknots){
   
-Beta_True[k,] <- sum_xy*0.5 + BETA_mid[k]
+Beta_True[k,] <- yscale*0.75 + BETA_mid[k]
 if(tp == "linear" & k < nknots){ #for linear trend sets all BETAs except 13 to 0
   Beta_True[k,] <- rep(0,nstrata)
 }
@@ -288,7 +291,10 @@ if(tp == "linear" & k < nknots){ #for linear trend sets all BETAs except 13 to 0
   
   balanced <- balanced %>% 
     left_join(.,routes_df,
-              by = c("Route","Route_Factored","Stratum","Stratum_Factored"))
+              by = c("Route",
+                     "Route_Factored",
+                     "Stratum",
+                     "Stratum_Factored"))
     
   
   ## Stratum Effects
@@ -300,7 +306,13 @@ if(tp == "linear" & k < nknots){ #for linear trend sets all BETAs except 13 to 0
   
   balanced <- balanced %>% 
     left_join(.,strata_df,
-              by = c("X","Y","Stratum","Stratum_Factored"))
+              by = c("X","Y",
+                     "Stratum",
+                     "Stratum_Factored",
+                     "yscale",
+                     "xscale",
+                     "sumxy",
+                     "strata_True"))
   
   
   
@@ -321,7 +333,12 @@ to_save <- c(to_save,"balanced")
 
 
 realised <- real_df %>% select(-c("Observer")) %>% 
-  left_join(.,balanced) %>% 
+  left_join(.,balanced,
+            by = c("Year",
+                   "Stratum",
+                   "Stratum_Factored",
+                   "Route",
+                   "Route_Factored")) %>% 
   mutate(Year_Index = Year-(min(Year)-1))
 
 
@@ -331,8 +348,8 @@ to_save <- c(to_save,"realised")
 
 # remove all but two years from each observer and route in some st --------
 
-strata_mask <- c("CA-ON-13","CA-ON-12") #strata to reduce data to minimum necessary
-routes_mask <- routes_df %>% filter(Stratum %in% strata_mask)
+routes_mask <- routes_df %>% 
+  filter(grepl(Stratum,pattern = "CA-",fixed = TRUE) )
 
 # minimum number of observation events to retain so that all routes and observers are included
 
@@ -347,7 +364,7 @@ realised_mask <- realised %>%
   bind_rows(.,event_mask_retain)
   
 
-to_save <- c(to_save,"realised_mask","strata_mask","event_mask_retain")
+to_save <- c(to_save,"realised_mask","routes_mask","event_mask_retain")
 
 
 
@@ -358,3 +375,23 @@ save(list = to_save,
      file = paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
 
 }
+
+  slp = function(x,y){
+    m = lm(x~y)
+    sl = coefficients(m)[[2]]
+    return(sl)
+  }
+  tmp = realised %>% 
+    group_by(Stratum,Year,Route) %>% 
+    summarise(mean = mean(log_expected),
+              n = n()) %>% 
+    group_by(Stratum) %>% 
+    summarise(slp = slp(mean,Year),
+              n = sum(n))
+  
+  tmpmap <- left_join(strata_map,tmp,by = "Stratum")
+ 
+  pl = ggplot(data = tmpmap)+
+    geom_sf(aes(fill = n))+
+    scale_fill_viridis_c()
+print(pl)  

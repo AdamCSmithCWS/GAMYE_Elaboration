@@ -270,11 +270,13 @@ neighbours_define <- function(real_strata_map = realized_strata_map, #sf map of 
     DA = cbind(DA,coords[DA$from,c("X","Y")],coords[DA$to,c("X","Y")])
     colnames(DA)[3:6] = c("long","lat","long_to","lat_to")
     
-    if(voronoi){
-    ggp <- ggplot(data = centres)
-    }else{
-      ggp <- ggplot(data = real_strata_map) 
-      }
+    #if(voronoi){
+    ggp <- ggplot(data = centres)+ 
+      geom_sf(aes(col = strat_lab)) 
+    # }else{
+    #   ggp <- ggplot(data = real_strata_map)+ 
+    #     geom_sf(aes(alpha = 0))  
+    #   }
     
     
     # #### temp bits to generate some demo graphs of neighbour definitions
@@ -310,7 +312,6 @@ neighbours_define <- function(real_strata_map = realized_strata_map, #sf map of 
     # ### temp
     
     ggp <- ggp + 
-      geom_sf(aes(col = strat_lab)) + 
       geom_segment(data=DA,aes(x = long, y = lat,xend=long_to,yend=lat_to),inherit.aes = FALSE,size=0.3,alpha=0.1) +
       geom_sf(data = vintj,alpha = 0,colour = grey(0.95))+ 
       geom_sf(data = real_strata_map,alpha = 0,colour = grey(0.85))+
