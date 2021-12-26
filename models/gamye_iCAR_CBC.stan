@@ -46,7 +46,9 @@ data {
   // data for spline s(year)
   int<lower=1> nknots_year;  // number of knots in the basis function for year
   matrix[nyears, nknots_year] year_basis; // basis function matrix
- 
+  
+  // circle inclusion scaling value
+  vector[nstrata] nonzeroweight;
 
 }
 
@@ -180,7 +182,6 @@ for(k in 1:nknots_year){
    real<lower=0> n[nstrata,nyears];
    real<lower=0> nsmooth[nstrata,nyears];
    real<lower=0> retrans_noise;
-   real<lower=0> retrans_obs;
   // vector[ncounts] log_lik; // alternative value to track the observervation level log-likelihood
   // potentially useful for estimating loo-diagnostics, such as looic
   
@@ -208,8 +209,8 @@ for(y in 1:nyears){
       n_t[t] = exp(strata+ smooth_pred[y,s] + ste + yeareffect[s,y] + retrans_noise);
       nsmooth_t[t] = exp(strata + smooth_pred[y,s] + ste + retrans_yr + retrans_noise);
         }
-        n[s,y] = mean(n_t); //mean of exponentiated predictions across sites in a stratum
-        nsmooth[s,y] = mean(nsmooth_t); //mean of exponentiated predictions across sites in a stratum
+        n[s,y] = mean(n_t) * nonzeroweight[s]; //mean of exponentiated predictions across sites in a stratum
+        nsmooth[s,y] = mean(nsmooth_t) * nonzeroweight[s]; //mean of exponentiated predictions across sites in a stratum
         //using the mean of hte exponentiated values, instead of including the log-normal
         // retransformation factor (0.5*sdste^2), because this retransformation makes 2 questionable assumptions:
           // 1 - assumes that sites are exchangeable among strata - e.g., that sdste is equal among all strata

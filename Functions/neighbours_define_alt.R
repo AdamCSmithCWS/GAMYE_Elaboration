@@ -50,7 +50,7 @@ neighbours_define <- function(real_strata_map = realized_strata_map, #sf map of 
     group_by(strat_lab) %>% 
     summarise() 
   
-  centres <- suppressWarnings(st_centroid(real_strata_map_2))
+  centres <- suppressWarnings(st_centroid(real_strata_map))
   
   coords = st_coordinates(centres)
   
