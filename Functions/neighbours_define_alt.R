@@ -64,7 +64,8 @@ neighbours_define <- function(real_strata_map = realized_strata_map, #sf map of 
       nb_db = spdep::poly2nb(vintj,row.names = vintj$strat_lab,queen = FALSE)
       
       nb_info = spdep::nb2WB(nb_db)
-      
+      ## addin an option to check disjoint subgraphs
+      ## n.comp.nb(nb_db)
       if(min(nb_info$num) == 0){
         nn_fill <- TRUE
         message("Some strata have no neighbours, filling by nearest neighbours by centroids")

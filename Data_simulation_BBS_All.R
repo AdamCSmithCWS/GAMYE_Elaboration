@@ -344,7 +344,25 @@ realised <- real_df %>% select(-c("Observer")) %>%
 
 to_save <- c(to_save,"realised")
 
+if(tp == "non_linear"){
+  # original observation data with updated observer adn route info ----------
+original_data_df <- data.frame(Year = real_data$r_year,
+                        Stratum = real_data$strat_name,
+                        Stratum_Factored = real_data$strat,
+                        Observer = real_data$ObsN,
+                        Route = real_data$route,
+                        First_Year = real_data$firstyr,
+                        count = real_data$count) %>% 
+  mutate(Route_Factored = as.integer(factor(Route)),
+         Observer_Factored = as.integer(real_data$ObsN))
 
+original_data_df <- original_data_df %>% 
+  mutate(Year_Index = Year-(min(Year)-1))
+
+save(list = c(to_save,"original_data_df"),
+     file = paste0("Data/Real_data_",species_f,"_BBS.RData"))
+
+}
 
 # remove all but two years from each observer and route in some st --------
 
@@ -368,6 +386,14 @@ to_save <- c(to_save,"realised_mask","routes_mask","event_mask_retain")
 
 
 
+### realised is a final dataset to demonstrate a realistic BBS dataset
+### with a known pattern of population change
+
+### realised_mask is an equivalent dataset that has data mostly missing
+### from one portion of the range 
+### mostly missing means only 1-years observations are available from each route ad observer
+### so that the route and observer structure is retained, but there is no
+### information available on change over time, after the observer and route intercepts
 
 
 

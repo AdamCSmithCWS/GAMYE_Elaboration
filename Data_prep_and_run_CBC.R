@@ -2,6 +2,9 @@
 library(tidyverse)
 library(bbsBayes)
 library(cmdstanr)
+setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
+
+
 source("functions/neighbours_define_alt.R")
 species = "Zonotrichia_albicollis"
 
