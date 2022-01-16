@@ -34,15 +34,21 @@ hists = ggplot(data = dd)+
   facet_wrap(~pr,nrow = 2,ncol = 4)
 print(hists)
 
+for(pp in c("gamma","norm")){
+  for(prior_scale in c(0.5,1,2,4)){
+    
+  tp = paste0(pp,"_rate_",prior_scale)
 
-for(tp in paste0("gamma_rate_",c(0.5,1,2,4))){
-  
   #STRATA_True <- log(2)
   output_dir <- "output/"
   out_base <- paste0(species_f,"_sim_",tp,"_BBS")
   csv_files <- paste0(out_base,"-",1:3,".csv")
   
-  
+  if(pp == "gamma"){
+    pnorm <- 0
+  }else{
+    pnorm <- 1
+  }
   
   if(!file.exists(paste0(output_dir,csv_files[1]))){
     
@@ -62,16 +68,9 @@ for(tp in paste0("gamma_rate_",c(0.5,1,2,4))){
     year_basis = GAM_year$Year_basis
     
     stan_data = list(#scalar indicators
-      nsites = nsites,
       nstrata = nstrata,
-      ncounts = ncounts,
       nyears = nyears,
       
-      #basic data
-      count = count,
-      strat = strat,
-      year = year,
-      site = site,
       
       #spatial structure
       N_edges = N_edges,
@@ -82,28 +81,18 @@ for(tp in paste0("gamma_rate_",c(0.5,1,2,4))){
       nknots_year = nknots_year,
       year_basis = year_basis,
       
-      #Observer information
-      nobservers = nobservers,
-      observer = observer,
-      
-      #Ragged array information to link sites to strata
-      nsites_strata = nsites_strata,
-      maxnsites_strata = maxnsites_strata,
-      ste_mat = ste_mat,
-      #nu = nu,
-      
-      #weights
-      nonzeroweight = nonzeroweight
-    )
+      prior_scale = prior_scale,
+      pnorm = pnorm
+      )
     
     
     
     
     # Fit model ---------------------------------------------------------------
     
-    print(paste("beginning",species,"with",nstrata,"strata",Sys.time()))
+    print(paste("beginning",tp,Sys.time()))
     
-    mod.file = "models/gamye_iCAR_sim.stan"
+    mod.file = "models/gamye_iCAR_sd_prior_sim.stan"
     
     ## compile model
     model <- cmdstan_model(mod.file)
@@ -112,29 +101,15 @@ for(tp in paste0("gamma_rate_",c(0.5,1,2,4))){
     # Initial Values ----------------------------------------------------------
     
     
-    init_def <- function(){ list(noise_raw = rnorm(ncounts,0,0.1),
-                                 strata_raw = rnorm(nstrata,0,0.1),
-                                 STRATA = 0,
-                                 sdstrata = runif(1,0.01,0.1),
-                                 #eta = 0,
-                                 yeareffect_raw = matrix(rnorm(nstrata*nyears,0,0.1),nrow = nstrata,ncol = nyears),
-                                 obs_raw = rnorm(nobservers,0,0.1),
-                                 ste_raw = rnorm(nsites,0,0.1),
-                                 sdnoise = runif(1,0.01,0.2),
-                                 sdobs = runif(1,0.01,0.1),
-                                 sdste = runif(1,0.01,0.2),
-                                 sdbeta = runif(nknots_year,0.01,0.1),
-                                 sdBETA = runif(1,0.01,0.1),
-                                 sdyear = runif(nstrata,0.01,0.1),
-                                 BETA_raw = rnorm(nknots_year,0,0.1),
+    init_def <- function(){ list(sdbeta = runif(nknots_year,0.01,0.1),
                                  beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
     
     stanfit <- model$sample(
       data=stan_data,
-      refresh=200,
-      chains=3, iter_sampling=1000,
-      iter_warmup=1000,
-      parallel_chains = 3,
+      refresh=100,
+      chains=2, iter_sampling=1000,
+      iter_warmup=500,
+      parallel_chains = 2,
       #pars = parms,
       adapt_delta = 0.8,
       max_treedepth = 14,
@@ -155,8 +130,8 @@ for(tp in paste0("gamma_rate_",c(0.5,1,2,4))){
     
   }
   
-}#end tp loop
-
+}#end prior_scale loop
+}#end pp loop
 
 
 

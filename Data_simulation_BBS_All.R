@@ -147,6 +147,13 @@ neighbours <- neighbours_define(real_strata_map = strata_map,
                                 alt_strat = "Stratum")
 to_save <- c(to_save,"neighbours")
 
+neighbours2 <- neighbours_define(real_strata_map = strata_map,
+                                 plot_dir = "maps/",
+                                 species = paste0("Simulated",species_f),
+                                 alt_strat = "Stratum",
+                                 voronoi = TRUE)
+to_save <- c(to_save,"neighbours2")
+
 ## Generate stratum smooths and intercepts ----------------------------------------
 
 ### use simple, smooth, x-y coordinate variation in betas and stratas
