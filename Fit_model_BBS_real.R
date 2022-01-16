@@ -14,7 +14,8 @@ species <- "Pine Warbler"
         output_dir <- "output/"
         #out_base <- paste0(species_f,"_real_n2","BBS")
         #out_base <- paste0(species_f,"_real_","BBS")
-        out_base <- paste0(species_f,"_real_2","BBS")
+        #out_base <- paste0(species_f,"_real_2","BBS")
+        out_base <- paste0(species_f,"_real_estnu","BBS")
         csv_files <- paste0(out_base,"-",1:3,".csv")
         
         
@@ -112,9 +113,9 @@ stan_data = list(#scalar indicators
 
 # Fit model ---------------------------------------------------------------
 
-print(paste("beginning",species,"with normalbeta",nstrata,"strata",Sys.time()))
+print(paste("beginning",species,"with estnu",nstrata,"strata",Sys.time()))
 
-mod.file = "models/gamye_iCAR_bbs2.stan"
+mod.file = "models/gamye_iCAR_bbs_estnu.stan"
 
 ## compile model
 model <- cmdstan_model(mod.file)
