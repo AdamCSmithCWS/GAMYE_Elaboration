@@ -12,8 +12,9 @@ species <- "Pine Warbler"
    
          #STRATA_True <- log(2)
         output_dir <- "output/"
-        out_base <- paste0(species_f,"_real_n2","BBS")
+        #out_base <- paste0(species_f,"_real_n2","BBS")
         #out_base <- paste0(species_f,"_real_","BBS")
+        out_base <- paste0(species_f,"_real_2","BBS")
         csv_files <- paste0(out_base,"-",1:3,".csv")
         
         
@@ -35,13 +36,13 @@ year = tmp_data$Year_Index
 site = tmp_data$Route_Factored
 firstyr = tmp_data$First_Year
 
-N_edges = neighbours2$N_edges
-node1 = neighbours2$node1
-node2 = neighbours2$node2
+# N_edges = neighbours2$N_edges
+# node1 = neighbours2$node1
+# node2 = neighbours2$node2
 
-# N_edges = neighbours$N_edges
-# node1 = neighbours$node1
-# node2 = neighbours$node2
+N_edges = neighbours$N_edges
+node1 = neighbours$node1
+node2 = neighbours$node2
 
 nknots_year = GAM_year$nknots_Year
 year_basis = GAM_year$Year_basis
@@ -111,9 +112,9 @@ stan_data = list(#scalar indicators
 
 # Fit model ---------------------------------------------------------------
 
-print(paste("beginning",species,"with alt neighbours",nstrata,"strata",Sys.time()))
+print(paste("beginning",species,"with normalbeta",nstrata,"strata",Sys.time()))
 
-mod.file = "models/gamye_iCAR_bbs.stan"
+mod.file = "models/gamye_iCAR_bbs2.stan"
 
 ## compile model
 model <- cmdstan_model(mod.file)

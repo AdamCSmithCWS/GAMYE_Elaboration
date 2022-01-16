@@ -170,8 +170,8 @@ model {
   
   //spatial iCAR intercepts and gam parameters by strata
   sdstrata ~ std_normal(); //prior on sd of intercept variation
-  sdbeta ~ gamma(2,4); // prior on df for t-distribution of heavy tailed site-effects from https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations#prior-for-degrees-of-freedom-in-students-t-distribution
-//~ normal(0,1); //prior on sd of GAM parameter variation
+  sdbeta ~ gamma(2,4); // prior on sd of GAM parameter variation
+//sdbeta ~ normal(0,1); //prior on sd of GAM parameter variation
 
 for(k in 1:nknots_year){
     beta_raw[,k] ~ icar_normal(nstrata, node1, node2);
