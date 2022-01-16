@@ -74,7 +74,7 @@ parameters {
   vector[nobservers] obs_raw;    // sd of year effects
   vector[nsites] ste_raw;   // 
   real<lower=0> sdnoise;    // sd of over-dispersion
- real<lower=1,upper=100> nu;  //optional heavy-tail df for t-distribution
+ //real<lower=1> nu;  //optional heavy-tail df for t-distribution
   real<lower=0> sdobs;    // sd of observer effects
   real<lower=0> sdste;    // sd of site effects
   real<lower=0> sdbeta[nknots_year];    // sd of GAM coefficients among strata 
@@ -136,14 +136,14 @@ for(s in 1:nstrata){
   
 model {
   sdnoise ~ normal(0,0.5); //prior on scale of extra Poisson log-normal variance
+  noise_raw ~ student_t(4,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
    //noise_raw ~ normal(0,1);
   sdobs ~ normal(0,0.5); //prior on sd of observer effects
   sdste ~ std_normal(); //prior on sd of site effects
   sdyear ~ gamma(2,2); // prior on sd of yeareffects - stratum specific, and boundary-avoiding with a prior mode at 0.5 (1/2) - recommended by https://doi.org/10.1007/s11336-013-9328-2 
   sdBETA ~ std_normal(); // prior on sd of GAM parameters
   
-  nu ~ gamma(2,0.1); // prior on df for t-distribution of heavy tailed site-effects from https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations#prior-for-degrees-of-freedom-in-students-t-distribution
-  noise_raw ~ student_t(nu,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
+  //nu ~ gamma(2,0.1); // prior on df for t-distribution of heavy tailed site-effects from https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations#prior-for-degrees-of-freedom-in-students-t-distribution
 
   obs_raw ~ std_normal();//observer effects
   sum(obs_raw) ~ normal(0,0.001*nobservers);
@@ -171,7 +171,7 @@ model {
   //spatial iCAR intercepts and gam parameters by strata
   sdstrata ~ std_normal(); //prior on sd of intercept variation
   //sdbeta ~ gamma(2,4); // prior on sd of GAM parameter variation
-  sdbeta ~ normal(0,1); //prior on sd of GAM parameter variation
+sdbeta ~ normal(0,1); //prior on sd of GAM parameter variation
 
 for(k in 1:nknots_year){
     beta_raw[,k] ~ icar_normal(nstrata, node1, node2);
