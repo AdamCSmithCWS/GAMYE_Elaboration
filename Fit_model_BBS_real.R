@@ -13,11 +13,20 @@ species <- "Pine Warbler"
          #STRATA_True <- log(2)
         output_dir <- "output/"
         #out_base <- paste0(species_f,"_real_n2","BBS")
-        #out_base <- paste0(species_f,"_real_tnoise","BBS")
-        out_base <- paste0(species_f,"_real_gammasdbeta","BBS")
-        #out_base <- paste0(species_f,"_real_estnu","BBS")
-        csv_files <- paste0(out_base,"-",1:3,".csv")
         
+        #out_base <- paste0(species_f,"_real_gammasdbeta","BBS")
+        # mod.file = "models/gamye_iCAR_bbs_gammasdbeta.stan"
+        #print(paste("beginning",species,"with gammasdbeta",nstrata,"strata",Sys.time()))
+        
+        # out_base <- paste0(species_f,"_real_estnu","BBS")
+        # mod.file = "models/gamye_iCAR_bbs_estnu.stan"
+        # print(paste("beginning",species,"with estnu",nstrata,"strata",Sys.time()))
+        # 
+        out_base <- paste0(species_f,"_real_tnoise","BBS")
+        mod.file = "models/gamye_iCAR_bbs_tnoise.stan"
+        print(paste("beginning",species,"tnoise",nstrata,"strata",Sys.time()))
+        
+        csv_files <- paste0(out_base,"-",1:3,".csv")
         
         
         if(!file.exists(paste0(output_dir,csv_files[1]))){
@@ -113,11 +122,6 @@ stan_data = list(#scalar indicators
 
 # Fit model ---------------------------------------------------------------
 
-#print(paste("beginning",species,"with estnu",nstrata,"strata",Sys.time()))
-print(paste("beginning",species,"tnoise",nstrata,"strata",Sys.time()))
-#print(paste("beginning",species,"with estnu",nstrata,"strata",Sys.time()))
-
-mod.file = "models/gamye_iCAR_bbs_tnoise.stan"
 
 ## compile model
 model <- cmdstan_model(mod.file)

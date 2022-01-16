@@ -136,8 +136,8 @@ for(s in 1:nstrata){
   
 model {
   sdnoise ~ normal(0,0.5); //prior on scale of extra Poisson log-normal variance
-  noise_raw ~ student_t(4,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
-   //noise_raw ~ normal(0,1);
+  //noise_raw ~ student_t(4,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
+   noise_raw ~ normal(0,1);
   sdobs ~ normal(0,0.5); //prior on sd of observer effects
   sdste ~ std_normal(); //prior on sd of site effects
   sdyear ~ gamma(2,2); // prior on sd of yeareffects - stratum specific, and boundary-avoiding with a prior mode at 0.5 (1/2) - recommended by https://doi.org/10.1007/s11336-013-9328-2 
