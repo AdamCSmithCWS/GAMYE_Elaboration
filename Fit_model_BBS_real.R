@@ -14,18 +14,18 @@ species <- "Pine Warbler"
         output_dir <- "output/"
         #out_base <- paste0(species_f,"_real_n2","BBS")
         
-        #out_base <- paste0(species_f,"_real_gammasdbeta","BBS")
+        # out_base <- paste0(species_f,"_real_gammasdbeta","BBS")
         # mod.file = "models/gamye_iCAR_bbs_gammasdbeta.stan"
-        #print(paste("beginning",species,"with gammasdbeta",nstrata,"strata",Sys.time()))
-        
-        # out_base <- paste0(species_f,"_real_estnu","BBS")
-        # mod.file = "models/gamye_iCAR_bbs_estnu.stan"
-        # print(paste("beginning",species,"with estnu",nstrata,"strata",Sys.time()))
+        # print(paste("beginning",species,"with gammasdbeta strata",Sys.time()))
+
+        out_base <- paste0(species_f,"_real_estnu","BBS")
+        mod.file = "models/gamye_iCAR_bbs_estnu.stan"
+        print(paste("beginning",species,"with estnu strata",Sys.time()))
+
+        # out_base <- paste0(species_f,"_real_tnoise","BBS")
+        # mod.file = "models/gamye_iCAR_bbs_tnoise.stan"
+        # print(paste("beginning",species,"tnoise strata",Sys.time()))
         # 
-        out_base <- paste0(species_f,"_real_tnoise","BBS")
-        mod.file = "models/gamye_iCAR_bbs_tnoise.stan"
-        print(paste("beginning",species,"tnoise",nstrata,"strata",Sys.time()))
-        
         csv_files <- paste0(out_base,"-",1:3,".csv")
         
         

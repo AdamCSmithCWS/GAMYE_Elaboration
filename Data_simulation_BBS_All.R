@@ -133,7 +133,9 @@ to_save <- c(to_save,"strata_map")
 st_coord <- suppressWarnings(sf::st_centroid(strata_map)) %>% 
   sf::st_coordinates()%>% 
   as.data.frame() %>% 
-  mutate(Stratum_Factored = 1:nstrata)
+  mutate(Stratum_Factored = 1:nstrata)# this 1:nstrata re-definition works because of the 
+                    ### arrange statement in the strata-map block 10-lines up.
+
 
 
 strata_df <- strata_df %>% 
@@ -149,7 +151,7 @@ to_save <- c(to_save,"neighbours")
 
 neighbours2 <- neighbours_define(real_strata_map = strata_map,
                                  plot_dir = "maps/",
-                                 species = paste0("Simulated",species_f),
+                                 species = paste0("Simulated_voronoi",species_f),
                                  alt_strat = "Stratum",
                                  voronoi = TRUE)
 to_save <- c(to_save,"neighbours2")
