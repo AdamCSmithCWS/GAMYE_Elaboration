@@ -46,7 +46,7 @@ rt_sum <- both %>%
    
 rt_plots[[i]] = ggplot(data = tmp)+
   geom_histogram(aes(x = tc))+
-  labs(title = paste(i,"By Route"))+
+  labs(title = paste(i,"count by Route"))+
   facet_wrap(~version,nrow = 2,ncol = 1)
 
  }
@@ -56,13 +56,78 @@ rt_plots[[i]] = ggplot(data = tmp)+
 
 ## by strata ---------------------------------------------------------------
 
+    st_sum <- both %>% 
+      group_by(Stratum,version) %>% 
+      summarise(mean = mean(count),
+                sd = sd(count),
+                min = min(count),
+                max = max(count)) %>% 
+      left_join(.,strata_df,by = "Stratum")
+    
+    st_plots <- vector(mode = "list",length = 4)
+    names(st_plots) <- c("mean","sd","min","max")
+    
+    stlat_plots <- st_plots
+    
+    for(i in names(st_plots)){
+      rn <- function(x){
+        gsub(pattern = i,
+             replacement = "tc",
+             x = x)
+      }
+      tmp <- st_sum %>% 
+        rename_with(.fn = rn)
+      
+      
+      st_plots[[i]] = ggplot(data = tmp)+
+        geom_histogram(aes(x = tc))+
+        labs(title = paste(i,"count by Stratum"))+
+        facet_wrap(~version,nrow = 2,ncol = 1)
+      
+      stlat_plots[[i]] = ggplot(data = tmp)+
+        geom_point(aes(x = X,y = Y,colour = tc))+
+        scale_colour_viridis_c()+
+        labs(title = paste(i,"count by Stratum"))+
+        facet_wrap(~version,nrow = 2,ncol = 1)
+      
+    }
+    
+    print(st_plots[[1]]+ st_plots[[2]]+ st_plots[[3]]+ st_plots[[4]])
+    print(stlat_plots[[1]]+ stlat_plots[[2]]+ stlat_plots[[3]]+ stlat_plots[[4]])
+    
 
-## by lat and long -------------------------------------------------------
 
 
-## by year -----------------------------------------------------------------
+# by observer -------------------------------------------------------------
 
-
+    obs_sum <- both %>% 
+      group_by(Observer,version) %>% 
+      summarise(mean = mean(count),
+                sd = sd(count),
+                min = min(count),
+                max = max(count))
+    
+    obs_plots <- vector(mode = "list",length = 4)
+    names(obs_plots) <- c("mean","sd","min","max")
+    for(i in names(obs_plots)){
+      rn <- function(x){
+        gsub(pattern = i,
+             replacement = "tc",
+             x = x)
+      }
+      tmp <- obs_sum %>% 
+        rename_with(.fn = rn)
+      
+      
+      obs_plots[[i]] = ggplot(data = tmp)+
+        geom_histogram(aes(x = tc))+
+        labs(title = paste(i,"count by Observer"))+
+        facet_wrap(~version,nrow = 2,ncol = 1)
+      
+    }
+    
+    print(obs_plots[[1]]+ obs_plots[[2]]+ obs_plots[[3]]+ obs_plots[[4]])
+    
 
           
                     
