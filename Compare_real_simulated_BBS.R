@@ -22,7 +22,8 @@ species <- "Pine Warbler"
 realised$version <- "simulated"
 original_data_df$version <- "true"          
           both <- realised %>% 
-            bind_rows(original_data_df) 
+            bind_rows(original_data_df) %>% 
+            mutate(count = log(count+1))
             
 ## by route ----------------------------------------------------------------
 rt_sum <- both %>% 
