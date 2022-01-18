@@ -1,19 +1,21 @@
 ### Fitting model to simulated BBS data
 library(bbsBayes)
 library(tidyverse)
-library(cmdstanr)
+# library(cmdstanr)
 library(patchwork)
 
 setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
 
 
-species <- "Pine Warbler"
-  species_f <- gsub(species,pattern = " ",replacement = "_")
+#species <- "Pine Warbler"
+species = "Yellow-headed Blackbird"  
+species_f <- gsub(species,pattern = " ",replacement = "_")
  
    
           
           load(paste0("Data/Real_data_",species_f,"_BBS.RData"))
- 
+          #load(paste0("Data/Real_data_",species_f,"_obs_mix_BBS.RData"))
+          
 
 # compare count distributions means and sd by -----------------------------
 
@@ -52,7 +54,7 @@ rt_plots[[i]] = ggplot(data = tmp)+
 
  }
  
-    print(rt_plots[[1]]+ rt_plots[[2]]+ rt_plots[[3]]+ rt_plots[[4]])
+    #print(rt_plots[[1]]+ rt_plots[[2]]+ rt_plots[[3]]+ rt_plots[[4]])
              
 
 ## by strata ---------------------------------------------------------------
@@ -93,15 +95,15 @@ rt_plots[[i]] = ggplot(data = tmp)+
       
     }
     
-    print(st_plots[[1]]+ st_plots[[2]]+ st_plots[[3]]+ st_plots[[4]])
-    print(stlat_plots[[1]]+ stlat_plots[[2]]+ stlat_plots[[3]]+ stlat_plots[[4]])
+    #print(st_plots[[1]]+ st_plots[[2]]+ st_plots[[3]]+ st_plots[[4]])
+    #print(stlat_plots[[1]]+ stlat_plots[[2]]+ stlat_plots[[3]]+ stlat_plots[[4]])
     
 
 
 
 # by observer -------------------------------------------------------------
 rtmeans <- rt_sum %>% 
-      select(Route,mean) %>% 
+      select(Route,mean,version) %>% 
       rename(route_mean = mean)
     
     obs_sum <- both %>% 
@@ -145,7 +147,7 @@ rtmeans <- rt_sum %>%
       facet_wrap(~version,nrow = 2,ncol = 1)
     
     
-    print(obs_plots[[6]])
+    #print(obs_plots[[6]])
     
     obs_plots[[7]] = ggplot(data = tmp)+
       geom_point(aes(y = sd,x = n_count),
@@ -156,7 +158,7 @@ rtmeans <- rt_sum %>%
       facet_wrap(~version,nrow = 2,ncol = 1)
     
     
-    print(obs_plots[[7]])
+    #print(obs_plots[[7]])
     
     obs_plots[[8]] = ggplot(data = tmp)+
       geom_point(aes(y = mean,x = n_count),
@@ -167,23 +169,25 @@ rtmeans <- rt_sum %>%
       facet_wrap(~version,nrow = 2,ncol = 1)
     
     
-    print(obs_plots[[8]])
+    #print(obs_plots[[8]])
     
     # "mean_by_sd","sd_by_n","mean_by_n"
     # print(obs_plots[[1]]+ obs_plots[[2]]+ obs_plots[[3]]+ obs_plots[[5]])
     # 
 
-    
-    
-    pdf("Figures/sim_vs_real.pdf",
+    # 
+    pdf(paste0("Figures/",species_f,"_sim_vs_real.pdf"),
         width = 11,
         height = 8.5)
+    # pdf(paste0("Figures/",species_f,"_obs_mix_sim_vs_real.pdf"),
+    #     width = 11,
+    #     height = 8.5)
     print(rt_plots[[1]]+ rt_plots[[2]]+ rt_plots[[3]]+ rt_plots[[4]])
     print(st_plots[[1]]+ st_plots[[2]]+ st_plots[[3]]+ st_plots[[4]])
     print(stlat_plots[[1]]+ stlat_plots[[2]]+ stlat_plots[[3]]+ stlat_plots[[4]])
     
     print(obs_plots[[2]]+ obs_plots[[3]]+ obs_plots[[4]]+ obs_plots[[5]])
-    print(obs_plots[[5]]+ obs_plots[[6]]+ obs_plots[[7]]+ obs_plots[[8]])
+    print(obs_plots[[1]]+ obs_plots[[6]]+ obs_plots[[7]]+ obs_plots[[8]])
     dev.off()
     
           

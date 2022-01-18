@@ -278,14 +278,20 @@ if(tp == "linear" & k < nknots){ #for linear trend sets all BETAs except 13 to 0
   
   ## OBserver Effects
   sdobs <- 0.2
+  psi <- 0.6 #proportion of the observers that usually count the species
+  psi2 = 1-psi #proportion of the observers that rarely count the species
+  mu_obs = -4 #log-scale adjustment to the mean observer effect for observers that rarely count the species
+  
   nobservers <- length(unique(balanced$Observer))
   True_observer_effects <- rnorm(nobservers,0,sdobs) #True observer effects by 
-  
+  rare_obs <- sample(1:nobservers,size = nobservers*(psi2))
+  True_observer_effects[rare_obs] <- True_observer_effects[rare_obs]+mu_obs  
   observer_df <- data.frame(True_observer_effects = True_observer_effects,
                             Observer = unique(balanced$Observer)) %>% 
     mutate(Observer_Factored = as.integer(factor(Observer)))
 
-  to_save <- c(to_save,"observer_df")
+  to_save <- c(to_save,"observer_df","psi","psi2",
+               "mu_obs")
   
   balanced <- balanced %>% 
     left_join(observer_df,by = "Observer")
@@ -369,8 +375,10 @@ original_data_df <- data.frame(Year = real_data$r_year,
 original_data_df <- original_data_df %>% 
   mutate(Year_Index = Year-(min(Year)-1))
 
+# save(list = c(to_save,"original_data_df"),
+#      file = paste0("Data/Real_data_",species_f,"_BBS.RData"))
 save(list = c(to_save,"original_data_df"),
-     file = paste0("Data/Real_data_",species_f,"_BBS.RData"))
+     file = paste0("Data/Real_data_",species_f,"_obs_mix_BBS.RData"))
 
 }
 
@@ -408,7 +416,7 @@ to_save <- c(to_save,"realised_mask","routes_mask","event_mask_retain")
 
 
 save(list = to_save,
-     file = paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
+     file = paste0("Data/Simulated_data_",species_f,"_",tp,"_obs_mix_BBS.RData"))
 
 }
 

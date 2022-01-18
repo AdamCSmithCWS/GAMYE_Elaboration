@@ -1,4 +1,4 @@
-### Fitting model to simulated BBS data
+### Fitting model to real BBS data
 library(bbsBayes)
 library(tidyverse)
 library(cmdstanr)

@@ -5,10 +5,13 @@ library(cmdstanr)
 
 setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
 
-species <- "Pine Warbler"
+#species <- "Pine Warbler"
+
+species = "Yellow-headed Blackbird"  
+
   species_f <- gsub(species,pattern = " ",replacement = "_")
  
-  for(tp in c("non_linear","linear")){
+  for(tp in c("non_linear_obs_mix","linear_obs_mix")){
     
          #STRATA_True <- log(2)
         output_dir <- "output/"
@@ -106,8 +109,12 @@ stan_data = list(#scalar indicators
 
 print(paste("beginning",species,"with",nstrata,"strata",Sys.time()))
 
+if(grepl(tp,pattern = "obs_mix",fixed = TRUE)){
 mod.file = "models/gamye_iCAR_sim.stan"
-
+}else{
+  mod.file = "models/gamye_iCAR_sim_obs_mix.stan"
+  
+}
 ## compile model
 model <- cmdstan_model(mod.file)
 
