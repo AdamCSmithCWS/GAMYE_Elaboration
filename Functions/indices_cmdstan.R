@@ -6,6 +6,7 @@ index_function <- function(fit = stanfit,
                            parameter = "n",
                            strat = NULL,#"Stratum_Factored",
                            year = "Year",
+                           first_dim = "s",
                            quant = 0.95,
                            weights_df = NULL,
                            area = NULL,#"Area",
@@ -30,8 +31,12 @@ index_function <- function(fit = stanfit,
         return(NULL)
       }
     }
-
+  if(tolower(substr(first_dim,1,1)) == "s"){
     dims <- c(strat,year)
+    }
+    if(tolower(substr(first_dim,1,1)) == "y"){
+    dims <- c(year,strat)
+    }
   }
   
   smpls <- posterior_samples(fit = fit,
@@ -87,7 +92,8 @@ index_function <- function(fit = stanfit,
         rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
                              fixed = TRUE)) %>% 
         group_by(yyy,rrr,.draw) %>% 
-        summarise(.vsum = sum(.value)) %>% 
+        summarise(.vsum = sum(.value),
+                  .groups = "keep") %>% 
         group_by(yyy,rrr) %>% 
         summarise(mean = mean(.vsum),
                   median = median(.vsum),
@@ -107,7 +113,8 @@ index_function <- function(fit = stanfit,
       rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
                            fixed = TRUE)) %>% 
       group_by(yyy,.draw) %>% 
-      summarise(.vsum = sum(.value)) %>% 
+      summarise(.vsum = sum(.value),
+                .groups = "keep") %>% 
       group_by(yyy) %>% 
       summarise(mean = mean(.vsum),
                 median = median(.vsum),
@@ -138,7 +145,8 @@ index_function <- function(fit = stanfit,
                          fixed = TRUE))
 }
   
-  return(list = c("inds","smpls"))
+  return(list(indices = inds,
+              samples = smpls))
   }
 
 
