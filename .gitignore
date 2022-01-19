@@ -5,4 +5,9 @@
 output/
 **arch/
 Example_BBS_data.R
+maps/
+observer_mixture/
+models/*.exe
+Figures/
+
 

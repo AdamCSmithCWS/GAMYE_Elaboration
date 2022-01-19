@@ -34,6 +34,11 @@ drws <- stanf_df %>%
   select(!contains(c("E[","noise_raw"))) 
 
 summ <- summarise_draws(drws)
+summ <- summ %>% 
+  mutate(species = species,
+         data = "Real_BBS")
+
+
 
 
 # Simulated data ----------------------------------------------------------
@@ -49,3 +54,27 @@ for(tp in c("non_linear","linear")){
   
     load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
     load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+
+    
+    
+    
+    stanf_df <- stanfit$draws(format = "df")
+    
+    #removes the count-level parameters
+    drws <- stanf_df %>% 
+      select(!contains(c("E[","noise_raw"))) 
+    
+    summt <- summarise_draws(drws)
+    summt <- summt %>% 
+      mutate(species = species,
+             data = paste0("Sim_",tp,"_BBS"))
+    
+    summ <- bind_rows(summ,summt)
+    
+} 
+    failed_rhat <- summ %>% 
+      filter(rhat > 1.05)
+    
+    failed_ess_bulk <- summ %>% 
+      filter(ess_bulk < 100)
+    

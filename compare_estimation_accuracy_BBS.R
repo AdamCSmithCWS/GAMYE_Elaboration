@@ -7,13 +7,15 @@ library(shinystan)
 library(posterior)
 
 source("functions/posterior_summary_functions.R")
+species = "Pine Warbler"  
+species = "Yellow-headed Blackbird"  
+species_f <- gsub(species,pattern = " ",replacement = "_")
 
-for(species in c("Pacific Wren","Cerulean Warbler")){
-  species_f <- gsub(species,pattern = " ",replacement = "_")
-  
 
-  load(paste0("Simulated_data_",species_f,"_BBS.RData"))
+for(tp in c("non_linear","linear")){
   
+  load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
+
 
 
 for(smpl in rev(c("balanced","realised"))){
