@@ -39,52 +39,102 @@ index_function <- function(fit = stanfit,
                              dims = dims)
     
   if(!is.null(weights_df)){
+    # weights_df <- data.frame(Stratum_Factored = 1:nstrata_fit,
+    # Area = abs(rnorm(nstrata_fit,1000,500)),
+    # province = rep_len(c("Ontario","Quebec","Saskatchewan"),
+    #                nstrata_fit))
     nstrata_fit <- length(unique(smpls[[strat]]))
     nstrata_w <- nrow(weights_df)
     if(nstrata_fit != nstrata_w){
       stop("Lengths of strata and weights are different")
       return(NULL)
     }
+    if(!is.null(summary_regions)){
+    
+    weights_df <- weights_df %>% 
+      rename_with(.,~gsub(pattern = area,
+                          replacement = "a",
+                  x = .x,
+                  fixed = TRUE)) %>% 
+    rename_with(., ~gsub(pattern = summary_regions,
+                         replacement = "rrr",.x,
+                         fixed = TRUE))
+    tmp <- weights_df %>% 
+      group_by(rrr) %>% 
+    summarise(suma = sum(a),.groups = "keep")
+    
+    weights_df <- weights_df %>% 
+      left_join(tmp,by = "rrr") %>% 
+      mutate(w = a/suma)
+    
+    
+    }else{
+      weights_df <- weights_df %>% 
+        rename_with(.,~gsub(pattern = area,
+                            replacement = "a",
+                            x = .x,
+                            fixed = TRUE)) %>% 
+        mutate(w = a/sum(a))  
+    }
+
     smpls <- smpls %>% 
       left_join(.,weights_df,
                 by = strat)
     
-    
-    
-    
-    
+    if(!is.null(summary_regions)){
+      inds <- smpls %>% 
+        mutate(.value = .value*w) %>% 
+        rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
+                             fixed = TRUE)) %>% 
+        group_by(yyy,rrr,.draw) %>% 
+        summarise(.vsum = sum(.value)) %>% 
+        group_by(yyy,rrr) %>% 
+        summarise(mean = mean(.vsum),
+                  median = median(.vsum),
+                  lci = quantile(.vsum,lu),
+                  uci = quantile(.vsum,uu),
+                  .groups = "keep") %>% 
+        rename_with(., ~gsub(replacement = summary_regions,pattern = "rrr",.x,
+                              fixed = TRUE)) %>% 
+        rename_with(., ~gsub(replacement = year,pattern = "yyy",.x,
+                             fixed = TRUE))
+      
+    }else{
     inds <- smpls %>% 
-      rename_with(., ~gsub(pattern = strat,replacement = "s",.x,
+      mutate(.value = .value*w) %>% 
+      #rename_with(., ~gsub(pattern = strat,replacement = "s",.x,
+                          # fixed = TRUE)) %>% 
+      rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
                            fixed = TRUE)) %>% 
-      rename_with(., ~gsub(pattern = year,replacement = "y",.x,
-                           fixed = TRUE)) %>% 
-      group_by(s,y) %>% 
-      summarise(mean = mean(.value),
-                median = median(.value),
-                lci = quantile(.value,lu),
-                uci = quantile(.value,uu),
+      group_by(yyy,.draw) %>% 
+      summarise(.vsum = sum(.value)) %>% 
+      group_by(yyy) %>% 
+      summarise(mean = mean(.vsum),
+                median = median(.vsum),
+                lci = quantile(.vsum,lu),
+                uci = quantile(.vsum,uu),
                 .groups = "keep") %>% 
-      rename_with(., ~gsub(replacement = strat,pattern = "s",.x,
-                           fixed = TRUE)) %>% 
-      rename_with(., ~gsub(replacement = year,pattern = "y",.x,
+      # rename_with(., ~gsub(replacement = strat,pattern = "s",.x,
+      #                      fixed = TRUE)) %>% 
+      rename_with(., ~gsub(replacement = year,pattern = "yyy",.x,
                            fixed = TRUE))
     
-    
+}#end summary regions
   }else{
   inds <- smpls %>% 
-    rename_with(., ~gsub(pattern = strat,replacement = "s",.x,
+    rename_with(., ~gsub(pattern = strat,replacement = "sss",.x,
                          fixed = TRUE)) %>% 
-    rename_with(., ~gsub(pattern = year,replacement = "y",.x,
+    rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
                          fixed = TRUE)) %>% 
-    group_by(s,y) %>% 
+    group_by(sss,yyy) %>% 
     summarise(mean = mean(.value),
               median = median(.value),
               lci = quantile(.value,lu),
               uci = quantile(.value,uu),
               .groups = "keep") %>% 
-    rename_with(., ~gsub(replacement = strat,pattern = "s",.x,
+    rename_with(., ~gsub(replacement = strat,pattern = "sss",.x,
                          fixed = TRUE)) %>% 
-    rename_with(., ~gsub(replacement = year,pattern = "y",.x,
+    rename_with(., ~gsub(replacement = year,pattern = "yyy",.x,
                          fixed = TRUE))
 }
   
