@@ -11,8 +11,8 @@ species = "Yellow-headed Blackbird"
 
   species_f <- gsub(species,pattern = " ",replacement = "_")
  
-  for(tp in c("non_linear_obs_mix","linear_obs_mix")){
-    
+    for(tp in c("non_linear","linear")){
+      
          #STRATA_True <- log(2)
         output_dir <- "output/"
         out_base <- paste0(species_f,"_sim_",tp,"_BBS")
@@ -23,7 +23,7 @@ species = "Yellow-headed Blackbird"
         if(!file.exists(paste0(output_dir,csv_files[1]))){
           
           load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
-          
+        
 tmp_data = realised
   
 nsites = max(routes_df$Route_Factored)
@@ -109,32 +109,7 @@ stan_data = list(#scalar indicators
 
 print(paste("beginning",species,"with",nstrata,"strata",Sys.time()))
 
-if(grepl(tp,pattern = "obs_mix",fixed = TRUE)){
 
-# Initial Values ----------------------------------------------------------
-  mod.file = "models/gamye_iCAR_sim_obs_mix.stan"
-  
-
-init_def <- function(){ list(noise_raw = rnorm(ncounts,0,0.1),
-                             strata_raw = rnorm(nstrata,0,0.1),
-                             STRATA = 0,
-                             sdstrata = runif(1,0.01,0.1),
-                             #eta = 0,
-                             psi = 0.8,
-                             obs_mu = -2,
-                             yeareffect_raw = matrix(rnorm(nstrata*nyears,0,0.1),nrow = nstrata,ncol = nyears),
-                             obs = rnorm(nobservers,0,0.1),
-                             ste_raw = rnorm(nsites,0,0.1),
-                             sdnoise = runif(1,0.01,0.2),
-                             sdobs = runif(2,0.01,0.1),
-                             sdste = runif(1,0.01,0.2),
-                             sdbeta = runif(nknots_year,0.01,0.1),
-                             sdBETA = runif(1,0.01,0.1),
-                             sdyear = runif(nstrata,0.01,0.1),
-                             BETA_raw = rnorm(nknots_year,0,0.1),
-                             beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
-
-}else{
   mod.file = "models/gamye_iCAR_sim.stan"
   
   
@@ -155,7 +130,7 @@ init_def <- function(){ list(noise_raw = rnorm(ncounts,0,0.1),
                                BETA_raw = rnorm(nknots_year,0,0.1),
                                beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
   
-}
+
 ## compile model
 model <- cmdstan_model(mod.file)
 
