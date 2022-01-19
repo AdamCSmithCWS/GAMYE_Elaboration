@@ -364,7 +364,7 @@ original_data_df <- data.frame(Year = real_data$r_year,
                         First_Year = real_data$firstyr,
                         count = real_data$count) %>% 
   mutate(Route_Factored = as.integer(factor(Route)),
-         Observer_Factored = as.integer(real_data$ObsN))
+         Observer_Factored = as.integer(factor(real_data$ObsN)))
 
 original_data_df <- original_data_df %>% 
   mutate(Year_Index = Year-(min(Year)-1))

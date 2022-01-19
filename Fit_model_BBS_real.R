@@ -7,20 +7,27 @@ setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
 
 
 species <- "Pine Warbler"
-  species_f <- gsub(species,pattern = " ",replacement = "_")
+species <- "Yellow-headed Blackbird"  
+
+species_f <- gsub(species,pattern = " ",replacement = "_")
  
    
          #STRATA_True <- log(2)
         output_dir <- "output/"
         #out_base <- paste0(species_f,"_real_n2","BBS")
         
+        out_base <- paste0(species_f,"_real_","BBS")
+        mod.file = "models/gamye_iCAR_bbs.stan"
+        print(paste("beginning",species,"with standard BBS",Sys.time()))
+        
+        
         # out_base <- paste0(species_f,"_real_gammasdbeta","BBS")
         # mod.file = "models/gamye_iCAR_bbs_gammasdbeta.stan"
         # print(paste("beginning",species,"with gammasdbeta strata",Sys.time()))
 
-        out_base <- paste0(species_f,"_real_estnu","BBS")
-        mod.file = "models/gamye_iCAR_bbs_estnu.stan"
-        print(paste("beginning",species,"with estnu strata",Sys.time()))
+        # out_base <- paste0(species_f,"_real_estnu","BBS")
+        # mod.file = "models/gamye_iCAR_bbs_estnu.stan"
+        # print(paste("beginning",species,"with estnu strata",Sys.time()))
 
         # out_base <- paste0(species_f,"_real_tnoise","BBS")
         # mod.file = "models/gamye_iCAR_bbs_tnoise.stan"
@@ -133,7 +140,7 @@ model <- cmdstan_model(mod.file)
 init_def <- function(){ list(noise_raw = rnorm(ncounts,0,0.1),
                              strata_raw = rnorm(nstrata,0,0.1),
                              STRATA = 0,
-                             nu = 10,
+                             #nu = 10,
                              sdstrata = runif(1,0.01,0.1),
                              eta = 0,
                              yeareffect_raw = matrix(rnorm(nstrata*nyears,0,0.1),nrow = nstrata,ncol = nyears),
