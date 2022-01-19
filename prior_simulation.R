@@ -135,3 +135,116 @@ for(pp in c("gamma","norm")){
 
 
 
+# post model summary of priors --------------------------------------------
+
+source("Functions/posterior_summary_functions.R")
+
+nsmooth_out <- NULL
+trends_out <- NULL
+summ_out <- NULL
+
+for(pp in c("gamma","norm")){
+  for(prior_scale in c(0.5,1,2,4)){
+    
+    tp = paste0(pp,"_rate_",prior_scale)
+    
+    #STRATA_True <- log(2)
+    output_dir <- "output/"
+    out_base <- paste0(species_f,"_sim_",tp,"_BBS")
+    csv_files <- paste0(out_base,"-",1:3,".csv")
+    
+
+load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+
+summ = stanfit$summary()
+
+summ <- summ %>% 
+  mutate(prior_scale = prior_scale,
+         distribution = pp)
+
+
+nsmooth_samples <- posterior_samples(stanfit,
+                                 parm = "nsmooth",
+                                 dims = c("Stratum_Factored","Year_Index"))
+
+nsmooth <- nsmooth_samples %>% 
+  posterior_sums(.,
+                 dims = c("Stratum_Factored","Year_Index"))%>% 
+  mutate(prior_scale = prior_scale,
+         distribution = pp)
+
+nyears = max(nsmooth_samples$Year_Index)
+nyh <- paste0("Y",nyears)
+trs <- function(y1,y2,ny){
+  tt <- (((y2/y1)^(1/ny))-1)*100
+}
+trends <- nsmooth_samples %>% 
+  filter(Year_Index %in% c(1,nyears)) %>% 
+  select(.draw,.value,Stratum_Factored,Year_Index) %>% 
+  pivot_wider(.,names_from = Year_Index,
+              values_from = .value,
+              names_prefix = "Y") %>%
+  rename_with(.,~gsub(pattern = nyh,replacement = "Y2", .x)) %>% 
+  group_by(.draw,Stratum_Factored) %>% 
+  summarise(trend = trs(Y1,Y2,nyears))%>% 
+  mutate(prior_scale = prior_scale,
+         distribution = pp)
+
+
+nsmooth_out <- bind_rows(nsmooth_out,nsmooth)
+trends_out <- bind_rows(trends_out,trends)
+summ_out <- bind_rows(summ_out,summ)
+
+  }#prior_scale
+  print(paste(pp,prior_scale))
+}# pp
+
+save(file = "output/prior_sim_summary.RData",
+     list = c("nsmooth_out",
+              "trends_out",
+              "summ_out"))
+
+trend_h <- ggplot(data = trends_out)+
+  geom_histogram(aes(x = trend))+
+  facet_wrap(facets = vars(distribution,prior_scale),
+             nrow = 2,
+             ncol = 4,
+             scales = "free")
+print(trend_h)
+
+trend_f <- ggplot(data = trends_out)+
+  geom_freqpoly(aes(x = trend, group = prior_scale,
+                    colour = prior_scale),
+                bins = 50)+
+  scale_color_viridis_c()+
+  scale_x_continuous(limits = c(-30,30))+
+  facet_wrap(facets = vars(distribution),
+             nrow = 2,
+             scales = "fixed")
+print(trend_f)
+
+
+# 95%ile of trends ---------------------------------------------------------
+w_95 <- function(x){
+  d <- diff(quantile(x,c(0.025,0.975)))
+}
+percentile_trends <- trends_out %>% 
+  group_by(distribution,prior_scale,.draw) %>% 
+  summarise(p_95 = w_95(trend)) 
+
+
+perc_f <- ggplot(data = percentile_trends)+
+  geom_freqpoly(aes(x = p_95, group = prior_scale,
+                    colour = prior_scale),
+                bins = 50)+
+  scale_color_viridis_c()+
+  scale_x_continuous(limits = c(0,50))+
+  facet_wrap(facets = vars(distribution),
+             nrow = 2,
+             scales = "fixed")
+print(perc_f)
+
+
+
+
+
