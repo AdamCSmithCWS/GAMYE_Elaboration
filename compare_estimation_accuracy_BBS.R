@@ -3,7 +3,6 @@
 library(bbsBayes)
 library(tidyverse)
 library(cmdstanr)
-library(shinystan)
 library(posterior)
 
 source("functions/posterior_summary_functions.R")
@@ -11,27 +10,23 @@ species = "Pine Warbler"
 species = "Yellow-headed Blackbird"  
 species_f <- gsub(species,pattern = " ",replacement = "_")
 
-
+for(mk in c("","mask_")){
+  
 for(tp in c("non_linear","linear")){
   
   load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
 
 
-
-for(smpl in rev(c("balanced","realised"))){
-  # GEnerate data -----------------------------------------------------------
-  if(smpl == "balanced"){tmp_data = balanced}
-  if(smpl == "realised"){tmp_data = realised}
+smpl = "realised"
+tmp_data = realised
  
-  output_dir <- "output/"
-  out_base <- paste0(species_f,"_",smpl,"_BBS")
+output_dir <- "output/"
+#out_base <- paste0(species_f,"_sim_",tp,"_BBS")
+out_base <- paste0(species_f,"_sim_",mk,tp,"_BBS")
+csv_files <- paste0(out_base,"-",1:3,".csv")
+
   
 load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
-
-  # fit_shiny <- rstan::read_stan_csv(csvfiles = paste0(output_dir,csv_files))
-  # 
-  # launch_shinystan(fit_shiny)
-
 
 
 # Compare stratum level beta parameters -----------------------------------
@@ -44,7 +39,7 @@ betas_est <- posterior_samples(stanfit,
 posterior_sums(.,
                dims = c("Stratum_Factored","k")) 
 
-beta_comp <- beta_True %>% 
+beta_comp <- Beta_True %>% 
   as.data.frame() %>% 
   mutate(k = 1:13) %>% 
   pivot_longer(cols = starts_with("V"),
@@ -153,7 +148,7 @@ BETA_plot = ggplot(data = BETA_comp,aes(x = True_BETA,
 # Hyperparameters realised ------------------------------------------------
 
 
-true_BETA_r <- data.frame(True_BETA = rowMeans(beta_True),
+true_BETA_r <- data.frame(True_BETA = rowMeans(Beta_True),
                         k = 1:stan_data$nknots_year)
 
 
@@ -205,7 +200,7 @@ SMOOTH_plot = ggplot(data = SMOOTH_comp,aes(y = True_SMOOTH,
 
 
 
-true_SMOOTH_r <- data.frame(True_SMOOTH = stan_data$year_basis %*% rowMeans(beta_True),
+true_SMOOTH_r <- data.frame(True_SMOOTH = stan_data$year_basis %*% rowMeans(Beta_True),
                           y = 1:stan_data$nyears) %>% 
   mutate(version = "TRUE")
 
@@ -228,7 +223,7 @@ SMOOTH_plot_r = ggplot(data = SMOOTH_comp_r,aes(y = True_SMOOTH,
 
 
 
-pdf(paste0("Figures/Comparisons_",species,"_",smpl,".pdf"),
+pdf(paste0("Figures/Estimated_True_Comparisons_",out_base,".pdf"),
     width = 11,
     height = 8)
 print(betas_plot)
@@ -245,3 +240,4 @@ dev.off()
 }
 
 }
+
