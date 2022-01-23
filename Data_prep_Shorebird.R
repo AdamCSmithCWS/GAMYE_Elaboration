@@ -1,6 +1,7 @@
 # SPECIES MCMC data-prep -------------------------------------------------------
 library(tidyverse)
 library(cmdstanr)
+library(sf)
 setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
 
 
@@ -10,9 +11,9 @@ species_f = "Red_Knot"
 sp = species
 
 
-load("data/shorebird_hexagon_grid.RData")
 load("Data/shorebird_full_observation_dataset.Rdata")
 load("Data/shorebird_site_map.RData") 
+load("data/shorebird_hexagon_grid.RData")
 seasons <- read.csv("data/Shorebird_seasons.csv")
 regs_alt_season <- seasons[which(seasons$Species == species),"regions_w_alt_season"]
 regs_alt_season <- strsplit(regs_alt_season,
@@ -88,7 +89,8 @@ regions_keep <- nyrs_region[which(nyrs_region$span_years >= nyrs_study*p_time_se
 # drop strata that don't meet above criterion -----------------------------
 dts <- filter(dts,hex_name %in% regions_keep$hex_name) 
 
-real_grid <- poly_grid %>% filter(hex_name %in% regions_keep$hex_name) 
+real_grid <- poly_grid %>% 
+  filter(.,hex_name %in% unlist(regions_keep$hex_name)) 
 
 
 # Grouping the strata by the broad regions where most sites fall ----------
@@ -136,16 +138,16 @@ nstrata = max(dts$strat)
 
 
 ## indexing of sites by strata for annual index calculations
-sByReg = unique(dts[,c("site","strat")])
-sByReg <- arrange(sByReg,strat,site)
+sByReg = unique(dts[,c("site","stratn")])
+sByReg <- arrange(sByReg,stratn,site)
 # 
-nsites_strat <- table(sByReg$strat)
+nsites_strat <- table(sByReg$stratn)
 maxsites_strata <- max(nsites_strat)
 ste_mat <- matrix(data = 0,
                   ncol = maxsites_strata,
                   nrow = nstrata)
 for(j in 1:nstrata){
-  ste_mat[j,1:nsites_strat[j]] <- as.integer(unlist(sByReg[which(sByReg$strat == j),"site"]))
+  ste_mat[j,1:nsites_strat[j]] <- as.integer(unlist(sByReg[which(sByReg$stratn == j),"site"]))
 }
 
 # Identifying the strata and region combinations --------------------------
@@ -168,7 +170,7 @@ real_grid_regs_season <- inner_join(real_grid_regs,strat_regions)
 # generate neighbourhoods -------------------------------------------------
 
 
-neighbours = neighbours_define(real_grid_regs,
+neighbours = neighbours_define(real_grid_regs_season,
                                species = species,
                                alt_strat = "stratn",
                                plot_dir = "maps/",
@@ -221,239 +223,91 @@ year_basis = GAM_year$Year_basis
 
 
   
-  stan_data <- list(count = as.integer(unlist(dts$count)),
-                    year = as.integer(unlist(dts$yr-midyear)),
-                    year_raw = as.integer(unlist(dts$yr)),
-                    site = as.integer(unlist(dts$site)),
-                    strat = as.integer(unlist(dts$strat)),
-                    date = as.integer(unlist(dts$date)),
-                    seas_strat = as.integer(unlist(dts$seas_strat)),
-                    
-                    nyears = nyears,
-                    nstrata = nstrata,
-                    nsites = nsites,
-                    ncounts = ncounts,
-                    ndays = ndays,
-                    
-                    nsites_strat = as.integer(nsites_strat),
-                    maxsites_strata = maxsites_strata,
-                    sites = sites,
-                    seasons = seasons,
-                    
-                    #site_size = sizes_by_site$size_cent,
-                    
-                    # season_basis = basis_season$season_basis,
-                    season_basispred = basis_season$season_basispred,
-                    nknots_season = basis_season$nknots_season,
-                    
-                    year_basispred = basis_year$year_basispred,
-                    nknots_year = basis_year$nknots_year,
-                    
-                    #midyear = midyear,
-                    
-                    N_edges = car_stan_dat$N_edges,
-                    node1 = car_stan_dat$node1,
-                    node2 = car_stan_dat$node2)
+  stan_data <- list(
+    
+    nyears = nyears,
+    nstrata = nstrata,
+    nsites = nsites,
+    ncounts = ncounts,
+    ndays = ndays,
+    
+    count = as.integer(unlist(dts$count)),
+    year = as.integer(unlist(dts$yr)),
+    site = as.integer(unlist(dts$site)),
+    strat = as.integer(unlist(dts$stratn)),
+    N_edges = neighbours$N_edges,
+    node1 = neighbours$node1,
+    node2 = neighbours$node2,
+    nsites_strata = as.integer(nsites_strat),
+    maxnsites_strata = maxsites_strata,
+    ste_mat = ste_mat,
+    nknots_year = nknots_year,
+    year_basis = year_basis,
+    nknots_season = nknots_season,
+    season_basis = season_basis,
+    date = as.integer(unlist(dts$date)),
+    seas_strat = as.integer(unlist(dts$seas_strat)),
+    seasons = seasons)
   
-  mod.file1 = "models/GAMYE_strata_two_season_gammaprior_beta_normal.stan"
-  prior = "gamma"
-  noise_dist1 = "normal"
-  
-  mod.file2 = "models/GAMYE_strata_two_season_gammaprior_beta.stan"
-  prior = "gamma"
-  noise_dist2 = "t"
-  
+  mod.file = "models/GAMYE_iCAR_shorebird_two_season.stan"
+ 
 
   init_def <- function(){ list(noise_raw = rnorm(stan_data$ncounts,0,0.1),
-                               alpha_raw = rnorm(stan_data$nsites,0,0.1),
-                               ALPHA1 = 0,
-                               year_effect_raw = rnorm(stan_data$nyears,0,0.1),
-                               B_season_raw1 = rnorm(stan_data$ndays,0,0.1),
-                               B_season_raw2 = rnorm(stan_data$ndays,0,0.1),
+                               ste_raw = rnorm(stan_data$nsites,0,0.1),
+                               STRATA = 0,
+                               yeareffect_raw = rnorm(stan_data$nyears,0,0.1),
+                               beta_raw_season_1 = rnorm(stan_data$ndays,0,0.1),
+                               beta_raw_season_2 = rnorm(stan_data$ndays,0,0.1),
                                sdnoise = 0.2,
-                               sdalpha = 0.1,
-                               sdyear_gam = 1,
-                               sdyear_gam_strat = runif(stan_data$nknots_year,0.1,0.2),
+                               sdste = 0.1,
+                               sdBETA = 1,
+                               sdbeta = runif(stan_data$nknots_year,0.1,0.2),
                                sdseason = c(0.1,0.1),
                                sdyear = 0.1,
-                               B_raw = rnorm(stan_data$nknots_year,0,0.1),
-                               b_raw = matrix(rnorm(stan_data$nknots_year*stan_data$nstrata,0,0.01),
+                               BETA_raw = rnorm(stan_data$nknots_year,0,0.1),
+                               beta_raw = matrix(rnorm(stan_data$nknots_year*stan_data$nstrata,0,0.01),
                                               nrow = stan_data$nstrata,ncol = stan_data$nknots_year))}
   
   
   
 
-  parms = c("sdnoise",
-            #"nu", #
-            "sdalpha",
-            "b",
-            "B",
-            "alpha",
-            "ALPHA1",
-            "sdyear",
-            "sdyear_gam_strat",
-            "sdyear_gam",
-            "year_effect",
-            "sdseason",
-            "B_season_raw1",
-            "B_season_raw2",
-            "season_pred",
-            "n",
-            "nsmooth",
-            "N",
-            "NSmooth",
-            "log_lik")
+  # Fit model ---------------------------------------------------------------
   
-}else{
-  stan_data <- list(count = as.integer(unlist(dts$count)),
-                    year = as.integer(unlist(dts$yr-midyear)),
-                    year_raw = as.integer(unlist(dts$yr)),
-                    site = as.integer(unlist(dts$site)),
-                    strat = as.integer(unlist(dts$strat)),
-                    date = as.integer(unlist(dts$date)),
-                    
-                    nyears = nyears,
-                    nstrata = nstrata,
-                    nsites = nsites,
-                    ncounts = ncounts,
-                    ndays = ndays,
-                    
-                    nsites_strat = as.integer(nsites_strat),
-                    maxsites_strata = maxsites_strata,
-                    sites = sites,
-                    
-                    #site_size = sizes_by_site$size_cent,
-                    
-                    # season_basis = basis_season$season_basis,
-                    season_basispred = basis_season$season_basispred,
-                    nknots_season = basis_season$nknots_season,
-                    
-                    year_basispred = basis_year$year_basispred,
-                    nknots_year = basis_year$nknots_year,
-                    
-                    #midyear = midyear,
-                    
-                    N_edges = car_stan_dat$N_edges,
-                    node1 = car_stan_dat$node1,
-                    node2 = car_stan_dat$node2)
   
-  mod.file1 = "models/GAMYE_strata_gammaprior_beta_normal.stan"
-  prior = "gamma"
-  noise_dist1 = "normal"
-  
-  mod.file2 = "models/GAMYE_strata_gammaprior_beta.stan"
-  prior = "gamma"
-  noise_dist2 = "t"
-  
-  init_def <- function(){ list(noise_raw = rnorm(stan_data$ncounts,0,0.1),
-                               alpha_raw = rnorm(stan_data$nsites,0,0.1),
-                               ALPHA1 = 0,
-                               year_effect_raw = rnorm(stan_data$nyears,0,0.1),
-                               B_season_raw = rnorm(stan_data$ndays,0,0.1),
-                               sdnoise = 0.2,
-                               sdalpha = 0.1,
-                               sdyear_gam = 1,
-                               sdyear_gam_strat = runif(stan_data$nknots_year,0.1,0.2),
-                               sdseason = 0.1,
-                               sdyear = 0.1,
-                               B_raw = rnorm(stan_data$nknots_year,0,0.1),
-                               b_raw = matrix(rnorm(stan_data$nknots_year*stan_data$nstrata,0,0.01),
-                                              nrow = stan_data$nstrata,ncol = stan_data$nknots_year))}
+  output_dir <- "output/"
+  out_base <- paste0(species,"_Shorebird")
+  csv_files <- paste0(out_base,"-",1:3,".csv")
   
   
   
-  parms = c("sdnoise",
-            #"nu", #
-            "sdalpha",
-            "b",
-            "B",
-            "alpha",
-            "ALPHA1",
-            "sdyear",
-            "sdyear_gam_strat",
-            "sdyear_gam",
-            "year_effect",
-            "sdseason",
-            "B_season_raw",
-            "season_pred",
-            "n",
-            "nsmooth",
-            "N",
-            "NSmooth",
-            "log_lik")
-}
+  print(paste("beginning",species,"with",nstrata,"strata",Sys.time()))
+  
+  
+  ## compile model
+  model <- cmdstan_model(mod.file)
+  
+  
+  stanfit <- model$sample(
+    data=stan_data,
+    refresh=200,
+    chains=3, iter_sampling=1000,
+    iter_warmup=1000,
+    parallel_chains = 3,
+    #pars = parms,
+    adapt_delta = 0.8,
+    max_treedepth = 14,
+    seed = 123,
+    init = init_def,
+    output_dir = output_dir,
+    output_basename = out_base)
+  
+  
+  #stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
+  
+  
+  save(list = c("stanfit","stan_data","csv_files"),
+       file = paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+  
+  
 
-# Explore site-level trajectories of observed means ------------------------
-
-# site_means <- dts %>% group_by(year,SurveyAreaIdentifier) %>%
-#   summarise(means = log(mean(count,na.rm = T)+1))
-# nrow(site_means)/nyears
-# smp = ggplot(data = site_means,aes(x = year,y = means,colour = SurveyAreaIdentifier))+
-#   geom_point(alpha = 0.05)+
-#   geom_smooth(method = "lm",se = FALSE)+
-#   #scale_y_continuous(trans = "log10")+
-#   theme(legend.position = "none")
-# print(smp)#   
-
-# prepare stan data -------------------------------------------------------
-
-
-save(list = c("stan_data",
-              "dts",
-              "real_grid",
-              "real_grid_regs",
-              "strats_dts",
-              "strat_regions",
-              "mod.file1",
-              "prior",
-              "noise_dist1",
-              "mod.file2",
-              "noise_dist2",
-              "parms",
-              "init_def",
-              "vintj",
-              "nb_db",
-              "cc"),
-     file = paste0("data/data",sp,"_cmdstanr_data",p_time_series,"_",minspan,"_",min_nyears,".RData"))
-
-
-
-
-} ### end species loop
-
-
- 
- 
- 
- #print graphs
- 
- 
- pdf(paste0("Figures/","All_seasonal_counts ",grid_spacing/1000,".pdf"),
-     width = 11,height = 8.5)
- for(sp in sps){
-   print(mean_counbts_doy_out[[sp]]+
-           labs(title = sp))
-   
- }
- dev.off()
- 
- pdf(file = paste0("Figures/","ALL_Strata_",grid_spacing/1000,".pdf"))
- 
- for(sp in sps){
-   print(ggp_out[[sp]]+
-           labs(title = sp))
-   
- }
- 
- dev.off()
- 
- pdf(paste0("Figures/","All_annual_counts ",grid_spacing/1000,".pdf"),
-     width = 11,height = 8.5)
- for(sp in sps){
-   print(mean_counbts_year_out[[sp]]+
-           labs(title = sp))
-   
- }
- dev.off()
- 
 
