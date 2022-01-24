@@ -220,8 +220,6 @@ year_basis = GAM_year$Year_basis
 
 # 
 
-
-
   
   stan_data <- list(
     
@@ -277,6 +275,14 @@ year_basis = GAM_year$Year_basis
   output_dir <- "output/"
   out_base <- paste0(species,"_Shorebird")
   csv_files <- paste0(out_base,"-",1:3,".csv")
+  
+  data_1 = dts
+  realized_strata_map = real_grid_regs_season 
+  save(list = c("stan_data",
+                "neighbours",
+                "real_grid_regs_season",
+                "dts"),
+       file = paste0("data/",species_f,"shorebird_data.RData"))
   
   
   

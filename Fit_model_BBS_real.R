@@ -124,7 +124,14 @@ stan_data = list(#scalar indicators
                  nonzeroweight = nonzeroweight
 )
 
+realized_strata_map = strata_map
+data_1 = tmp_data
 
+save(list = c("stan_data",
+              "neighbours",
+              "realized_strata_map",
+              "data_1"),
+     file = paste0("data/",species_f,"BBS_data.RData"))
 
 
 # Fit model ---------------------------------------------------------------

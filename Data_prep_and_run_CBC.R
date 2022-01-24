@@ -162,6 +162,12 @@ out_base <- paste0(species,"_CBC")
 csv_files <- paste0(out_base,"-",1:3,".csv")
 
 
+save(list = c("stan_data",
+              "neighbours",
+              "realized_strata_map",
+              "data_1"),
+     file = paste0("data/",species_f,"CBC_data.RData"))
+
 
 print(paste("beginning",species,"with",nstrata,"strata",Sys.time()))
 
