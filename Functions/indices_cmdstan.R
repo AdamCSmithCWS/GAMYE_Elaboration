@@ -97,7 +97,8 @@ index_function <- function(fit = stanfit,
                             replacement = "stratum_area",
                             x = .x,
                             fixed = TRUE)) %>% 
-        mutate(stratum_weight = stratum_area/sum(stratum_area))  
+        mutate(stratum_weight = stratum_area/sum(stratum_area),
+               summary_region = "Survey_wide")  
     }
 
     smpls <- smpls %>% 
@@ -153,7 +154,8 @@ index_function <- function(fit = stanfit,
                 lci = quantile(.vsum,lu),
                 uci = quantile(.vsum,uu),
                 .groups = "keep") %>%
-      mutate(true_year = yyy+year_1) %>%  
+      mutate(true_year = yyy+year_1,
+             summary_region = "Survey_wide") %>%  
       # rename_with(., ~gsub(replacement = strat,pattern = "s",.x,
       #                      fixed = TRUE)) %>% 
       rename_with(., ~gsub(replacement = year,pattern = "yyy",.x,
@@ -162,7 +164,9 @@ index_function <- function(fit = stanfit,
     weights_df <- weights_df %>% 
       rename_with(., ~gsub(replacement = area,
                            pattern = "stratum_area",.x,
-                           fixed = TRUE))
+                           fixed = TRUE)) %>% 
+      mutate(summary_region = "Survey_wide")
+    summary_regions <- "Survey_wide"
 }#end summary regions
   }else{
   inds <- smpls %>% 

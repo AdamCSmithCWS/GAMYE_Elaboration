@@ -7,6 +7,28 @@ library(sf)
 source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
 
+breaks <- c(-7, -4, -2, -1, -0.5, 0.5, 1, 2, 4, 7)
+trend_map_labls = c(paste0("< ",breaks[1]),paste0(breaks[-c(length(breaks))],":", breaks[-c(1)]),paste0("> ",breaks[length(breaks)]))
+trend_map_labls = paste0(trend_map_labls, " %")
+
+trend_plot_cats <- function(x, labls = trend_map_labls,
+                            t_breaks = c(-7, -4, -2, -1, -0.5, 0.5, 1, 2, 4, 7)){
+  Tplot <- cut(x,breaks = c(-Inf, t_breaks, Inf),labels = labls)
+  return(Tplot)
+}
+
+
+  map_palette_v <- c("#fde725", "#dce319", "#b8de29", "#95d840", "#73d055", "#55c667",
+                   "#238a8d", "#2d708e", "#39568c", "#453781", "#481567")
+
+  map_palette_s <- c("#a50026", "#d73027", "#f46d43", "#fdae61", "#fee090", "#ffffbf",
+                   "#e0f3f8", "#abd9e9", "#74add1", "#4575b4", "#313695")
+
+
+names(map_palette_v) <- trend_map_labls
+names(map_palette_s) <- trend_map_labls
+
+
 
 fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                               "Zonotrichia_albicollis",
@@ -32,6 +54,17 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
 
 # Species loop ------------------------------------------------------------
 output_dir <- "output/"
+stratum_trends <- NULL
+all_trends <- NULL
+indices_all_out <- NULL
+Indices_all_out <- NULL
+
+tt_map_list = vector(mode = "list",length = nrow(fls))
+names(tt_map_list) <- fls$species_f
+tt_map_data_list = tt_map_list
+ind_plots_list = tt_map_list
+Ind_plots_list = tt_map_list
+
 
 for(i in 1:nrow(fls)){
 
@@ -75,9 +108,12 @@ for(i in 1:nrow(fls)){
                            indices_smooth) %>% 
     rename_with(.,~gsub(st_n,replacement = "strat_plot",
                         .x)) %>% 
-    mutate(original_strat_name = strat_plot) %>% 
+    mutate(original_strat_name = strat_plot,
+           species = species,
+           region_type = "Stratum") %>% 
     rename_with(.,~gsub(replacement = st_n,pattern = "strat_plot",
                         .x))
+  indices_all_out <- bind_rows(indices_all_out,indices_all)
   
   pd = ceiling(sqrt(length(unique(indices_all$original_strat_name))))  
   
@@ -92,40 +128,60 @@ for(i in 1:nrow(fls)){
                ncol = pd,
                scales = "free_y")
     
-print(pl_inds)
+ind_plots_list[[species_f]] <- pl_inds
 
 tyrs = c(seq(2009,(year_1+10),by = -10),year_1)
+tyrs2 <- rep(2019,length(tyrs))
+tyrs2 <- c(tyrs2,tyrs+10)
+tyrs <- c(tyrs,tyrs)
 
-stratum_trends <- NULL
+
 tt_map_data <- vector(mode = "list",length = length(tyrs))
-names(tt_map_data) <- paste0("TY",tyrs)
+names(tt_map_data) <- paste0("TY",tyrs,"-",tyrs2)
 tt_map = tt_map_data
-for(yy in tyrs){
+
+for(j in 1:length(tyrs)){
+  yy = tyrs[j]
+  yy2 = tyrs2[j]
+  
   tt <- trends_function(ind_list = strat_inds_smooth,
-                        start_year = yy) %>% 
+                        start_year = yy,
+                        end_year = yy2) %>% 
     mutate(species = species,
-           first_year = yy)
+           first_year = yy,
+           last_year = yy2,
+           region_type = "Stratum")
   
  ttmd <- realized_strata_map %>% 
-    left_join(.,tt,by = st_n)
- tt_map_data[[paste0("TY",yy)]] <- ttmd
+    left_join(.,tt,by = st_n) %>% 
+   mutate(trend_plot = trend_plot_cats(trend))
+ 
+ tt_map_data[[paste0("TY",yy,"-",yy2)]] <- ttmd
  
   
  ## import one of the bbsBays binned colour scales
  
  ttm  <- ggplot(data = ttmd)+
-   geom_sf(aes(fill = trend))+
-   scale_colour_viridis_c(aesthetics = "fill",
-                          guide = guide_colourbar(title = paste("Trend",yy,"-",2019),
-                                                  ))
-  print(ttm)
+   geom_sf(aes(fill = trend_plot))+
+   theme_bw()+
+   scale_colour_manual(values = map_palette_s, 
+                       aesthetics = c("fill"),
+                       guide = guide_legend(reverse=TRUE),
+                       name = paste0(species," Trend\n",yy,"-",yy2))
+ 
+
+ # print(ttm)
   
   
- tt_map[[paste0("TY",yy)]] <- ttm
+ tt_map[[paste0("TY",yy,"-",yy2)]] <- ttm
  
   stratum_trends <- bind_rows(stratum_trends,tt)
 }
-
+pdf(file = paste0("Figures/",species_f,"trend_maps.pdf"))
+for(j in 1:length(tt_map)){
+  print(tt_map[[j]])
+}
+dev.off()
 
 
   # Overall Annual indices
@@ -150,7 +206,11 @@ if(dd == "shorebird"){
     mutate(version = "smooth")
   
   Indices_all <- bind_rows(Inds,
-                           Inds_smooth) 
+                           Inds_smooth)  %>% 
+    mutate(species = species,
+           region_type = "Survey_wide")
+  
+  Indices_all_out <- bind_rows(Indices_all_out,Indices_all)
   
   
   
@@ -159,7 +219,7 @@ if(dd == "shorebird"){
     geom_line(aes(colour = version))+
     labs(title = species)
   
-  print(pl_Inds)
+  ind_plots_list[[species_f]] <- pl_Inds
   
   
 }else{
@@ -175,39 +235,60 @@ if(dd == "shorebird"){
   Inds <- sw_inds$indices %>% 
     mutate(version = "full")
   
-  Inds_smooth <- index_function(fit = stanfit,
+  sw_smooth <- index_function(fit = stanfit,
                                       parameter = "nsmooth",
                                       year_1 = year_1,
                                       strat = st_n,
                                       weights_df = strat_df,
                                       area = "AREA_1",#"Area",
                                       summary_regions = NULL)
-  Inds_smooth <- Inds_smooth$indices %>% 
+  Inds_smooth <- sw_smooth$indices %>% 
     mutate(version = "smooth")
   
   Indices_all <- bind_rows(Inds,
-                           Inds_smooth) 
+                           Inds_smooth) %>% 
+    mutate(species = species,
+           region_type = "Survey_wide")
   
-  
+  Indices_all_out <- bind_rows(Indices_all_out,Indices_all)
   
   pl_Inds <- ggplot(data = Indices_all,aes(x = Year,y = median))+
     geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
     geom_line(aes(colour = version))+
     labs(title = species)
   
-  print(pl_Inds)
+  #print(pl_Inds)
+  ind_plots_list[[species_f]] <- pl_Inds
   
   
 }
 
+tt_map_data_list[[species_f]] <- tt_map_data
+tt_map_list[[species_f]] <- tt_map
 
 
 
+for(j in 1:length(tyrs)){
+  yy = tyrs[j]
+  yy2 = tyrs2[j]
+  
+  TT <- trends_function(ind_list = sw_smooth,
+                        start_year = yy,
+                        end_year = yy2) %>% 
+    mutate(species = species,
+           first_year = yy,
+           last_year = yy2,
+           region_type = "Survey_wide")
+  
+all_trends <- bind_rows(all_trends,TT)
 
+}
 
 
   
   
+
+print(i)
 }#end species loop
 
 
