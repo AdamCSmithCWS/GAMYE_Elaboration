@@ -7,7 +7,7 @@ setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
 
 source("functions/neighbours_define_alt.R")
 species = "Zonotrichia_albicollis"
-
+species_f = "species"
 data_1 = read.csv(paste0("data/",species,"_modeled_records.csv"))
 
 data_1 <- data_1 %>% 
