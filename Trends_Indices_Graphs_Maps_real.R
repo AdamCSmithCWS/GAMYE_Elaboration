@@ -47,7 +47,7 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                          1980),
                   strat_map_name = c("Stratum_Factored",
                                      "",
-                                     ""))
+                                     "stratn"))
 
 
 
@@ -76,7 +76,7 @@ for(i in 1:nrow(fls)){
   
   st_n = fls[i,"strat_map_name"]
   
-  csv_files <- paste0(out_base,"-",1:3,".csv")
+  csv_files <- paste0(output_dir,out_base,"-",1:3,".csv")
   
   load(paste0("Data/",species_f,dd,"_data.RData"))
   load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
@@ -85,6 +85,7 @@ for(i in 1:nrow(fls)){
   #realized_strata_map
   #data_1
   
+  stanfit <- as_cmdstan_fit(files = csv_files)
 # Strata Annual indices file -----------------------------------------------------
   strat_df <- as.data.frame(realized_strata_map)
   
@@ -186,7 +187,7 @@ dev.off()
 
   # Overall Annual indices
 
-if(dd == "shorebird"){
+if(dd == "Shorebird"){
   
   sw_inds <- index_function(fit = stanfit,
                                parameter = "N",

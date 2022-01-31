@@ -38,7 +38,7 @@ index_function <- function(fit = stanfit,
   year_1 <- year_1-1
   if(is.null(strat)){
     dims <- year
-
+    
   }else{
     if(!is.null(weights_df)){
       if(is.null(area)){
@@ -92,22 +92,25 @@ index_function <- function(fit = stanfit,
     
     
     }else{
+      if(!any(c(is.null(strat),is.null(area)))){
       weights_df <- weights_df %>% 
         rename_with(.,~gsub(pattern = area,
                             replacement = "stratum_area",
                             x = .x,
                             fixed = TRUE)) %>% 
         mutate(stratum_weight = stratum_area/sum(stratum_area),
-               summary_region = "Survey_wide")  
-    }
+               summary_region = "Survey_wide") 
+      summary_regions <- "Survey_wide"
+      }
+      }
 
     smpls <- smpls %>% 
       left_join(.,weights_df,
                 by = strat)
     
-    if(!is.null(summary_regions)){
+    if(!any(c(is.null(strat),is.null(area)))){
       inds <- smpls %>% 
-        mutate(.value = .value*stratum_weight) %>% 
+        mutate(summary_region = summary_regions) %>% 
         rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
                              fixed = TRUE)) %>% 
         group_by(yyy,summary_region,.draw) %>% 
@@ -125,10 +128,10 @@ index_function <- function(fit = stanfit,
         rename_with(., ~gsub(replacement = year,pattern = "yyy",.x,
                              fixed = TRUE))
       
-      smpls <- smpls %>% 
-        rename_with(., ~gsub(replacement = summary_regions,
-                             pattern = "summary_region",.x,
-                             fixed = TRUE)) 
+      # smpls <- smpls %>% 
+      #   rename_with(., ~gsub(replacement = summary_regions,
+      #                        pattern = "summary_region",.x,
+      #                        fixed = TRUE)) 
       
       weights_df <- weights_df %>% 
         rename_with(., ~gsub(replacement = area,
@@ -169,6 +172,7 @@ index_function <- function(fit = stanfit,
     summary_regions <- "Survey_wide"
 }#end summary regions
   }else{
+    if(!is.null(strat)){
   inds <- smpls %>% 
     rename_with(., ~gsub(pattern = strat,replacement = "sss",.x,
                          fixed = TRUE)) %>% 
@@ -186,7 +190,25 @@ index_function <- function(fit = stanfit,
     rename_with(., ~gsub(replacement = year,pattern = "yyy",.x,
                          fixed = TRUE))
   
-
+    }else{
+      summary_regions <- "Survey_wide"
+      
+      inds <- smpls %>% 
+        rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
+                             fixed = TRUE)) %>% 
+        group_by(yyy) %>% 
+        summarise(mean = mean(.value),
+                  median = median(.value),
+                  lci = quantile(.value,lu),
+                  uci = quantile(.value,uu),
+                  .groups = "keep") %>%
+        mutate(true_year = yyy+year_1,
+               sss = "Survey_wide") %>% 
+        rename_with(., ~gsub(replacement = summary_regions,pattern = "sss",.x,
+                             fixed = TRUE)) %>% 
+        rename_with(., ~gsub(replacement = year,pattern = "yyy",.x,
+                             fixed = TRUE))
+}
 }
   
   smpls <- smpls %>% 

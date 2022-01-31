@@ -2,7 +2,7 @@
 library(tidyverse)
 library(bbsBayes)
 library(cmdstanr)
-setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
+setwd("C:/GitHub/GAMYE_Elaboration")
 
 
 source("functions/neighbours_define_alt.R")
@@ -158,7 +158,7 @@ stan_data = list(#scalar indicators
 
 
 output_dir <- "output/"
-out_base <- paste0(species,"_CBC")
+out_base <- paste0(species,"_CBC_B")
 csv_files <- paste0(out_base,"-",1:3,".csv")
 
 
@@ -216,7 +216,7 @@ stanfit <- model$sample(
   output_basename = out_base)
 
 
-#stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
+#stanfit <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
 
 
 save(list = c("stanfit","stan_data","csv_files"),
