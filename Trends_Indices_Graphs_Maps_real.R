@@ -132,7 +132,8 @@ for(i in 1:nrow(fls)){
     
 ind_plots_list[[species_f]] <- pl_inds
 
-tyrs = c(seq(2009,(year_1+10),by = -10),year_1)
+tyrs = unique(c(2009,1999,1990,1980,1970,year_1))
+tyrs = tyrs[which(tyrs >= year_1)]
 tyrs2 <- rep(2019,length(tyrs))
 tyrs2 <- c(tyrs2,tyrs+10)
 tyrs <- c(tyrs,tyrs)
@@ -198,13 +199,13 @@ if(dd == "Shorebird"){
   Inds <- sw_inds$indices %>% 
     mutate(version = "full")
   
-  sw_inds_smooth <- index_function(fit = stanfit,
-                                      parameter = "nsmooth",
+  sw_smooth <- index_function(fit = stanfit,
+                                      parameter = "NSmooth",
                                       year_1 = year_1,
                                       strat = NULL,
                                       first_dim = "y")
   
-  Inds_smooth <- sw_inds_smooth$indices %>% 
+  Inds_smooth <- sw_smooth$indices %>% 
     mutate(version = "smooth")
   
   Indices_all <- bind_rows(Inds,
