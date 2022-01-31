@@ -76,10 +76,11 @@ for(i in 1:nrow(fls)){
   
   st_n = fls[i,"strat_map_name"]
   
-  csv_files <- paste0(output_dir,out_base,"-",1:3,".csv")
   
   load(paste0("Data/",species_f,dd,"_data.RData"))
   load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+  csv_files <- paste0(output_dir,out_base,"-",1:3,".csv")
+  
   #stan_data
   #neighbours
   #realized_strata_map
