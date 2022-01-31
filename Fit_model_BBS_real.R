@@ -3,7 +3,7 @@ library(bbsBayes)
 library(tidyverse)
 library(cmdstanr)
 
-setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
+setwd("C:/GitHub/GAMYE_Elaboration")
 
 
 species <- "Pine Warbler"

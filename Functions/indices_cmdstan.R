@@ -41,7 +41,7 @@ index_function <- function(fit = stanfit,
     
   }else{
     if(!is.null(weights_df)){
-      if(is.null(area)){
+      if(is.null(strat)){
       stop("Weights were supplied but no stratum dimension")
       
       return(NULL)
@@ -128,9 +128,18 @@ index_function <- function(fit = stanfit,
                              fixed = TRUE))
       
       smpls <- smpls %>%
+        rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
+                             fixed = TRUE)) %>% 
         rename_with(., ~gsub(replacement = summary_regions,
                              pattern = "summary_region",.x,
+                             fixed = TRUE)) %>% 
+        mutate(true_year = yyy+year_1) %>% 
+        rename_with(., ~gsub(pattern = "yyy",replacement = year,.x,
                              fixed = TRUE))
+      
+      
+
+      
       
       weights_df <- weights_df %>% 
         rename_with(., ~gsub(replacement = area,

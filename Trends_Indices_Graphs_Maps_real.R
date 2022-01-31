@@ -66,7 +66,7 @@ ind_plots_list = tt_map_list
 Ind_plots_list = tt_map_list
 
 
-for(i in 1:nrow(fls)){
+for(i in c(1,3)){#1:nrow(fls)){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
