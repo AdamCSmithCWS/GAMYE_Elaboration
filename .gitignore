@@ -9,5 +9,7 @@ maps/
 observer_mixture/
 models/*.exe
 Figures/
+doc/
+
 
 
