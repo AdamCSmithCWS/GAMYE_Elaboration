@@ -3,7 +3,7 @@ library(bbsBayes)
 library(tidyverse)
 library(cmdstanr)
 
-setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
+setwd("C:/GitHub/GAMYE_Elaboration")
 
 #species <- "Pine Warbler"
 
@@ -107,7 +107,7 @@ stan_data = list(#scalar indicators
 
 # Fit model ---------------------------------------------------------------
 
-print(paste("beginning masked region",species,"with",nstrata,"strata",Sys.time()))
+print(paste("beginning",out_base,"with",nstrata,"strata",Sys.time()))
 
 
   mod.file = "models/gamye_iCAR_sim.stan"

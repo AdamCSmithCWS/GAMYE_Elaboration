@@ -15,7 +15,7 @@ species = "Yellow-headed Blackbird"
       
          #STRATA_True <- log(2)
         output_dir <- "output/"
-        out_base <- paste0(species_f,"_sim_nonSpatial_",tp,"_BBS")
+        out_base <- paste0(species_f,"_sim_nonSpatial_alt_mask_",tp,"_BBS")
         csv_files <- paste0(out_base,"-",1:3,".csv")
         
         
@@ -24,7 +24,7 @@ species = "Yellow-headed Blackbird"
           
           load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
         
-tmp_data = realised
+tmp_data = realised_mask
   
 nsites = max(routes_df$Route_Factored)
 nstrata = max(strata_df$Stratum_Factored)
@@ -103,10 +103,10 @@ stan_data = list(#scalar indicators
 
 # Fit model ---------------------------------------------------------------
 
-print(paste("beginning non Spatial",species,"with",nstrata,"strata",Sys.time()))
+print(paste("beginning",out_base,"with",nstrata,"strata",Sys.time()))
 
 
-  mod.file = "models/gamye_nonSpatial_sim.stan"
+  mod.file = "models/gamye_nonSpatial_sim_alt.stan"
   
   
   init_def <- function(){ list(noise_raw = rnorm(ncounts,0,0.1),
@@ -120,7 +120,7 @@ print(paste("beginning non Spatial",species,"with",nstrata,"strata",Sys.time()))
                                sdnoise = runif(1,0.01,0.2),
                                sdobs = runif(1,0.01,0.1),
                                sdste = runif(1,0.01,0.2),
-                               sdbeta = runif(nknots_year,0.01,0.1),
+                               sdbeta = runif(nstrata,0.01,0.1),
                                sdBETA = runif(1,0.01,0.1),
                                sdyear = runif(nstrata,0.01,0.1),
                                BETA_raw = rnorm(nknots_year,0,0.1),
