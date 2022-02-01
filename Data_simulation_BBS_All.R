@@ -412,7 +412,26 @@ realised_mask <- realised %>%
 to_save <- c(to_save,"realised_mask","routes_mask","event_mask_retain")
 
 
+tst1 = realised_mask %>% 
+  group_by(Stratum_Factored) %>% 
+  summarise(n_m = n())
+tst2 = realised %>% 
+  group_by(Stratum_Factored) %>% 
+  summarise(n_r = n())
+tst = inner_join(tst1,tst2)
 
+mask_map <- mask_map %>% 
+  left_join(.,tst)
+# 
+# testplot1 = ggplot()+
+#    geom_sf(data = mask_map,aes(fill = masked))
+# testplot2 = ggplot()+
+#   geom_sf(data = mask_map,aes(fill = n_m/n_r))
+# # testplot3 = ggplot()+
+# #   geom_sf(data = mask_map,aes(fill = n_m))
+# #library(patchwork)
+#    print(testplot1 + testplot2)
+#   
 ### realised is a final dataset to demonstrate a realistic BBS dataset
 ### with a known pattern of population change
 
