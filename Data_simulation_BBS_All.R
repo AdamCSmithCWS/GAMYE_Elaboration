@@ -9,7 +9,7 @@ library(mgcv) #has functions to simulate data from a GAM
 BBS_data <- stratify("bbs_usgs")
 
 
-species = "Pine Warbler"  
+#species = "Pine Warbler"  
 species = "Yellow-headed Blackbird"  
 species_f <- gsub(species,pattern = " ",replacement = "_")
   
