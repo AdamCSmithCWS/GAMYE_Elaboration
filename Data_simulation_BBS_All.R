@@ -374,10 +374,27 @@ save(list = c(to_save,"original_data_df"),
 
 }
 
+
+# Mask data in some strata ------------------------------------------------
+set.seed(1)
+
+masked_strata <- sample(1:nstrata,size = floor(ceiling(nstrata/4)),replace = FALSE)
+strata_mask <- strata_df %>% 
+  mutate(masked = ifelse(Stratum_Factored %in% masked_strata,TRUE,FALSE))
+  
+mask_map <- strata_map %>% 
+  mutate(masked = ifelse(Stratum_Factored %in% masked_strata,TRUE,FALSE))
+
+to_save <- c(to_save,"mask_map","strata_mask")
+
+# testplot = ggplot()+
+#   geom_sf(data = mask_map,aes(fill = masked))
+# print(testplot)
+
 # remove all but two years from each observer and route in some st --------
 
 routes_mask <- routes_df %>% 
-  filter(grepl(Stratum,pattern = "CA-",fixed = TRUE) )
+  filter(Stratum_Factored %in% masked_strata)
 
 # minimum number of observation events to retain so that all routes and observers are included
 
