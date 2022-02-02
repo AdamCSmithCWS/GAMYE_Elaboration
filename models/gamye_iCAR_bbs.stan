@@ -4,8 +4,6 @@
 // Consider moving annual index calculations outside of Stan to 
 // facilitate the ragged array issues
 
-// This version also does not have the first year variable that most BBS models have
-
 // iCAR function, from Morris et al. 2019
 // Morris, M., K. Wheeler-Martin, D. Simpson, S. J. Mooney, A. Gelman, and C. DiMaggio (2019). 
 // Bayesian hierarchical spatial models: Implementing the Besag York Mollié model in stan. 
