@@ -6,27 +6,30 @@ library(cmdstanr)
 library(posterior)
 
 source("functions/posterior_summary_functions.R")
-species = "Pine Warbler"  
+#species = "Pine Warbler"  
 species = "Yellow-headed Blackbird"  
 species_f <- gsub(species,pattern = " ",replacement = "_")
 
-for(mk in c("","mask_")){
-  
 for(tp in c("non_linear","linear")){
   
   load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
+  
+  for(sns in c("","nonSpatial_","nonSpatial_alt_"))
+for(mk in c("","mask_")){
+  
+if(sns == "nonSpatial_" & mk == "mask_"){next}
 
 
-smpl = "realised"
-tmp_data = realised
- 
 output_dir <- "output/"
 #out_base <- paste0(species_f,"_sim_",tp,"_BBS")
-out_base <- paste0(species_f,"_sim_",mk,tp,"_BBS")
-csv_files <- paste0(out_base,"-",1:3,".csv")
-
+out_base <- paste0(species_f,"_sim_",sns,mk,tp,"_BBS")
+#csv_files <- paste0(out_base,"-",1:3,".csv")
+out_base_sim <- paste0("_sim_",sns,mk,tp,"_BBS")
   
 load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+
+csv_files <- paste0(output_dir,out_base,"-",1:3,".csv")
+stanfit <- as_cmdstan_fit(files = csv_files)
 
 
 # Compare stratum level beta parameters -----------------------------------
@@ -223,7 +226,7 @@ SMOOTH_plot_r = ggplot(data = SMOOTH_comp_r,aes(y = True_SMOOTH,
 
 
 
-pdf(paste0("Figures/Estimated_True_Comparisons_",out_base,".pdf"),
+pdf(paste0("Figures/Estimated_True_Comparisons_",out_base_sim,".pdf"),
     width = 11,
     height = 8)
 print(betas_plot)
