@@ -4,12 +4,12 @@ library(bbsBayes)
 library(tidyverse)
 library(cmdstanr)
 
-setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
+setwd("C:/GitHub/GAMYE_Elaboration")
 
 
 # fit model with fixed data for all parameters except the local sm --------
 
-species <- "Pine Warbler"
+species <- "Yellow-headed Blackbird"
 species_f <- gsub(species,pattern = " ",replacement = "_")
 
 dd <- NULL
@@ -215,9 +215,11 @@ print(trend_h)
 trend_f <- ggplot(data = trends_out)+
   geom_freqpoly(aes(x = trend, group = prior_scale,
                     colour = prior_scale),
-                bins = 50)+
+                bins = 1000)+
   scale_color_viridis_c()+
-  scale_x_continuous(limits = c(-30,30))+
+  coord_cartesian(xlim = c(-20,20),
+                  ylim = c(0,10000))+
+  #scale_x_continuous(limits = c(-30,30))+
   facet_wrap(facets = vars(distribution),
              nrow = 2,
              scales = "fixed")

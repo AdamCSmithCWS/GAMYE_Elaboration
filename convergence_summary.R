@@ -52,7 +52,7 @@ for(tp in c("non_linear","linear")){
 
   load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
   
-  for(sns in c("","nonSpatial_","nonSpatial_alt_"))
+  for(sns in c("","nonSpatial_"))
     for(mk in c("","mask_")){
       
       if(sns == "nonSpatial_" & mk == "mask_"){next}
