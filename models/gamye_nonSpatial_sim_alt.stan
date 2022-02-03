@@ -174,8 +174,8 @@ for(y in 1:nyears){
   real ste = sdste*ste_raw[ste_mat[s,t]]; // site intercepts
 
 
-      n_t[t] = exp(strata+ SMOOTH_pred[y] + smooth_pred[y,s] + ste + yeareffect[s,y] + retrans_noise + retrans_obs);
-      nsmooth_t[t] = exp(strata + SMOOTH_pred[y] + smooth_pred[y,s] + ste + retrans_yr + retrans_noise + retrans_obs);
+      n_t[t] = exp(strata+ smooth_pred[y,s] + ste + yeareffect[s,y] + retrans_noise + retrans_obs);
+      nsmooth_t[t] = exp(strata + smooth_pred[y,s] + ste + retrans_yr + retrans_noise + retrans_obs);
         }
         n[s,y] = mean(n_t); //mean of exponentiated predictions across sites in a stratum
         nsmooth[s,y] = mean(nsmooth_t); //mean of exponentiated predictions across sites in a stratum
