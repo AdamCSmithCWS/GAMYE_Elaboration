@@ -7,11 +7,15 @@ setwd("C:/GitHub/GAMYE_Elaboration")
 
 source("functions/neighbours_define_alt.R")
 species = "Zonotrichia_albicollis"
-species_f = "species"
+species_f = species
 data_1 = read.csv(paste0("data/",species,"_modeled_records.csv"))
 
 data_1 <- data_1 %>% 
   mutate(strat = paste(country,state,bcr,sep = "-")) # making a strat value to match BBS strata
+
+
+# optional removal of low abundance strata --------------------------------
+
 
 
 
@@ -37,7 +41,7 @@ strat_df = data_1 %>%
 nstrata = max(strat_df$strata_vec)
 
 
-nonzeroweight <- as.integer(strat_df$non_zero)
+nonzeroweight <- as.numeric(strat_df$non_zero)
 
 
 # Neighbour relationships -------------------------------------------------
@@ -223,7 +227,7 @@ save(list = c("stanfit","stan_data","csv_files"),
      file = paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
 
 
-
-
+# tmp <- rstan::read_stan_csv(paste0(output_dir,csv_files))
+# launch_shinystan(tmp)
 
 

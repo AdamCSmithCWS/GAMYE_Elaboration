@@ -40,13 +40,13 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                            "CBC",
                            "Shorebird"),
                   out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
-                               paste0("Zonotrichia_albicollis","_CBC"),
+                               paste0("Zonotrichia_albicollis","_CBC_B"),
                                paste0("Red Knot","_Shorebird")),
                   y1 = c(1966,
                          1966,
                          1980),
                   strat_map_name = c("Stratum_Factored",
-                                     "",
+                                     "strata_vec",
                                      "stratn"))
 
 
@@ -77,6 +77,7 @@ for(i in c(1,3)){#1:nrow(fls)){
   st_n = fls[i,"strat_map_name"]
   
   
+  
   load(paste0("Data/",species_f,dd,"_data.RData"))
   load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
   csv_files <- paste0(output_dir,out_base,"-",1:3,".csv")
@@ -86,10 +87,72 @@ for(i in c(1,3)){#1:nrow(fls)){
   #realized_strata_map
   #data_1
   
+ 
+  
+  
   stanfit <- as_cmdstan_fit(files = csv_files)
 # Strata Annual indices file -----------------------------------------------------
   strat_df <- as.data.frame(realized_strata_map)
   
+  
+
+# exploring the spatial abundance dist ------------------------------------
+
+  strat_samples <- posterior_samples(fit = stanfit,
+                                     parm = "strata_raw",
+                                     dims = "stratnumber")
+  STRAT_samples <- posterior_samples(fit = stanfit,
+                                     parm = "STRATA")
+  sdstrata_samples <- posterior_samples(fit = stanfit,
+                                        parm = "sdstrata")
+  sd_tmp = sdstrata_samples %>% select(.draw,.value) %>% 
+    rename(sdstrata = .value)
+  STRAT_tmp = STRAT_samples %>% select(.draw,.value) %>% 
+    rename(STRAT = .value)
+  strata_sums <- strat_samples %>% 
+    left_join(sd_tmp) %>% 
+    left_join(STRAT_tmp) %>% 
+    mutate(strat = .value*sdstrata + STRAT) %>% 
+    group_by(stratnumber) %>% 
+    summarise(mean_est = mean(strat),
+              lci_est = quantile(strat,0.025),
+              uci_est = quantile(strat,0.975))
+  
+  
+  stan_df <- data.frame(stratnumber = stan_data$strat,
+                          count = stan_data$count,
+                          site = stan_data$site,
+                          year = stan_data$year) 
+  
+  
+  obs_strat_means <- stan_df %>% 
+    group_by(stratnumber) %>% 
+    summarise(mean = mean(count),
+              max = max(count),
+              lmean = log(mean)) %>% 
+    left_join(.,strata_sums)
+  
+  plot_obs_m <- realized_strata_map %>% 
+    rename_with(~gsub(pattern = st_n,replacement = "stratnumber",x = .x)) %>% 
+    left_join(.,obs_strat_means,by = c("stratnumber"))
+  
+  
+  obs_m_map <- ggplot()+
+    geom_sf(data = plot_obs_m,aes(fill = lmean))+
+    scale_fill_viridis_c()
+  print(obs_m_map)
+  
+  est_m_map <- ggplot()+
+    geom_sf(data = plot_obs_m,aes(fill = mean_est))+
+    scale_fill_viridis_c()
+  print(est_m_map)
+  
+  plot(obs_strat_means$lmean,obs_strat_means$mean_est)
+  abline(0,1)
+
+# indices and trends ------------------------------------------------------
+
+    
  strat_inds <- index_function(fit = stanfit,
                               parameter = "n",
                               year_1 = year_1,
