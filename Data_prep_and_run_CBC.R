@@ -4,6 +4,7 @@ library(bbsBayes)
 library(cmdstanr)
 setwd("C:/GitHub/GAMYE_Elaboration")
 
+filter_low <- TRUE
 
 source("functions/neighbours_define_alt.R")
 species = "Zonotrichia_albicollis"
@@ -15,16 +16,28 @@ data_1 <- data_1 %>%
 
 
 # optional removal of low abundance strata --------------------------------
+if(filter_low){
+strat_means <- data_1 %>% 
+  group_by(strata_vec,strat) %>% 
+  summarise(mean_obs = mean(how_many),
+            lmean = log(mean_obs))
 
+strat_keep <- strat_means %>% 
+  filter(lmean > 3)
+data_1 <- data_1 %>% 
+  filter(strata_vec %in% strat_keep$strata_vec) %>% 
+  mutate(strata_vec = as.integer(factor(strata_vec))) 
 
-
-
+species_f <- paste0(species_f,"_low")
+}
 # strata_df ---------------------------------------------------------------
 
 strata_map <- bbsBayes::load_map(stratify_by = "bbs_usgs") %>% 
   rename(strat = ST_12) 
 
 strat_df = data_1 %>% 
+  # filter(strata_vec %in% strat_keep$strata_vec) %>% 
+  # mutate(strata_vec = as.integer(factor(strata_vec))) %>% 
   select(stratum,strata_vec,
          strat,
          stratum_area_km2,
@@ -162,7 +175,7 @@ stan_data = list(#scalar indicators
 
 
 output_dir <- "output/"
-out_base <- paste0(species,"_CBC_B")
+out_base <- paste0(species_f,"_CBC_B")
 csv_files <- paste0(out_base,"-",1:3,".csv")
 
 
@@ -173,7 +186,7 @@ save(list = c("stan_data",
      file = paste0("data/",species_f,"CBC_data.RData"))
 
 
-print(paste("beginning",species,"with",nstrata,"strata",Sys.time()))
+print(paste("beginning",out_base,"with",nstrata,"strata",Sys.time()))
 
 mod.file = "models/gamye_iCAR_CBC.stan"
 
