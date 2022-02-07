@@ -30,7 +30,7 @@ data_1 <- data_1 %>%
   mutate(strata_vec = as.integer(factor(as.character(strata_vec))),
          circle_vec = as.integer(factor(as.character(circle_vec)))) 
 
-species_f <- paste0(species_f,"_low2")
+species_f <- paste0(species_f,"_low_tnoise")
 }
 # strata_df ---------------------------------------------------------------
 
@@ -209,7 +209,7 @@ save(list = c("stan_data",
 
 print(paste("beginning",out_base,"with",nstrata,"strata",Sys.time()))
 
-mod.file = "models/gamye_iCAR_CBC.stan"
+mod.file = "models/gamye_iCAR_CBC_tnoise.stan"
 
 ## compile model
 model <- cmdstan_model(mod.file)
