@@ -17,7 +17,7 @@ for(tp in c("non_linear","linear")){
   for(sns in c("","nonSpatial_","nonSpatial_alt_"))
 for(mk in c("","mask_")){
   
-if(sns == "nonSpatial_" & mk == "mask_"){next}
+#if(sns == "nonSpatial_" & mk == "mask_"){next}
 
 
 output_dir <- "output/"

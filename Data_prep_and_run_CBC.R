@@ -2,26 +2,33 @@
 library(tidyverse)
 library(bbsBayes)
 library(cmdstanr)
+library(patchwork)
 setwd("C:/GitHub/GAMYE_Elaboration")
 
-filter_low <- TRUE
+filter_low <- FALSE
 
 source("functions/neighbours_define_alt.R")
 species = "Zonotrichia_albicollis"
+species = "Cinclus_mexicanus"
+# species = "Haliaeetus_leucocephalus"
+# species = "Sitta_canadensis"
+
+
 species_f = species
 data_1 = read.csv(paste0("data/",species,"_modeled_records.csv"))
 
 data_1 <- data_1 %>% 
-  filter(scaled_effort < 10) %>% #this is to drop counts where the effort is >10-times the mean effort, there are some wierd counts with ~1000s of party hours...this seems unlikely for a CBC circle
+  #filter(scaled_effort < 10) %>% #this is to drop counts where the effort is >10-times the mean effort, there are some wierd counts with ~1000s of party hours...this seems unlikely for a CBC circle
   mutate(strat = paste(country,state,bcr,sep = "-")) # making a strat value to match BBS strata
 
 
 # optional removal of low abundance strata --------------------------------
-if(filter_low){
 strat_means <- data_1 %>% 
   group_by(strata_vec,strat) %>% 
   summarise(mean_obs = mean(how_many),
             lmean = log(mean_obs))
+
+if(filter_low){
 
 strat_keep <- strat_means %>% 
   filter(lmean > 3)
@@ -31,6 +38,14 @@ data_1 <- data_1 %>%
          circle_vec = as.integer(factor(as.character(circle_vec)))) 
 
 species_f <- paste0(species_f,"_low2")
+}else{
+  
+  strat_keep <- strat_means 
+  data_1 <- data_1 %>% 
+    filter(strata_vec %in% strat_keep$strata_vec) %>% 
+    mutate(strata_vec = as.integer(factor(as.character(strata_vec))),
+           circle_vec = as.integer(factor(as.character(circle_vec)))) 
+  
 }
 # strata_df ---------------------------------------------------------------
 
@@ -83,23 +98,37 @@ sites_df <- data_1 %>%
   arrange(circle_vec)
   
 # 
-# strata_summary <- data_1 %>% 
-#   group_by(strata_vec) %>% 
-#   summarise(mean_c_strat = mean(how_many),
-#             lmean_c_strat = mean(log(how_many)),
-#             max_c_strat = max(how_many)) %>% 
-#   right_join(data_1,.,by = "strata_vec")
-# 
-# sites_summary <- strata_summary %>% 
-#   mutate(cent_count = how_many - mean_c_strat,
-#          cent_lcount = log(how_many) - lmean_c_strat) %>% 
-#   group_by(circle_vec,strata_vec) %>% 
-#   summarise(n_years = n(),
-#             mean_c = mean(how_many),
-#             lmean_c = log(mean_c),
-#             max_c = max(how_many),
-#             cent_mean = mean(cent_count),
-#             cent_lmean = mean(cent_lcount))
+strata_sums <- data_1 %>%
+  group_by(strata_vec) %>%
+  summarise(mean_c_strat = mean(how_many),
+            lmean_c_strat = mean(log(how_many + 1)),
+            max_c_strat = max(how_many))
+
+strata_summary <- strata_sums %>%
+  right_join(data_1,.,by = "strata_vec")
+
+sites_summary <- strata_summary %>%
+  mutate(cent_count = how_many - mean_c_strat,
+         cent_lcount = log(how_many) - lmean_c_strat) %>%
+  group_by(circle_vec,strata_vec) %>%
+  summarise(n_years = n(),
+            mean_c = mean(how_many),
+            lmean_c = log(mean_c),
+            max_c = max(how_many),
+            cent_mean = mean(cent_count),
+            cent_lmean = mean(cent_lcount))
+
+mean_sf = realized_strata_map %>% 
+  left_join(.,strata_sums)
+lmean_map = ggplot()+
+  geom_sf(data = mean_sf,aes(fill = lmean_c_strat))
+mean_map = ggplot()+
+  geom_sf(data = mean_sf,aes(fill = mean_c_strat))
+pdf(paste0("maps/",species_f,"_mean_counts.pdf"),
+    height = 8.5,
+    width = 11)
+print(mean_map + lmean_map)
+dev.off()
 
 
 
