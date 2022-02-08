@@ -6,28 +6,7 @@ library(posterior)
 library(sf)
 source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
-
-breaks <- c(-7, -4, -2, -1, -0.5, 0.5, 1, 2, 4, 7)
-trend_map_labls = c(paste0("< ",breaks[1]),paste0(breaks[-c(length(breaks))],":", breaks[-c(1)]),paste0("> ",breaks[length(breaks)]))
-trend_map_labls = paste0(trend_map_labls, " %")
-
-trend_plot_cats <- function(x, labls = trend_map_labls,
-                            t_breaks = c(-7, -4, -2, -1, -0.5, 0.5, 1, 2, 4, 7)){
-  Tplot <- cut(x,breaks = c(-Inf, t_breaks, Inf),labels = labls)
-  return(Tplot)
-}
-
-
-  map_palette_v <- c("#fde725", "#dce319", "#b8de29", "#95d840", "#73d055", "#55c667",
-                   "#238a8d", "#2d708e", "#39568c", "#453781", "#481567")
-
-  map_palette_s <- c("#a50026", "#d73027", "#f46d43", "#fdae61", "#fee090", "#ffffbf",
-                   "#e0f3f8", "#abd9e9", "#74add1", "#4575b4", "#313695")
-
-
-names(map_palette_v) <- trend_map_labls
-names(map_palette_s) <- trend_map_labls
-
+source("Functions/palettes.R")
 
 
 fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
@@ -132,23 +111,23 @@ for(i in c(1,3)){#1:nrow(fls)){
               lmean = log(mean)) %>% 
     left_join(.,strata_sums)
   
-  plot_obs_m <- realized_strata_map %>% 
-    rename_with(~gsub(pattern = st_n,replacement = "stratnumber",x = .x)) %>% 
-    left_join(.,obs_strat_means,by = c("stratnumber"))
-  
-  
-  obs_m_map <- ggplot()+
-    geom_sf(data = plot_obs_m,aes(fill = lmean))+
-    scale_fill_viridis_c()
-  print(obs_m_map)
-  
-  est_m_map <- ggplot()+
-    geom_sf(data = plot_obs_m,aes(fill = mean_est))+
-    scale_fill_viridis_c()
-  print(est_m_map)
-  
-  plot(obs_strat_means$lmean,obs_strat_means$mean_est)
-  abline(0,1)
+  # plot_obs_m <- realized_strata_map %>% 
+  #   rename_with(~gsub(pattern = st_n,replacement = "stratnumber",x = .x)) %>% 
+  #   left_join(.,obs_strat_means,by = c("stratnumber"))
+  # 
+  # 
+  # obs_m_map <- ggplot()+
+  #   geom_sf(data = plot_obs_m,aes(fill = lmean))+
+  #   scale_fill_viridis_c()
+  # print(obs_m_map)
+  # 
+  # est_m_map <- ggplot()+
+  #   geom_sf(data = plot_obs_m,aes(fill = mean_est))+
+  #   scale_fill_viridis_c()
+  # print(est_m_map)
+  # 
+  # plot(obs_strat_means$lmean,obs_strat_means$mean_est)
+  # abline(0,1)
 
 # indices and trends ------------------------------------------------------
 

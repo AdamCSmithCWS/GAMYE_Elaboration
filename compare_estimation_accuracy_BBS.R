@@ -33,7 +33,7 @@ stanfit <- as_cmdstan_fit(files = csv_files)
 
 
 # Compare stratum level beta parameters -----------------------------------
-
+to_save <- c("out_base","out_base_sim")
 
 
 betas_est <- posterior_samples(stanfit,
@@ -52,6 +52,7 @@ beta_comp <- Beta_True %>%
   mutate(Stratum_Factored = as.integer(Stratum_Factored)) %>% 
   left_join(betas_est,by = c("Stratum_Factored","k"))
 
+to_save <- c(to_save,"beta_comp")
 
 betas_plot = ggplot(data = beta_comp,aes(x = beta_True,y = mean))+
   geom_point(aes(colour = k))+
@@ -67,12 +68,17 @@ betas_plot = ggplot(data = beta_comp,aes(x = beta_True,y = mean))+
 
 # compare stratum level smoothed indices ----------------------------------
 
-true_inds <- balanced %>% 
+true_inds <- realised %>% 
   select(Stratum,Stratum_Factored,Smooth,Year,True_log_traj,True_strata_effects) %>% 
   distinct() %>% 
   mutate(True_nsmooth = exp(Smooth + True_strata_effects)) %>% 
   arrange(Stratum_Factored)
 
+obs_means <- realised %>% 
+  group_by(Stratum_Factored,Year) %>% 
+  summarise(n_routes = n(),
+            mean_count = mean(count),
+            lmean_count = mean(log(count+1)))
 
 
 nsmooth_est <- posterior_samples(stanfit,
@@ -109,6 +115,7 @@ nsmooth_comp2 <- nsmooth_est %>%
   mutate(version = "Estimated") %>% 
   bind_rows(.,true_inds)
 
+to_save <- c(to_save,"nsmooth_comp2","obs_means")
 
 nsmooth_plot2 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
                                               x = Year))+
@@ -137,6 +144,7 @@ BETA_est <- posterior_samples(stanfit,
 BETA_comp <- BETA_est %>% 
   left_join(true_BETA,by = c("k"))
 
+to_save <- c(to_save,"BETA_comp")
 
 
 BETA_plot = ggplot(data = BETA_comp,aes(x = True_BETA,
@@ -191,6 +199,7 @@ SMOOTH_comp <- SMOOTH_est %>%
   mutate(version = "Estimated") %>% 
   bind_rows(.,true_SMOOTH)
 
+to_save <- c(to_save,"SMOOTH_comp")
 
 SMOOTH_plot = ggplot(data = SMOOTH_comp,aes(y = True_SMOOTH,
                                                 x = y))+
@@ -239,6 +248,8 @@ print(SMOOTH_plot_r)
 
 dev.off()
 
+save(list = to_save,
+     file = paste0("data/",out_base_sim,"_accuracy_comp.RData"))
 
 }
 
