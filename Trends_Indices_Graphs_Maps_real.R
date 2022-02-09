@@ -10,16 +10,16 @@ source("Functions/palettes.R")
 
 
 fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
-                              "Zonotrichia_albicollis",
+                              "Cinclus_mexicanus",
                               "Red_Knot"),
                   species = c("Yellow-headed Blackbird",
-                              "White-throated Sparrow",
+                              "Cinclus_mexicanus",
                               "Red Knot"),
                   data = c("BBS",
                            "CBC",
                            "Shorebird"),
                   out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
-                               paste0("Zonotrichia_albicollis","_CBC_B"),
+                               paste0("Cinclus_mexicanus","_CBC_B"),
                                paste0("Red Knot","_Shorebird")),
                   y1 = c(1966,
                          1966,
@@ -66,7 +66,7 @@ for(i in c(1,3)){#1:nrow(fls)){
   #realized_strata_map
   #data_1
   
- 
+ ## 
   
   
   stanfit <- as_cmdstan_fit(files = csv_files)
@@ -101,7 +101,7 @@ for(i in c(1,3)){#1:nrow(fls)){
   stan_df <- data.frame(stratnumber = stan_data$strat,
                           count = stan_data$count,
                           site = stan_data$site,
-                          year = stan_data$year) 
+                          Year = stan_data$year) 
   
   
   obs_strat_means <- stan_df %>% 
@@ -110,6 +110,15 @@ for(i in c(1,3)){#1:nrow(fls)){
               max = max(count),
               lmean = log(mean)) %>% 
     left_join(.,strata_sums)
+  
+  obs_means <- stan_df %>% 
+    group_by(stratnumber,Year) %>% 
+    summarise(n_surveys = n(),
+              mean_obs = mean(count),
+              max_obs = max(count),
+              lmean_obs = log(mean_obs)) %>% 
+    rename_with(.,~gsub(x = .x,pattern = "stratnumber",
+                        replacement = st_n))
   
   # plot_obs_m <- realized_strata_map %>% 
   #   rename_with(~gsub(pattern = st_n,replacement = "stratnumber",x = .x)) %>% 
@@ -138,7 +147,8 @@ for(i in c(1,3)){#1:nrow(fls)){
                               strat = st_n)
   indices <- strat_inds$indices %>% 
     inner_join(.,strat_df)%>% 
-    mutate(version = "full")
+    mutate(version = "full") %>% 
+    inner_join(.,obs_means)
 
   strat_inds_smooth <- index_function(fit = stanfit,
                                parameter = "nsmooth",
@@ -164,14 +174,86 @@ for(i in c(1,3)){#1:nrow(fls)){
   
   
   pl_inds <- ggplot(data = indices_all,aes(x = Year,y = median))+
+    geom_point(aes(x = Year,y = mean_obs*non_zero,alpha = n_surveys),
+               inherit.aes = FALSE)+
     geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
     geom_line(aes(colour = version))+
     labs(title = species)+
+    scale_y_continuous(limits = c(0,NA))+
     facet_wrap(vars(original_strat_name),
                nrow = pd,
                ncol = pd,
                scales = "free_y")
+ 
+  
+
+# geofacet ----------------------------------------------------------------
+
+  row_col_cat <- function(x,n){
+    cat_b = c(0,1/n*(1:n))
+    qq = quantile(x,cat_b)
+    qq[1] <- qq[1]-1
+    qq[n+1] <- qq[n+1]+1
+    cc <- as.integer(cut(x,
+                         qq,
+                         ordered_result = TRUE))
+    return(cc)
+  }
+  
+  spread_cat <- function(ct,x){
     
+  }
+  
+  
+    centres <- suppressWarnings(st_centroid(realized_strata_map)) %>% 
+      rename_with(.,~gsub(pattern = st_n,
+                          replacement = "strat_tmp",
+                          x = .x)) %>% 
+      arrange(strat_tmp) %>% 
+      rename_with(.,~gsub(replacement = st_n,
+                          pattern = "strat_tmp",
+                          x = .x))
+    
+  coords <- st_coordinates(centres)%>%
+    as.data.frame() 
+  coords[,st_n] <- 1:nrow(coords)
+  coords <- coords %>% 
+    mutate(y_cat = row_col_cat(-Y,pd)) %>% 
+    group_by(y_cat) %>% 
+    mutate(x_cat = rank(X))
+  
+  inds_geo <- indices_all %>% 
+    left_join(.,coords)
+    
+  lbls = inds_geo %>% 
+    ungroup() %>% 
+    select(x_cat,y_cat,strat) %>% 
+    distinct()
+  
+  
+  strat_grid <- geofacet::grid_auto(realized_strata_map)
+  
+  
+  g_inds <- ggplot(data = inds_geo,aes(x = Year,y = median))+
+    geom_point(aes(x = Year,y = mean_obs*non_zero,alpha = n_surveys),
+               inherit.aes = FALSE)+
+    geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
+    geom_line(aes(colour = version))+
+    labs(title = species)+
+    scale_y_continuous(limits = c(0,NA))+
+    geofacet::facet_geo(~strat,grid = strat_grid,
+                        scales = "free")+
+    theme(strip.text = element_text(size = 8),
+          strip.background = element_blank(),
+          panel.spacing = unit(1,"mm"))
+  
+  pdf(paste0("figures/",species_f,"_geofacet.pdf"),
+      height = 14,
+      width = 14)
+  print(g_inds)
+ dev.off()
+ 
+       
 ind_plots_list[[species_f]] <- pl_inds
 
 tyrs = unique(c(2009,1999,1990,1980,1970,year_1))
@@ -307,6 +389,10 @@ if(dd == "Shorebird"){
   
   
 }
+pdf(file = paste0("Figures/",species_f,"_Indices.pdf"))
+pl_Inds
+pl_inds
+dev.off()
 
 tt_map_data_list[[species_f]] <- tt_map_data
 tt_map_list[[species_f]] <- tt_map

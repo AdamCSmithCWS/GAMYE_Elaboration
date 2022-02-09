@@ -135,7 +135,8 @@ st_coord <- suppressWarnings(sf::st_centroid(strata_map)) %>%
   sf::st_coordinates()%>% 
   as.data.frame() %>% 
   mutate(Stratum_Factored = 1:nstrata)# this 1:nstrata re-definition works because of the 
-                    ### arrange statement in the strata-map block 10-lines up.
+              
+### arrange statement in the strata-map block 10-lines up.
 
 
 
@@ -162,9 +163,10 @@ to_save <- c(to_save,"neighbours2")
 ### use simple, smooth, x-y coordinate variation in betas and stratas
 
 strata_df <- strata_df %>% 
-  mutate(yscale = scale(Y,scale = TRUE),
-         xscale = scale(X,scale = TRUE),
-         sumxy = yscale+xscale)
+  mutate(yscale = 2*scale(Y,scale = TRUE),
+         xscale = -1*scale(X,scale = TRUE),
+         sumxy = yscale+xscale,
+         xy = yscale*xscale)
 
 
 # strat_tempplot <- ggplot(data = strata_df,aes(x = X,y = Y))+
@@ -190,12 +192,13 @@ strata_True <- as.numeric(strata_df$strata_True)
 ### strata betas
 Beta_True <- matrix(NA,nrow = nknots,
                     ncol = nstrata)
-sum_xy <- as.numeric(strata_df$sumxy)
 yscale <- as.numeric(strata_df$yscale)
+xscale <- as.numeric(strata_df$xscale)
 
 for(k in 1:nknots){
-  
-Beta_True[k,] <- yscale*0.75 + BETA_mid[k]
+   set.seed(k+1)
+
+Beta_True[k,] <- yscale*0.75 + BETA_mid[k] + rnorm(nstrata,0,0.5)*xscale
 if(tp == "linear" & k < nknots){ #for linear trend sets all BETAs except 13 to 0
   Beta_True[k,] <- rep(0,nstrata)
 }
@@ -422,6 +425,8 @@ tst = inner_join(tst1,tst2)
 
 mask_map <- mask_map %>% 
   left_join(.,tst)
+
+
 # 
 # testplot1 = ggplot()+
 #    geom_sf(data = mask_map,aes(fill = masked))
