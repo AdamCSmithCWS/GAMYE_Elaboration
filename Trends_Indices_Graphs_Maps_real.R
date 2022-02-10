@@ -305,16 +305,23 @@ for(j in 1:length(tyrs)){
  
  tt_map_data[[paste0("TY",yy,"-",yy2)]] <- ttmd
  
-  
- ## import one of the bbsBays binned colour scales
+
+ xb = range(st_coordinates(realized_strata_map)[,"X"])
+ yb = range(st_coordinates(realized_strata_map)[,"Y"])
+ 
+ prov_state <- bbsBayes::load_map(stratify_by = "state")
  
  ttm  <- ggplot(data = ttmd)+
+   geom_sf(data = prov_state,alpha = 0,
+           colour = grey(0.8),inherit.aes = FALSE)+
    geom_sf(aes(fill = trend_plot))+
+   coord_sf(xlim = xb,
+            ylim = yb)+
    theme_bw()+
    scale_colour_manual(values = map_palette_s, 
                        aesthetics = c("fill"),
                        guide = guide_legend(reverse=TRUE),
-                       name = paste0(species," Trend\n",yy,"-",yy2))
+                       name = paste0("Trend"))
  
 
  # print(ttm)

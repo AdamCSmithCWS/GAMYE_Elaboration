@@ -3,6 +3,7 @@ library(tidyverse)
 library(cmdstanr)
 library(posterior)
 library(sf)
+library(patchwork)
 source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
 source("Functions/palettes.R")
@@ -156,8 +157,51 @@ print(fig4)
 # 7 long-term and short-term (3-gen) trend maps ---------------------------
 # six panel, paired maps
 
+load("output/real_data_summaries.RData")
 
 
+fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
+                                "Cinclus_mexicanus",
+                                "Red_Knot"),
+                  species = c("Yellow-headed Blackbird",
+                              "American Dipper",
+                              "Red Knot"),
+                  data = c("BBS",
+                           "CBC",
+                           "Shorebird"),
+                  out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
+                               paste0("Cinclus_mexicanus","_CBC_B"),
+                               paste0("Red Knot","_Shorebird")),
+                  y1 = c(1966,
+                         1966,
+                         1980),
+                  strat_map_name = c("Stratum_Factored",
+                                     "strata_vec",
+                                     "stratn"))
+
+
+
+t1 <- tt_map_list[[1]][["TY1966-2019"]]
+t2 <- tt_map_list[[1]][["TY2009-2019"]]
+t3 <- tt_map_list[[2]][["TY1966-2019"]]
+t4 <- tt_map_list[[2]][["TY2009-2019"]]
+t5 <- tt_map_list[[3]][["TY1980-2019"]]
+t6 <- tt_map_list[[3]][["TY2009-2019"]]
+
+tcomb = t1 + t2 + t3 + t4 + t5 + t6 +
+  plot_layout(ncol = 2,byrow = TRUE,
+              guides = "collect")
+print(tcomb)
+
+
+
+
+for(j in 1:nrow(fls)){
+  species = fls[j,"species"]
+  species_f = fls[j,"species_f"]
+  y1 = fls[j,"y1"]
+  
+}
 
 
 
