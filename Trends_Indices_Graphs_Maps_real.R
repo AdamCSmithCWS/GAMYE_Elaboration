@@ -4,6 +4,7 @@ library(tidyverse)
 library(cmdstanr)
 library(posterior)
 library(sf)
+library(geofacet)
 source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
 source("Functions/palettes.R")
@@ -111,14 +112,27 @@ for(i in c(1,3)){#1:nrow(fls)){
               lmean = log(mean)) %>% 
     left_join(.,strata_sums)
   
+  if(dd %in% c("BBS","CBC")){
+  strat_z <- data.frame(stratnumber = 1:stan_data$nstrata,
+                        zero = stan_data$nonzeroweight)
+  }else{
+    strat_z <- data.frame(stratnumber = 1:stan_data$nstrata,
+                          zero = 1)
+  }
   obs_means <- stan_df %>% 
     group_by(stratnumber,Year) %>% 
     summarise(n_surveys = n(),
               mean_obs = mean(count),
               max_obs = max(count),
               lmean_obs = log(mean_obs)) %>% 
+    left_join(.,strat_z) %>% 
     rename_with(.,~gsub(x = .x,pattern = "stratnumber",
                         replacement = st_n))
+
+  
+
+  
+ 
   
   # plot_obs_m <- realized_strata_map %>% 
   #   rename_with(~gsub(pattern = st_n,replacement = "stratnumber",x = .x)) %>% 
@@ -174,7 +188,7 @@ for(i in c(1,3)){#1:nrow(fls)){
   
   
   pl_inds <- ggplot(data = indices_all,aes(x = Year,y = median))+
-    geom_point(aes(x = Year,y = mean_obs*non_zero,alpha = n_surveys),
+    geom_point(aes(x = Year,y = mean_obs*zero,alpha = n_surveys),
                inherit.aes = FALSE)+
     geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
     geom_line(aes(colour = version))+
@@ -189,63 +203,66 @@ for(i in c(1,3)){#1:nrow(fls)){
 
 # geofacet ----------------------------------------------------------------
 
-  row_col_cat <- function(x,n){
-    cat_b = c(0,1/n*(1:n))
-    qq = quantile(x,cat_b)
-    qq[1] <- qq[1]-1
-    qq[n+1] <- qq[n+1]+1
-    cc <- as.integer(cut(x,
-                         qq,
-                         ordered_result = TRUE))
-    return(cc)
-  }
+  # row_col_cat <- function(x,n){
+  #   cat_b = c(0,1/n*(1:n))
+  #   qq = quantile(x,cat_b)
+  #   qq[1] <- qq[1]-1
+  #   qq[n+1] <- qq[n+1]+1
+  #   cc <- as.integer(cut(x,
+  #                        qq,
+  #                        ordered_result = TRUE))
+  #   return(cc)
+  # }
+  # 
+
+  # 
   
-  spread_cat <- function(ct,x){
+  #   centres <- suppressWarnings(st_centroid(realized_strata_map)) %>% 
+  #     rename_with(.,~gsub(pattern = st_n,
+  #                         replacement = "strat_tmp",
+  #                         x = .x)) %>% 
+  #     arrange(strat_tmp) %>% 
+  #     rename_with(.,~gsub(replacement = st_n,
+  #                         pattern = "strat_tmp",
+  #                         x = .x))
+  #   
+  # coords <- st_coordinates(centres)%>%
+  #   as.data.frame() 
+  # coords[,st_n] <- 1:nrow(coords)
+  # coords <- coords %>% 
+  #   mutate(y_cat = row_col_cat(-Y,pd)) %>% 
+  #   group_by(y_cat) %>% 
+  #   mutate(x_cat = rank(X))
+  # 
+  # inds_geo <- indices_all %>% 
+  #   left_join(.,coords)
+  #   
+  # lbls = inds_geo %>% 
+  #   ungroup() %>% 
+  #   select(x_cat,y_cat,strat) %>% 
+  #   distinct()
+  
+  
+  strat_grid <- geofacet::grid_auto(realized_strata_map,
+                                    codes = st_n)
+  
+  indices_geo <- indices_all %>% 
+    rename_with(~gsub(x = .x,
+                      pattern = st_n,
+                      replacement = "strat_labs")) 
     
-  }
-  
-  
-    centres <- suppressWarnings(st_centroid(realized_strata_map)) %>% 
-      rename_with(.,~gsub(pattern = st_n,
-                          replacement = "strat_tmp",
-                          x = .x)) %>% 
-      arrange(strat_tmp) %>% 
-      rename_with(.,~gsub(replacement = st_n,
-                          pattern = "strat_tmp",
-                          x = .x))
-    
-  coords <- st_coordinates(centres)%>%
-    as.data.frame() 
-  coords[,st_n] <- 1:nrow(coords)
-  coords <- coords %>% 
-    mutate(y_cat = row_col_cat(-Y,pd)) %>% 
-    group_by(y_cat) %>% 
-    mutate(x_cat = rank(X))
-  
-  inds_geo <- indices_all %>% 
-    left_join(.,coords)
-    
-  lbls = inds_geo %>% 
-    ungroup() %>% 
-    select(x_cat,y_cat,strat) %>% 
-    distinct()
-  
-  
-  strat_grid <- geofacet::grid_auto(realized_strata_map)
-  
-  
-  g_inds <- ggplot(data = inds_geo,aes(x = Year,y = median))+
-    geom_point(aes(x = Year,y = mean_obs*non_zero,alpha = n_surveys),
+  g_inds <- suppressMessages(ggplot(data = indices_geo,aes(x = Year,y = median))+
+    geom_point(aes(x = Year,y = mean_obs*zero,alpha = n_surveys),
                inherit.aes = FALSE)+
     geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
     geom_line(aes(colour = version))+
     labs(title = species)+
     scale_y_continuous(limits = c(0,NA))+
-    geofacet::facet_geo(~strat,grid = strat_grid,
+    geofacet::facet_geo(~strat_labs,grid = strat_grid,
                         scales = "free")+
     theme(strip.text = element_text(size = 8),
           strip.background = element_blank(),
-          panel.spacing = unit(1,"mm"))
+          panel.spacing = unit(1,"mm")))
   
   pdf(paste0("figures/",species_f,"_geofacet.pdf"),
       height = 14,
@@ -256,10 +273,10 @@ for(i in c(1,3)){#1:nrow(fls)){
        
 ind_plots_list[[species_f]] <- pl_inds
 
-tyrs = unique(c(2009,1999,1990,1980,1970,year_1))
+tyrs = unique(c(2014,2009,2004,1999,1994,1990,1985,1980,1975,1970,year_1))
 tyrs = tyrs[which(tyrs >= year_1)]
 tyrs2 <- rep(2019,length(tyrs))
-tyrs2 <- c(tyrs2,tyrs+10)
+tyrs2 <- c(tyrs2,tyrs+5)
 tyrs <- c(tyrs,tyrs)
 
 
