@@ -46,7 +46,7 @@ ind_plots_list = tt_map_list
 Ind_plots_list = tt_map_list
 
 
-for(i in c(1,3)){#1:nrow(fls)){
+for(i in c(1:3)){#1:nrow(fls)){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -77,42 +77,43 @@ for(i in c(1,3)){#1:nrow(fls)){
   
 
 # exploring the spatial abundance dist ------------------------------------
-
-  strat_samples <- posterior_samples(fit = stanfit,
-                                     parm = "strata_raw",
-                                     dims = "stratnumber")
-  STRAT_samples <- posterior_samples(fit = stanfit,
-                                     parm = "STRATA")
-  sdstrata_samples <- posterior_samples(fit = stanfit,
-                                        parm = "sdstrata")
-  sd_tmp = sdstrata_samples %>% select(.draw,.value) %>% 
-    rename(sdstrata = .value)
-  STRAT_tmp = STRAT_samples %>% select(.draw,.value) %>% 
-    rename(STRAT = .value)
-  strata_sums <- strat_samples %>% 
-    left_join(sd_tmp) %>% 
-    left_join(STRAT_tmp) %>% 
-    mutate(strat = .value*sdstrata + STRAT) %>% 
-    group_by(stratnumber) %>% 
-    summarise(mean_est = mean(strat),
-              lci_est = quantile(strat,0.025),
-              uci_est = quantile(strat,0.975))
-  
-  
+# 
+#   strat_samples <- posterior_samples(fit = stanfit,
+#                                      parm = "strata_raw",
+#                                      dims = "stratnumber")
+#   STRAT_samples <- posterior_samples(fit = stanfit,
+#                                      parm = "STRATA")
+#   sdstrata_samples <- posterior_samples(fit = stanfit,
+#                                         parm = "sdstrata")
+#   sd_tmp = sdstrata_samples %>% select(.draw,.value) %>% 
+#     rename(sdstrata = .value)
+#   STRAT_tmp = STRAT_samples %>% select(.draw,.value) %>% 
+#     rename(STRAT = .value)
+#   strata_sums <- strat_samples %>% 
+#     left_join(sd_tmp) %>% 
+#     left_join(STRAT_tmp) %>% 
+#     mutate(strat = .value*sdstrata + STRAT) %>% 
+#     group_by(stratnumber) %>% 
+#     summarise(mean_est = mean(strat),
+#               lci_est = quantile(strat,0.025),
+#               uci_est = quantile(strat,0.975))
+#   
+#   
   stan_df <- data.frame(stratnumber = stan_data$strat,
                           count = stan_data$count,
                           site = stan_data$site,
                           Year = stan_data$year) 
   
   
-  obs_strat_means <- stan_df %>% 
-    group_by(stratnumber) %>% 
-    summarise(mean = mean(count),
-              max = max(count),
-              lmean = log(mean)) %>% 
-    left_join(.,strata_sums)
-  
+ 
   if(dd %in% c("BBS","CBC")){
+    # obs_strat_means <- stan_df %>% 
+    #   group_by(stratnumber) %>% 
+    #   summarise(mean = mean(count),
+    #             max = max(count),
+    #             lmean = log(mean)) %>% 
+    #   left_join(.,strata_sums)
+    
   strat_z <- data.frame(stratnumber = 1:stan_data$nstrata,
                         zero = stan_data$nonzeroweight)
   }else{
@@ -123,8 +124,7 @@ for(i in c(1,3)){#1:nrow(fls)){
     group_by(stratnumber,Year) %>% 
     summarise(n_surveys = n(),
               mean_obs = mean(count),
-              max_obs = max(count),
-              lmean_obs = log(mean_obs)) %>% 
+              max_obs = max(count)) %>% 
     left_join(.,strat_z) %>% 
     rename_with(.,~gsub(x = .x,pattern = "stratnumber",
                         replacement = st_n))
@@ -241,11 +241,14 @@ for(i in c(1,3)){#1:nrow(fls)){
   #   ungroup() %>% 
   #   select(x_cat,y_cat,strat) %>% 
   #   distinct()
-  
-  
+  if(dd == "Shorebird"){
+  strat_grid <- geofacet::grid_auto(realized_strata_map,
+                                    codes = st_n,
+                                    names = "hex_name")
+  }else{
   strat_grid <- geofacet::grid_auto(realized_strata_map,
                                     codes = st_n)
-  
+  }
   indices_geo <- indices_all %>% 
     rename_with(~gsub(x = .x,
                       pattern = st_n,
@@ -440,7 +443,13 @@ print(i)
 }#end species loop
 
 
-
-
-
+save(list = c("all_trends",
+              "tt_map_data_list",
+              "tt_map_list",
+              "indices_all_out",
+              "stratum_trends",
+              "Indices_all_out",
+              "ind_plots_list",
+              "Ind_plots_list"),
+     file = "output/real_data_summaries.RData")
 

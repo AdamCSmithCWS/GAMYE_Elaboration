@@ -5,7 +5,12 @@ library(tidyverse)
 library(cmdstanr)
 library(posterior)
 
+library(sf)
+library(geofacet)
+source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
+source("Functions/palettes.R")
+
 #species = "Pine Warbler"  
 species = "Yellow-headed Blackbird"  
 species_f <- gsub(species,pattern = " ",replacement = "_")
@@ -69,24 +74,98 @@ betas_plot = ggplot(data = beta_comp,aes(x = beta_True,y = mean))+
 # compare stratum level smoothed indices ----------------------------------
 
 true_inds <- realised %>% 
-  select(Stratum,Stratum_Factored,Smooth,Year,True_log_traj,True_strata_effects) %>% 
+  select(Stratum_Factored,Smooth,Year,True_log_traj,True_strata_effects) %>% 
   distinct() %>% 
   mutate(True_nsmooth = exp(Smooth + True_strata_effects)) %>% 
   arrange(Stratum_Factored)
 
-obs_means <- realised %>% 
+if(mk == ""){
+
+  obs_means <- realised %>% 
   group_by(Stratum_Factored,Year) %>% 
   summarise(n_routes = n(),
             mean_count = mean(count),
-            lmean_count = mean(log(count+1)))
+            lmean_count = mean(log(count+1)),
+            .groups = "drop") %>% 
+    left_join(.,strata_df,by = "Stratum_Factored")
+  
+}else{
+  obs_means <- realised_mask %>% 
+    group_by(Stratum_Factored,Year) %>% 
+    summarise(n_routes = n(),
+              mean_count = mean(count),
+              lmean_count = mean(log(count+1)),
+              .groups = "drop") %>% 
+    left_join(.,strata_mask,by = "Stratum_Factored")
+}
+
+# nsmooth_est <- posterior_samples(stanfit,
+#                                parm = "nsmooth",
+#                                dims = c("Stratum_Factored","Year_Index")) %>% 
+#   posterior_sums(.,
+#                  dims = c("Stratum_Factored","Year_Index")) %>% 
+#   mutate(Year = Year_Index+min(balanced$Year)-1)
 
 
-nsmooth_est <- posterior_samples(stanfit,
-                               parm = "nsmooth",
-                               dims = c("Stratum_Factored","Year_Index")) %>% 
-  posterior_sums(.,
-                 dims = c("Stratum_Factored","Year_Index")) %>% 
-  mutate(Year = Year_Index+min(balanced$Year)-1)
+strat_inds_smooth <- index_function(fit = stanfit,
+                                    parameter = "nsmooth",
+                                    year_1 = min(balanced$Year),
+                                    strat = "Stratum_Factored")
+
+
+# Trends ------------------------------------------------------------------
+
+all_trends <- NULL
+
+tyrs = unique(c(2014,2009,2004,1999,1994,1990,1985,1980,1975,1970,1966))
+tyrs2 <- rep(2019,length(tyrs))
+tyrs2 <- c(tyrs2,tyrs+5)
+tyrs <- c(tyrs,tyrs)
+
+for(j in 1:length(tyrs)){
+  yy = tyrs[j]
+  yy2 = tyrs2[j]
+  
+  TT <- trends_function(ind_list = strat_inds_smooth,
+                        start_year = yy,
+                        end_year = yy2) %>% 
+    mutate(species = species,
+           first_year = yy,
+           last_year = yy2)
+  
+
+  tt_true <- true_inds %>% 
+    select(Stratum_Factored,Year,True_nsmooth) %>% 
+    mutate(Year = as.character(Year),
+           True_nsmooth = as.numeric(True_nsmooth)) %>% 
+    filter(Year %in% as.character(c(yy,yy2))) %>% 
+    pivot_wider(names_from = Year,
+                values_from = True_nsmooth,
+                names_prefix = "Y") %>% 
+    rename_with(., ~gsub(replacement = "start",
+                         pattern = paste0("Y",yy),.x,
+                         fixed = TRUE)) %>% 
+    rename_with(., ~gsub(replacement = "end",
+                         pattern = paste0("Y",yy2),.x,
+                         fixed = TRUE)) %>% 
+    group_by(Stratum_Factored) %>% 
+    summarise(true_trend = texp(end/start,ny =(yy2-yy)))
+              
+  
+  TT <- TT %>% 
+    left_join(.,tt_true,by = "Stratum_Factored")
+  
+  all_trends <- bind_rows(all_trends,TT)
+  
+}
+
+
+to_save <- c(to_save,"all_trends")
+
+
+nsmooth_est <- strat_inds_smooth$indices %>% 
+  mutate(version = "smooth",
+         Year = true_year)
 
 
 nsmooth_comp <- nsmooth_est %>% 
@@ -110,22 +189,37 @@ true_inds <- true_inds %>%
   mutate(version = "True")
 
 nsmooth_comp2 <- nsmooth_est %>% 
-  select(mean,Q_025,Q_975,Stratum_Factored,Year) %>% 
+  select(mean,lci,uci,Stratum_Factored,Year) %>% 
   rename(True_nsmooth = mean) %>% 
   mutate(version = "Estimated") %>% 
+  left_join(.,obs_means,by = c("Stratum_Factored","Year")) %>% 
   bind_rows(.,true_inds)
 
 to_save <- c(to_save,"nsmooth_comp2","obs_means")
 
+if(mk == ""){
 nsmooth_plot2 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
                                               x = Year))+
-  geom_ribbon(aes(ymin = Q_025,ymax = Q_975,fill = version),alpha = 0.2)+
+  geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.2)+
   geom_line(aes(colour = version))+
   scale_colour_viridis_d(aesthetics = c("colour","fill"))+
+  scale_y_continuous(limits = c(0,NA))+
   facet_wrap(~Stratum_Factored,nrow = ceiling(sqrt(stan_data$nstrata)),
              ncol = ceiling(sqrt(stan_data$nstrata)),
              scales = "free_y")
-
+}else{
+  nsmooth_comp2 <- nsmooth_comp2 %>% 
+    mutate(fac = paste0(Stratum_Factored,"_",masked))
+nsmooth_plot2 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
+                                                x = Year))+
+  geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.2)+
+  geom_line(aes(colour = version))+
+  scale_colour_viridis_d(aesthetics = c("colour","fill"))+
+  scale_y_continuous(limits = c(0,NA))+
+  facet_wrap(~fac,nrow = ceiling(sqrt(stan_data$nstrata)),
+             ncol = ceiling(sqrt(stan_data$nstrata)),
+             scales = "free_y")
+}
 
 
 
@@ -183,7 +277,11 @@ BETA_plot_r = ggplot(data = BETA_comp_r,aes(x = True_BETA,
 
 true_SMOOTH <- data.frame(True_SMOOTH = stan_data$year_basis %*% BETA_True,
                         y = 1:stan_data$nyears) %>% 
-  mutate(version = "TRUE")
+  mutate(version = "TRUE",
+         esmooth = exp(True_SMOOTH),
+         Year = y + min(balanced$Year)-1)
+
+
 
 SMOOTH_est <- posterior_samples(stanfit,
                               parm = "SMOOTH_pred",
@@ -192,6 +290,77 @@ SMOOTH_est <- posterior_samples(stanfit,
                  dims = c("y")) 
 
 
+# Trends Hyperparamter ----------------------------------------------------
+
+
+eSMOOTH_est <- posterior_samples(stanfit,
+                                parm = "SMOOTH_pred",
+                                dims = c("y")) %>% 
+  mutate(.value = exp(.value),
+         Year = y + min(balanced$Year)-1) 
+
+for(j in 1:length(tyrs)){
+  yy = tyrs[j]
+  yy2 = tyrs2[j]
+  
+nyrs = yy2-yy
+lu = 0.025
+uu = 0.975
+tt_tmp <- eSMOOTH_est %>%
+  select(-y) %>% 
+  filter(Year %in% c(yy,yy2)) %>% 
+  pivot_wider(names_from = Year,
+              values_from = .value,
+              names_prefix = "Y") %>% 
+  rename_with(., ~gsub(replacement = "start",
+                       pattern = paste0("Y",yy),.x,
+                       fixed = TRUE))%>% 
+  rename_with(., ~gsub(replacement = "end",
+                       pattern = paste0("Y",yy2),.x,
+                       fixed = TRUE))%>% 
+  group_by(.draw) %>% 
+  summarise(t = texp(end/start,ny = nyrs),
+            ch = chng(end/start),
+            .groups = "drop") %>% 
+  summarise(trend = mean(t),
+            lci = quantile(t,lu,names = FALSE),
+            uci = quantile(t,uu,names = FALSE),
+            percent_change = median(ch),
+            p_ch_lci = quantile(ch,lu,names = FALSE),
+            p_ch_uci = quantile(ch,uu,names = FALSE),
+            prob_decline = prob_dec(ch,0),
+            prob_decline_GT30 = prob_dec(ch,-30),
+            prob_decline_GT50 = prob_dec(ch,-50),
+            prob_decline_GT70 = prob_dec(ch,-70))
+
+TT_true <- true_SMOOTH %>% 
+  select(Year,esmooth) %>% 
+  mutate(Year = as.character(Year)) %>% 
+  filter(Year %in% as.character(c(yy,yy2))) %>% 
+  pivot_wider(names_from = Year,
+              values_from = esmooth,
+              names_prefix = "Y") %>% 
+  rename_with(., ~gsub(replacement = "start",
+                       pattern = paste0("Y",yy),.x,
+                       fixed = TRUE)) %>% 
+  rename_with(., ~gsub(replacement = "end",
+                       pattern = paste0("Y",yy2),.x,
+                       fixed = TRUE)) %>% 
+  summarise(true_trend = texp(end/start,ny =(yy2-yy))) %>% 
+  mutate(first_year = yy,
+         last_year = yy2,
+         Region_type = "Survey_Wide_Mean")
+
+
+tt_tmp <- tt_tmp %>% 
+  bind_cols(.,TT_true)
+
+all_trends <- bind_rows(all_trends,
+                        tt_tmp)
+}
+
+tmp = all_trends %>% 
+  filter(region_type == "Survey_Wide_Mean")
 
 SMOOTH_comp <- SMOOTH_est %>% 
   select(mean,Q_025,Q_975,y) %>% 
