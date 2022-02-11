@@ -177,7 +177,7 @@ nsmooth_plot = ggplot(data = nsmooth_comp,aes(x = True_nsmooth,
                                               y = mean))+
   geom_point(aes(colour = Year))+
   scale_colour_viridis_c()+
-  geom_errorbar(aes(ymin = Q_025,ymax = Q_975),width = 0,alpha = 0.2)+
+  geom_errorbar(aes(ymin = lci,ymax = uci),width = 0,alpha = 0.2)+
   geom_abline(slope = 1, intercept = 0)+ 
   facet_wrap(~Stratum_Factored,nrow = ceiling(sqrt(stan_data$nstrata)),
              ncol = ceiling(sqrt(stan_data$nstrata)))
@@ -360,7 +360,7 @@ all_trends <- bind_rows(all_trends,
 }
 
 tmp = all_trends %>% 
-  filter(region_type == "Survey_Wide_Mean")
+  filter(Region_type == "Survey_Wide_Mean")
 
 SMOOTH_comp <- SMOOTH_est %>% 
   select(mean,Q_025,Q_975,y) %>% 
