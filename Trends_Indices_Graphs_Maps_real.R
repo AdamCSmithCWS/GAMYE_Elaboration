@@ -276,10 +276,10 @@ for(i in c(1:3)){#1:nrow(fls)){
        
 ind_plots_list[[species_f]] <- pl_inds
 
-tyrs = unique(c(2014,2009,2004,1999,1994,1990,1985,1980,1975,1970,year_1))
+tyrs = unique(c(2009,1999,1990,1980,1970,year_1))
 tyrs = tyrs[which(tyrs >= year_1)]
 tyrs2 <- rep(2019,length(tyrs))
-tyrs2 <- c(tyrs2,tyrs+5)
+tyrs2 <- c(tyrs2,tyrs+10)
 tyrs <- c(tyrs,tyrs)
 
 
