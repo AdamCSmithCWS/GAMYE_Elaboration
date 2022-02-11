@@ -33,6 +33,8 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
 
 
 output_dir <- "output/"
+
+
 for(i in c(1:3)){#1:nrow(fls)){
   
   species = fls[i,"species"]
@@ -99,8 +101,6 @@ for(j in 1:length(tyrs)){
 }
 
 
-}
-
 
 tmp = trends_out %>% 
   filter(species == species)
@@ -112,18 +112,21 @@ yb = range(st_coordinates(realized_strata_map)[,"Y"])
 
 
 angif <- ggplot(data = tmp)+
-  # geom_sf(data = prov_state,alpha = 0,
-  #         colour = grey(0.8),inherit.aes = FALSE)+
+  geom_sf(data = prov_state,alpha = 0,
+          colour = grey(0.8),inherit.aes = FALSE)+
   geom_sf(aes(fill = trend_plot))+
   coord_sf(xlim = xb,
            ylim = yb)+
   theme_bw()+
+  xlab("")+
+  ylab("")+
   scale_colour_manual(values = map_palette_s, 
                       aesthetics = c("fill"),
                       guide = guide_legend(reverse=TRUE),
                       name = paste0("Trend"))+
   transition_manual(frames = first_year)+
-  ggtitle('Year: {frame_time}')
+  ggtitle('Annual trend: {frame + 1966}',
+          subtitle = paste(dd,species_f))
 
 # save_animation(angif,file = paste0("Figures/Animated_trends_",species_f,".gif",))
 animate(angif,nframes = length(tyrs), fps = 1,
@@ -132,6 +135,8 @@ animate(angif,nframes = length(tyrs), fps = 1,
 
 
 
+
+}
 
 
 
