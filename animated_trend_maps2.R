@@ -140,7 +140,7 @@ for(j in 1:length(tyrs)){
       filter(true_year == yy2,
              version == "smooth")
     
-    pl_Inds <- ggplot(data = Indices_all,aes(x = Year,y = median))+
+    pl_Inds <- ggplot(data = Indices_all,aes(x = true_year,y = median))+
       geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
       geom_line(aes(colour = version))+
       geom_point(data = isel,size = 2,colour = "black")+

@@ -19,7 +19,7 @@ for(tp in c("non_linear","linear")){
   
   load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
   
-  for(sns in c("","nonSpatial_","nonSpatial_alt_"))
+  for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
 for(mk in c("","mask_")){
   
 #if(sns == "nonSpatial_" & mk == "mask_"){next}
@@ -86,8 +86,7 @@ if(mk == ""){
   summarise(n_routes = n(),
             mean_count = mean(count),
             lmean_count = mean(log(count+1)),
-            .groups = "drop") %>% 
-    left_join(.,strata_df,by = "Stratum_Factored")
+            .groups = "drop") 
   
 }else{
   obs_means <- realised_mask %>% 
@@ -95,8 +94,7 @@ if(mk == ""){
     summarise(n_routes = n(),
               mean_count = mean(count),
               lmean_count = mean(log(count+1)),
-              .groups = "drop") %>% 
-    left_join(.,strata_mask,by = "Stratum_Factored")
+              .groups = "drop") 
 }
 
 # nsmooth_est <- posterior_samples(stanfit,
@@ -192,8 +190,9 @@ nsmooth_comp2 <- nsmooth_est %>%
   select(mean,lci,uci,Stratum_Factored,Year) %>% 
   rename(True_nsmooth = mean) %>% 
   mutate(version = "Estimated") %>% 
-  left_join(.,obs_means,by = c("Stratum_Factored","Year")) %>% 
-  bind_rows(.,true_inds)
+  bind_rows(.,true_inds)%>% 
+  left_join(.,obs_means,by = c("Stratum_Factored","Year"))
+  
 
 to_save <- c(to_save,"nsmooth_comp2","obs_means")
 
@@ -208,17 +207,56 @@ nsmooth_plot2 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
              ncol = ceiling(sqrt(stan_data$nstrata)),
              scales = "free_y")
 }else{
+  relab <- function(x,m){
+    y = vector("character",
+               length(x))
+    for(i in 1:length(x)){
+      if(x[i] == "True"){
+      y[i] = x[i]
+    }else{
+    if(m[i]){
+      y[i] = (paste(x[i],"Masked"))
+    }else{
+      y[i] = x[i]
+    }
+    }
+    }
+    
+    return(y)
+  }
+  
   nsmooth_comp2 <- nsmooth_comp2 %>% 
-    mutate(fac = paste0(Stratum_Factored,"_",masked))
-nsmooth_plot2 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
+    left_join(.,strata_mask,by = "Stratum_Factored") %>% 
+    mutate(version = relab(version,masked))
+  
+  
+  
+  nsmooth_plot2 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
                                                 x = Year))+
   geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.2)+
   geom_line(aes(colour = version))+
   scale_colour_viridis_d(aesthetics = c("colour","fill"))+
   scale_y_continuous(limits = c(0,NA))+
-  facet_wrap(~fac,nrow = ceiling(sqrt(stan_data$nstrata)),
+  facet_wrap(~Stratum_Factored,nrow = ceiling(sqrt(stan_data$nstrata)),
              ncol = ceiling(sqrt(stan_data$nstrata)),
              scales = "free_y")
+
+
+  print(nsmooth_plot2)
+  # nsmooth_mask <- nsmooth_comp2 %>% 
+#   filter(masked == TRUE)
+
+# nsmooth_plot3 = ggplot(data = nsmooth_mask,aes(y = True_nsmooth,
+#                                                 x = Year))+
+#   geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.2)+
+#   geom_line(aes(colour = version))+
+#   scale_colour_viridis_d(aesthetics = c("colour","fill"))+
+#   scale_y_continuous(limits = c(0,NA))+
+#   facet_wrap(~Stratum_Factored,nrow = ceiling(sqrt(stan_data$nstrata)),
+#              ncol = ceiling(sqrt(stan_data$nstrata)),
+#              scales = "free_y")
+
+
 }
 
 
@@ -422,5 +460,7 @@ save(list = to_save,
 
 }
 
+  }
+  
 }
 

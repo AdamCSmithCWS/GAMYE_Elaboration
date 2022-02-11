@@ -212,13 +212,6 @@ dev.off()
 
 
 
-for(j in 1:nrow(fls)){
-  species = fls[j,"species"]
-  species_f = fls[j,"species_f"]
-  y1 = fls[j,"y1"]
-  
-}
-
 
 
 
