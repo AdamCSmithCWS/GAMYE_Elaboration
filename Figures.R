@@ -182,25 +182,32 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
 
 
 t1 <- tt_map_list[[1]][["TY1966-2019"]]  +
-  labs(title = "BBS",
-       subtitle = "Long-term")
+  labs(subtitle = "BBS",
+       title = "Long-term")
 t2a <- tt_map_list[[1]][["TY1970-1980"]] +
-  labs(subtitle = "First ten years")
+  labs(title = "First ten years")
 t2b <- tt_map_list[[1]][["TY2009-2019"]] +
-  labs(subtitle = "Last ten years")
+  labs(title = "Last ten years")
 t3 <- tt_map_list[[2]][["TY1966-2019"]] +
-  labs(title = "CBC")
+  labs(subtitle = "CBC")
 t4a <- tt_map_list[[2]][["TY1970-1980"]]
 t4b <- tt_map_list[[2]][["TY2009-2019"]]
 t5 <- tt_map_list[[3]][["TY1980-2019"]] +
-  labs(title = "Shorebird")
+  labs(subtitle = "Shorebird")
 t6a <- tt_map_list[[3]][["TY1980-1990"]]
 t6b <- tt_map_list[[3]][["TY2009-2019"]]
 
 tcomb = t1 + t2a +t2b + t3 + t4a +t4b + t5 + t6a +t6b +
   plot_layout(ncol = 3,byrow = TRUE,
               guides = "collect")
+
+pdf(file = paste0("Figures/Figure_7.pdf"),
+    width = 7,
+    height = 8)
+
+
 print(tcomb)
+dev.off()
 
 
 
