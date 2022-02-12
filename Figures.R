@@ -145,6 +145,60 @@ fig4 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
 print(fig4)
 
 
+# 6 Trend comparisons ---------------------------------------------------
+
+sw_trends <- NULL
+strat_trends <- NULL
+
+for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
+  for(mk in c("","mask_")){
+    out_base_sim <- paste0("_sim_",sns,mk,tp,"_BBS")
+    
+    lbl <- "Spatial"
+    if(sns == "nonSpatial_alt_"){
+      lbl <- "NonSpatial"
+    }
+    if(mk != ""){
+    lbl <- paste0(lbl," Masked")
+      }
+   
+    
+    load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
+    sw_t <- all_trends %>% 
+      filter(Region_type == "Survey_Wide_Mean",
+             last_year == 2019) %>% 
+      mutate(version = lbl)
+    sw_trends <- bind_rows(sw_trends,sw_t)
+    
+    strat_t <- all_trends %>% 
+      filter(Region_type == "Stratum_Factored",
+             last_year == 2019) %>% 
+      mutate(version = lbl)
+    strat_trends <- bind_rows(strat_trends,strat_t)
+  }
+}
+
+trends_plot <- ggplot(data = sw_trends,aes(x = true_trend,y = trend))+
+  geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
+                alpha = 0.4)+
+  geom_point(aes(colour = first_year))+
+  geom_abline(slope = 1,intercept = 0)+
+  facet_wrap(vars(version),
+             nrow = 2,
+             ncol = 2)
+
+print(trends_plot)
+
+trends2_plot <- ggplot(data = strat_trends,aes(x = true_trend,y = trend))+
+  geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
+                alpha = 0.4)+
+  geom_point(aes(colour = first_year))+
+  geom_abline(slope = 1,intercept = 0)+
+  facet_wrap(vars(version),
+             nrow = 2,
+             ncol = 2)
+
+print(trends2_plot)
 # 5 masked strata - comparison of spatial and non-spatial -----------------
 
 
