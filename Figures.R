@@ -145,19 +145,17 @@ fig4 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
 print(fig4)
 
 
-# 6 Trend comparisons ---------------------------------------------------
+# 5 Trend comparisons ---------------------------------------------------
 
-sw_trends <- NULL
-strat_trends <- NULL
-tp <- "non_linear"
-tp <- "linear"
-mk <- "mask_"
 output_dir <- "output/"
 load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
 
 strat_df <- as.data.frame(strata_mask) %>% 
   select(Stratum_Factored,masked)
+sw_trends <- NULL
+strat_trends <- NULL
 
+for(tp in c("linear","non_linear")){
 for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
   for(mk in c("","mask_")){
     out_base_sim <- paste0("_sim_",sns,mk,tp,"_BBS")
@@ -175,80 +173,114 @@ for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
     sw_t <- all_trends %>% 
       filter(Region_type == "Survey_Wide_Mean",
              last_year == 2019) %>% 
-      mutate(version = lbl)
+      mutate(version = lbl,
+             True_trajectory = tp)
     sw_trends <- bind_rows(sw_trends,sw_t)
     
     strat_t <- all_trends %>% 
       filter(Region_type == "Stratum_Factored",
              last_year == 2019) %>% 
-      mutate(version = lbl)
+      mutate(version = lbl,
+             True_trajectory = tp)
     strat_trends <- bind_rows(strat_trends,strat_t)
   }
 }
+}
 
-trends_plot <- ggplot(data = sw_trends,aes(x = true_trend,y = trend))+
-  geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
-                alpha = 0.4)+
-  geom_point(aes(colour = first_year))+
-  geom_abline(slope = 1,intercept = 0)+
-  facet_wrap(vars(version),
-             nrow = 2,
-             ncol = 2)
-
-print(trends_plot)
 
 strat_trends <- strat_trends %>% 
-  left_join(.,strat_df,by = "Stratum_Factored")
-
-trends2_plot <- ggplot(data = strat_trends,aes(x = true_trend,y = trend))+
-  geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
-                alpha = 0.4)+
-  geom_point(aes(colour = first_year))+
-  geom_abline(slope = 1,intercept = 0)+
-  facet_wrap(vars(version),
-             nrow = 2,
-             ncol = 2)
-
-print(trends2_plot)
-
-strat_trends <- strat_trends %>% 
+  left_join(.,strat_df,by = "Stratum_Factored") %>% 
   mutate(t_dif = true_trend - trend,
          t_abs_dif = abs(t_dif))
 
-trends3_plot <- ggplot(data = strat_trends,aes(x = first_year,y = t_abs_dif,group = version))+
-  # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
-  #               alpha = 0.4)+
-  geom_point(aes(colour = version),
-             position = position_dodge(width = 3))
-print(trends3_plot)
-
 strat_trends_dif <- strat_trends %>% 
-  group_by(first_year,version,masked) %>% 
+  group_by(first_year,version,masked,
+           True_trajectory) %>% 
   summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
             median_abs_dif = median(t_abs_dif,na.rm = T),
             sd_abs_dif = sd(t_abs_dif,na.rm = T))
 
 strat_trends_dif_nm <- strat_trends_dif %>% 
-  filter(masked == FALSE)
-trends4_plot <- ggplot(data = strat_trends_dif_nm,
-                       aes(x = first_year,y = mean_abs_dif,group = version))+
-  # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
-  #               alpha = 0.4)+
-  geom_point(aes(colour = version),
-             position = position_dodge(width = 3))
-print(trends4_plot)
+  filter(masked == FALSE,
+         version %in% c("NonSpatial","Spatial"))
+
+# trends4_plot <- ggplot(data = strat_trends_dif_nm,
+#                        aes(x = first_year,y = mean_abs_dif))+
+#   # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
+#   #               alpha = 0.4)+
+#   geom_point(aes(colour = version),
+#              position = position_dodge(width = 3))+
+#   scale_y_continuous(limits = c(0,NA))+
+#   facet_wrap(vars(True_trajectory),
+#              nrow = 2,
+#              scales = "fixed")
+#   
+# print(trends4_plot)
+# 
+
+strat_trends_nm <- strat_trends %>% 
+  filter(masked == FALSE,
+         version %in% c("NonSpatial","Spatial"),
+         first_year %in% c(1970,1980,2009)) %>% 
+  mutate(first_year = factor(paste0(first_year,"-2019")))
+
+trends4a_plot <- ggplot(data = strat_trends_nm,
+                       aes(x = first_year,y = t_abs_dif,fill = version))+
+  geom_boxplot(aes(fill = version),
+             position = position_dodge(width = 1))+
+  scale_y_continuous(limits = c(0,NA))+
+  ylab("Absolute difference in trend (Estimated - True)")+
+  xlab("Timespan of Trend")+
+  theme_bw()+
+  facet_wrap(vars(True_trajectory),
+             nrow = 2,
+             scales = "free")
+
+  print(trends4a_plot)
 
 
-strat_m_trends_dif <- strat_trends_dif %>% 
-  filter(masked == TRUE)
-trends5_plot <- ggplot(data = strat_m_trends_dif,
-                       aes(x = first_year,y = mean_abs_dif,group = version))+
-  # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
-  #               alpha = 0.4)+
-  geom_point(aes(colour = version),
-             position = position_dodge(width = 3))
-print(trends5_plot)
-
+  
+  strat_trends_m <- strat_trends %>% 
+    filter(masked == TRUE,
+           version %in% c("NonSpatial Masked","Spatial Masked"),
+           first_year %in% c(1970,1980,2009)) %>% 
+    mutate(first_year = factor(paste0(first_year,"-2019")))
+  
+  trends4b_plot <- ggplot(data = strat_trends_m,
+                          aes(x = first_year,y = t_abs_dif,fill = version))+
+    geom_boxplot(aes(fill = version),
+                 position = position_dodge(width = 1))+
+    scale_y_continuous(limits = c(0,NA))+
+    ylab("Absolute difference in trend (Estimated - True)")+
+    xlab("Timespan of Trend")+
+    theme_bw()+
+    facet_wrap(vars(True_trajectory),
+               nrow = 2,
+               scales = "free")
+  
+  print(trends4b_plot)
+ 
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  
+#   
+# strat_m_trends_dif <- strat_trends_dif %>% 
+#   filter(masked == TRUE)
+# trends5_plot <- ggplot(data = strat_m_trends_dif,
+#                        aes(x = first_year,y = mean_abs_dif,group = version))+
+#   # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
+#   #               alpha = 0.4)+
+#   geom_point(aes(colour = version),
+#              position = position_dodge(width = 3))
+# print(trends5_plot)
+# 
 
 # 5 masked strata - comparison of spatial and non-spatial -----------------
 
