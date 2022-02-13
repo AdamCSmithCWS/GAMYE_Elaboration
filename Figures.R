@@ -7,13 +7,13 @@ library(patchwork)
 source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
 source("Functions/palettes.R")
+species = "Yellow-headed Blackbird"  
+species_f <- gsub(species,pattern = " ",replacement = "_")
+
+load(paste0("maps/Simulated",species_f,"_route_maps_data.RData"))
 
 
 # 1 map of example strata connections ---------------------------------
-species = "Yellow-headed Blackbird"  
-species_f <- gsub(species,pattern = " ",replacement = "_")
-  
-load(paste0("maps/Simulated",species_f,"_route_maps_data.RData"))
 
 
 xb = range(st_coordinates(real_strata_map)[,"X"])
@@ -148,6 +148,7 @@ print(fig4)
 # 5 Trend comparisons ---------------------------------------------------
 
 output_dir <- "output/"
+tp = "non_linear"
 load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
 
 strat_df <- as.data.frame(strata_mask) %>% 
@@ -156,6 +157,10 @@ sw_trends <- NULL
 strat_trends <- NULL
 
 for(tp in c("linear","non_linear")){
+  if(tp == "linear"){
+    tplab = "Simple"}else{
+      tplab = "Complex"
+    }
 for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
   for(mk in c("","mask_")){
     out_base_sim <- paste0("_sim_",sns,mk,tp,"_BBS")
@@ -174,14 +179,14 @@ for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
       filter(Region_type == "Survey_Wide_Mean",
              last_year == 2019) %>% 
       mutate(version = lbl,
-             True_trajectory = tp)
+             True_trajectory = tplab)
     sw_trends <- bind_rows(sw_trends,sw_t)
     
     strat_t <- all_trends %>% 
       filter(Region_type == "Stratum_Factored",
              last_year == 2019) %>% 
       mutate(version = lbl,
-             True_trajectory = tp)
+             True_trajectory = tplab)
     strat_trends <- bind_rows(strat_trends,strat_t)
   }
 }
@@ -193,37 +198,14 @@ strat_trends <- strat_trends %>%
   mutate(t_dif = true_trend - trend,
          t_abs_dif = abs(t_dif))
 
-strat_trends_dif <- strat_trends %>% 
-  group_by(first_year,version,masked,
-           True_trajectory) %>% 
-  summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
-            median_abs_dif = median(t_abs_dif,na.rm = T),
-            sd_abs_dif = sd(t_abs_dif,na.rm = T))
-
-strat_trends_dif_nm <- strat_trends_dif %>% 
-  filter(masked == FALSE,
-         version %in% c("NonSpatial","Spatial"))
-
-# trends4_plot <- ggplot(data = strat_trends_dif_nm,
-#                        aes(x = first_year,y = mean_abs_dif))+
-#   # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
-#   #               alpha = 0.4)+
-#   geom_point(aes(colour = version),
-#              position = position_dodge(width = 3))+
-#   scale_y_continuous(limits = c(0,NA))+
-#   facet_wrap(vars(True_trajectory),
-#              nrow = 2,
-#              scales = "fixed")
-#   
-# print(trends4_plot)
-# 
 
 strat_trends_nm <- strat_trends %>% 
-  filter(masked == FALSE,
-         version %in% c("NonSpatial","Spatial"),
-         first_year %in% c(1970,1980,2009)) %>% 
+  filter(version %in% c("NonSpatial","Spatial")) %>% 
   mutate(first_year = factor(paste0(first_year,"-2019")))
 
+m1 = lm(t_abs_dif~version*True_trajectory+first_year,
+        data = strat_trends_nm)
+summary(m1)
 trends4a_plot <- ggplot(data = strat_trends_nm,
                        aes(x = first_year,y = t_abs_dif,fill = version))+
   geom_boxplot(aes(fill = version),
@@ -242,9 +224,13 @@ trends4a_plot <- ggplot(data = strat_trends_nm,
   
   strat_trends_m <- strat_trends %>% 
     filter(masked == TRUE,
-           version %in% c("NonSpatial Masked","Spatial Masked"),
-           first_year %in% c(1970,1980,2009)) %>% 
+           version %in% c("NonSpatial Masked","Spatial Masked")) %>% 
     mutate(first_year = factor(paste0(first_year,"-2019")))
+  
+  m2 = lm(t_abs_dif~version*True_trajectory+first_year,
+          data = strat_trends_m)
+  summary(m2)
+  
   
   trends4b_plot <- ggplot(data = strat_trends_m,
                           aes(x = first_year,y = t_abs_dif,fill = version))+
@@ -260,31 +246,31 @@ trends4a_plot <- ggplot(data = strat_trends_nm,
   
   print(trends4b_plot)
  
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
   
-#   
-# strat_m_trends_dif <- strat_trends_dif %>% 
-#   filter(masked == TRUE)
-# trends5_plot <- ggplot(data = strat_m_trends_dif,
-#                        aes(x = first_year,y = mean_abs_dif,group = version))+
-#   # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
-#   #               alpha = 0.4)+
-#   geom_point(aes(colour = version),
-#              position = position_dodge(width = 3))
-# print(trends5_plot)
-# 
-
-# 5 masked strata - comparison of spatial and non-spatial -----------------
-
-
+  
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  ### try a version of the above plot with the points and connected lines
+  trends4c_plot <- ggplot(data = strat_trends_m,
+                          aes(x = version,
+                              y = t_abs_dif,
+                              group = Stratum_Factored))+
+    geom_point(position = position_dodge(width = 1),
+               size = 0.5)+
+    geom_line(position = position_dodge(width = 1))+
+    facet_wrap(vars(True_trajectory,first_year),
+               nrow = 2,
+               scales = "free")
+  
+  print(trends4c_plot)
+  
+  
 
 # 6 real data overall trajectories for 3 species --------------------------
 
