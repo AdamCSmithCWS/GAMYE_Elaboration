@@ -149,6 +149,14 @@ print(fig4)
 
 sw_trends <- NULL
 strat_trends <- NULL
+tp <- "non_linear"
+tp <- "linear"
+mk <- "mask_"
+output_dir <- "output/"
+load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
+
+strat_df <- as.data.frame(strata_mask) %>% 
+  select(Stratum_Factored,masked)
 
 for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
   for(mk in c("","mask_")){
@@ -189,6 +197,9 @@ trends_plot <- ggplot(data = sw_trends,aes(x = true_trend,y = trend))+
 
 print(trends_plot)
 
+strat_trends <- strat_trends %>% 
+  left_join(.,strat_df,by = "Stratum_Factored")
+
 trends2_plot <- ggplot(data = strat_trends,aes(x = true_trend,y = trend))+
   geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
                 alpha = 0.4)+
@@ -199,6 +210,46 @@ trends2_plot <- ggplot(data = strat_trends,aes(x = true_trend,y = trend))+
              ncol = 2)
 
 print(trends2_plot)
+
+strat_trends <- strat_trends %>% 
+  mutate(t_dif = true_trend - trend,
+         t_abs_dif = abs(t_dif))
+
+trends3_plot <- ggplot(data = strat_trends,aes(x = first_year,y = t_abs_dif,group = version))+
+  # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
+  #               alpha = 0.4)+
+  geom_point(aes(colour = version),
+             position = position_dodge(width = 3))
+print(trends3_plot)
+
+strat_trends_dif <- strat_trends %>% 
+  group_by(first_year,version,masked) %>% 
+  summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
+            median_abs_dif = median(t_abs_dif,na.rm = T),
+            sd_abs_dif = sd(t_abs_dif,na.rm = T))
+
+strat_trends_dif_nm <- strat_trends_dif %>% 
+  filter(masked == FALSE)
+trends4_plot <- ggplot(data = strat_trends_dif_nm,
+                       aes(x = first_year,y = mean_abs_dif,group = version))+
+  # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
+  #               alpha = 0.4)+
+  geom_point(aes(colour = version),
+             position = position_dodge(width = 3))
+print(trends4_plot)
+
+
+strat_m_trends_dif <- strat_trends_dif %>% 
+  filter(masked == TRUE)
+trends5_plot <- ggplot(data = strat_m_trends_dif,
+                       aes(x = first_year,y = mean_abs_dif,group = version))+
+  # geom_errorbar(aes(ymin = lci,ymax = uci,colour = first_year),width = 0,
+  #               alpha = 0.4)+
+  geom_point(aes(colour = version),
+             position = position_dodge(width = 3))
+print(trends5_plot)
+
+
 # 5 masked strata - comparison of spatial and non-spatial -----------------
 
 
