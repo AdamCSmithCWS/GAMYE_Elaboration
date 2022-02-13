@@ -123,8 +123,7 @@ dev.off()
 
 
 # 4 trajectory accuracy ---------------------------------------------------
-nsmooth_comp2 <- nsmooth_comp2 %>% 
-  left_join(.,obs_means, by = c("Stratum_Factored","Year"))
+# something happened with the 
 
 
 fig4 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
@@ -133,7 +132,7 @@ fig4 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
              alpha = 0.1,
              size = 0.2,
              inherit.aes = FALSE)+
-  geom_ribbon(aes(ymin = Q_025,ymax = Q_975,fill = version),alpha = 0.2)+
+  geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.2)+
   geom_line(aes(colour = version))+
   scale_colour_viridis_d(aesthetics = c("colour","fill"))+
   scale_y_continuous(limits = c(0,NA))+
@@ -142,6 +141,7 @@ fig4 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
              scales = "free_y")+
   theme_classic() +
   theme(legend.position = "none")
+pdf()
 print(fig4)
 
 
@@ -206,6 +206,7 @@ strat_trends_nm <- strat_trends %>%
 m1 = lm(t_abs_dif~version*True_trajectory+first_year,
         data = strat_trends_nm)
 summary(m1)
+
 trends4a_plot <- ggplot(data = strat_trends_nm,
                        aes(x = first_year,y = t_abs_dif,fill = version))+
   geom_boxplot(aes(fill = version),
