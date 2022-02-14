@@ -92,40 +92,12 @@ dev.off()
 
 
 
-# 3 beta accuracy -----------------------------------------------------------
-
-fig3 <- ggplot(data = beta_comp)+
-  # geom_point(aes(x = beta_True,y = mean),
-  #            size = 1)+
-  geom_abline(slope = 1,intercept = 0)+
-  geom_errorbar(aes(x = beta_True,y = mean,ymin = lci,ymax = uci),
-                width = 0,
-                colour = grey(0.8),
-                alpha = 0.5)+
-  geom_point(aes(x = beta_True,y = mean),
-             colour = grey(0.8),
-             alpha = 0.5)+
-  xlab("True value")+
-  ylab("Strata GAM parameter estimates")+
-  theme_classic()+
-  facet_wrap(vars(k),
-             nrow = 4,
-             ncol = 4)
-  
 
 
-pdf(file = paste0("Figures/Figure_3.pdf"),
-    width = 7,
-    height = 8)
-print(fig3)  
-dev.off()
+# 3 trajectory accuracy ---------------------------------------------------
 
 
-
-# 4 trajectory accuracy ---------------------------------------------------
-
-
-fig4 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
+trajs = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
                                                 x = Year))+
   geom_point(data = nsmooth_comp2,aes(x = Year,y = mean_count),
              alpha = 0.1,
@@ -140,11 +112,14 @@ fig4 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
              scales = "free_y")+
   theme_classic() +
   theme(legend.position = "none")
-pdf(file = paste0("Figures/Figure_4.pdf"),
+pdf(file = paste0("Figures/Figure_3.pdf"),
     width = 7,
     height = 8)
-print(fig4)
+print(trajs)
 dev.off()
+
+
+# 4 trajectory geofacet ---------------------------------------------------
 
 
 output_dir <- "output/"
@@ -181,7 +156,7 @@ load(paste0("Data/",species_f,"BBS","_data.RData"))
           strip.text.x = element_blank(),
           axis.text.x = element_text(size = 5))
   
-  pdf(file = paste0("Figures/Figure_4_geo.pdf"),
+  pdf(file = paste0("Figures/Figure_4.pdf"),
       width = 7,
       height = 10)
   print(fig4_geo)
