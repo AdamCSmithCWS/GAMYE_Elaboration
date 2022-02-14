@@ -96,28 +96,24 @@ dev.off()
 nstrata = length(unique(beta_comp$Stratum_Factored))
 
 fig3 <- ggplot(data = beta_comp)+
-  geom_point(aes(x = k,y = beta_True),
-             size = 1)+
-  geom_errorbar(aes(x = k,y = mean,ymin = lci,ymax = uci),
+  # geom_point(aes(x = beta_True,y = mean),
+  #            size = 1)+
+  geom_errorbar(aes(x = beta_True,y = mean,ymin = lci,ymax = uci),
                 width = 0,
                 colour = grey(0.8),
                 alpha = 0.5)+
-  geom_point(aes(x = k,y = mean),
+  geom_point(aes(x = beta_True,y = mean),
              colour = grey(0.8),
              alpha = 0.75)+
   xlab("Knot position")+
   ylab("Parameters")+
-  theme_classic()+
-  facet_wrap(vars(Stratum_Factored),ncol = ceiling(sqrt(nstrata)),
-             nrow = ceiling(sqrt(nstrata)),
-             scales = "free")
+  theme_classic()
   
 
 
 pdf(file = paste0("Figures/Figure_3.pdf"),
     width = 7,
     height = 8)
-
 print(fig3)  
 dev.off()
 
@@ -421,6 +417,74 @@ dev.off()
 
 
 
+# 8 Spaghetti plot Red Knot -------------------------------------------------
+load("output/real_data_summaries.RData")
+
+
+fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
+                                "Cinclus_mexicanus",
+                                "Red_Knot"),
+                  species = c("Yellow-headed Blackbird",
+                              "Cinclus_mexicanus",
+                              "Red Knot"),
+                  species_l = c("BBS - Yellow-headed Blackbird",
+                                "CBC - American Dipper",
+                                "Shorebird - Red Knot"))
+
+Indices_all_out <- Indices_all_out %>% 
+  left_join(.,fls,by = "species")
+
+I_RK <- Indices_all_out %>% 
+  filter(species == "Red Knot")
+Iplot <- ggplot(data = I_RK,
+                aes(x = true_year,y = median))+
+  geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),
+              alpha = 0.2)+
+  geom_line(aes(colour = version))+
+  scale_y_continuous(limits = c(0,NA))+
+  scale_colour_viridis_d(aesthetics = c("colour","fill"),
+                         begin = 0,
+                         end = 0.6,
+                         direction = 1)+
+  ylab("Survey-wide mean annual predictions")+
+  xlab("")+
+  theme_classic()+
+  theme(legend.position = "none")
+
+
+load("output/Red_Knot_SW_indices.RData")
+set.seed(4)
+sel <- sample(1:max(sw_smooth$samples$.draw),200)
+rk_inds <- sw_smooth$samples %>% 
+  filter(.draw %in% sel)
+
+start_val = rk_inds %>% 
+  filter(true_year == 1980)%>% 
+  mutate(start_value = log10(.value)) %>% 
+  select(.draw,start_value) 
+rk_inds <- rk_inds %>% 
+  left_join(.,start_val,by = ".draw")
+
+spagl <- ggplot(data = rk_inds,
+                aes(x = true_year,
+                    y = .value,
+                    group = .draw,
+                    colour = start_value))+
+  geom_line(alpha = 0.3)+
+  xlab("")+
+  ylab("log(Survey-wide smooth)")+
+  theme_classic()+
+  scale_colour_viridis_c(end = 0.9)+
+  scale_y_continuous(trans = "log10")+
+  theme(legend.position = "none")
+
+pdf(file = paste0("Figures/Figure_8.pdf"),
+    width = 7,
+    height = 4)
+
+print(Iplot + spagl) 
+
+dev.off()
 
 
 

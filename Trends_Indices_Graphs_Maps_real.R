@@ -264,9 +264,10 @@ for(i in c(1:3)){#1:nrow(fls)){
     scale_y_continuous(limits = c(0,NA))+
     geofacet::facet_geo(~strat_labs,grid = strat_grid,
                         scales = "free")+
-    theme(strip.text = element_text(size = 8),
+    theme(strip.text = element_text(size = 6),
           strip.background = element_blank(),
-          panel.spacing = unit(0.1,"mm")))
+          panel.spacing = unit(0.1,"mm"),
+    axis.text.x = element_text(size = 5)))
   
   pdf(paste0("figures/",species_f,"_geofacet.pdf"),
       height = 14,
@@ -356,6 +357,9 @@ if(dd == "Shorebird"){
                                       year_1 = year_1,
                                       strat = NULL,
                                       first_dim = "y")
+ ### one-off save of overall smooth indices for spaghetti plot
+   save(list = "sw_smooth",
+       file = "output/Red_Knot_SW_indices.RData")
   
   Inds_smooth <- sw_smooth$indices %>% 
     mutate(version = "smooth")
