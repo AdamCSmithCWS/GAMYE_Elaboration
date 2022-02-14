@@ -93,21 +93,24 @@ dev.off()
 
 
 # 3 beta accuracy -----------------------------------------------------------
-nstrata = length(unique(beta_comp$Stratum_Factored))
 
 fig3 <- ggplot(data = beta_comp)+
   # geom_point(aes(x = beta_True,y = mean),
   #            size = 1)+
+  geom_abline(slope = 1,intercept = 0)+
   geom_errorbar(aes(x = beta_True,y = mean,ymin = lci,ymax = uci),
                 width = 0,
                 colour = grey(0.8),
                 alpha = 0.5)+
   geom_point(aes(x = beta_True,y = mean),
              colour = grey(0.8),
-             alpha = 0.75)+
-  xlab("Knot position")+
-  ylab("Parameters")+
-  theme_classic()
+             alpha = 0.5)+
+  xlab("True value")+
+  ylab("Strata GAM parameter estimates")+
+  theme_classic()+
+  facet_wrap(vars(k),
+             nrow = 4,
+             ncol = 4)
   
 
 
