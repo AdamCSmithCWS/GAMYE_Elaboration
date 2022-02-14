@@ -253,7 +253,8 @@ for(i in c(1:3)){#1:nrow(fls)){
     rename_with(~gsub(x = .x,
                       pattern = st_n,
                       replacement = "strat_labs")) 
-    
+  
+
   g_inds <- suppressMessages(ggplot(data = indices_geo,aes(x = Year,y = median))+
     geom_point(aes(x = Year,y = mean_obs*zero,alpha = n_surveys),
                inherit.aes = FALSE)+
@@ -265,7 +266,7 @@ for(i in c(1:3)){#1:nrow(fls)){
                         scales = "free")+
     theme(strip.text = element_text(size = 8),
           strip.background = element_blank(),
-          panel.spacing = unit(1,"mm")))
+          panel.spacing = unit(0.1,"mm")))
   
   pdf(paste0("figures/",species_f,"_geofacet.pdf"),
       height = 14,

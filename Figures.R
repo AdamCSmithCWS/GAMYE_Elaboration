@@ -4,6 +4,7 @@ library(cmdstanr)
 library(posterior)
 library(sf)
 library(patchwork)
+library(geofacet)
 source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
 source("Functions/palettes.R")
@@ -123,7 +124,6 @@ dev.off()
 
 
 # 4 trajectory accuracy ---------------------------------------------------
-# something happened with the 
 
 
 fig4 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
@@ -141,9 +141,52 @@ fig4 = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
              scales = "free_y")+
   theme_classic() +
   theme(legend.position = "none")
-pdf()
+pdf(file = paste0("Figures/Figure_4.pdf"),
+    width = 7,
+    height = 8)
 print(fig4)
+dev.off()
 
+
+output_dir <- "output/"
+tp = "non_linear"
+load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
+load(paste0("Data/",species_f,"BBS","_data.RData"))
+
+
+  strat_grid <- geofacet::grid_auto(realized_strata_map,
+                                    codes = "Stratum_Factored")
+
+  
+  fig4_geo = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
+                                         x = Year))+
+    geom_ribbon(aes(ymin = lci,ymax = uci,
+                    fill = version),alpha = 0.3)+
+    geom_point(data = nsmooth_comp2,aes(x = Year,y = mean_count),
+               alpha = 0.1,
+               size = 0.2,
+               inherit.aes = FALSE)+
+    geom_line(aes(colour = version))+
+    scale_colour_viridis_d(aesthetics = c("colour","fill"),
+                           begin = 0,
+                           end = 0.5,
+                           direction = -1)+
+    scale_y_continuous(limits = c(0,NA))+
+    geofacet::facet_geo(~Stratum_Factored,grid = strat_grid,
+                        scales = "free")+
+    xlab("")+
+    ylab("Mean annual smooth trajectory")+
+    theme_bw() +
+    theme(legend.position = "none",
+          strip.background = element_blank(),
+          strip.text.x = element_blank(),
+          axis.text.x = element_text(size = 5))
+  
+  pdf(file = paste0("Figures/Figure_4_geo.pdf"),
+      width = 7,
+      height = 10)
+  print(fig4_geo)
+  dev.off()
 
 # 5 Trend comparisons ---------------------------------------------------
 
@@ -194,7 +237,8 @@ for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
 
 
 strat_trends <- strat_trends %>% 
-  left_join(.,strat_df,by = "Stratum_Factored") %>% 
+  left_join(.,strat_df,by = "Stratum_Factored") %>%
+  filter(first_year %in% c(1970,1980,1990,2009)) %>% 
   mutate(t_dif = true_trend - trend,
          t_abs_dif = abs(t_dif))
 
@@ -223,8 +267,9 @@ trends4a_plot <- ggplot(data = strat_trends_nm,
 
 
   
-  strat_trends_m <- strat_trends %>% 
-    filter(masked == TRUE,
+  strat_trends_m <- strat_trends %>%
+    filter(first_year %in% c(1970,1980,1990,2009),
+           masked == TRUE,
            version %in% c("NonSpatial Masked","Spatial Masked")) %>% 
     mutate(first_year = factor(paste0(first_year,"-2019")))
   
@@ -275,6 +320,46 @@ trends4a_plot <- ggplot(data = strat_trends_nm,
 
 # 6 real data overall trajectories for 3 species --------------------------
 
+  
+  load("output/real_data_summaries.RData")
+  
+  
+  fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
+                                  "Cinclus_mexicanus",
+                                  "Red_Knot"),
+                    species = c("Yellow-headed Blackbird",
+                                "Cinclus_mexicanus",
+                                "Red Knot"),
+                    species_l = c("BBS - Yellow-headed Blackbird",
+                                  "CBC - American Dipper",
+                                  "Shorebird - Red Knot"))
+  
+  Indices_all_out <- Indices_all_out %>% 
+    left_join(.,fls,by = "species")
+Iplot <- ggplot(data = Indices_all_out,
+                aes(x = true_year,y = median))+
+  geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),
+              alpha = 0.2)+
+  geom_line(aes(colour = version))+
+  scale_y_continuous(limits = c(0,NA))+
+  scale_colour_viridis_d(aesthetics = c("colour","fill"),
+                         begin = 0,
+                         end = 0.6,
+                         direction = 1)+
+  ylab("Survey-wide mean annual predictions")+
+  xlab("")+
+  theme_bw()+
+  theme(legend.position = "none")+
+  facet_wrap(vars(species_l),
+             nrow = 3,
+             ncol = 1,
+             scales = "free_y")
+
+pdf(file = "Figures/Figure_6.pdf",
+    width = 3.5,
+    height = 5)
+print(Iplot)
+dev.off()
 
 
 
