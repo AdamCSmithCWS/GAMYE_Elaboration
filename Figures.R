@@ -94,32 +94,7 @@ dev.off()
 
 
 
-# 3 trajectory accuracy ---------------------------------------------------
-
-
-trajs = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
-                                                x = Year))+
-  geom_point(data = nsmooth_comp2,aes(x = Year,y = mean_count),
-             alpha = 0.1,
-             size = 0.2,
-             inherit.aes = FALSE)+
-  geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.2)+
-  geom_line(aes(colour = version))+
-  scale_colour_viridis_d(aesthetics = c("colour","fill"))+
-  scale_y_continuous(limits = c(0,NA))+
-  facet_wrap(~Stratum_Factored,nrow = ceiling(sqrt(nstrata)),
-             ncol = ceiling(sqrt(nstrata)),
-             scales = "free_y")+
-  theme_classic() +
-  theme(legend.position = "none")
-pdf(file = paste0("Figures/Figure_3.pdf"),
-    width = 7,
-    height = 8)
-print(trajs)
-dev.off()
-
-
-# 4 trajectory geofacet ---------------------------------------------------
+# 3 trajectory geofacet ---------------------------------------------------
 
 
 output_dir <- "output/"
@@ -129,7 +104,8 @@ load(paste0("Data/",species_f,"BBS","_data.RData"))
 
 
   strat_grid <- geofacet::grid_auto(realized_strata_map,
-                                    codes = "Stratum_Factored")
+                                    codes = "Stratum_Factored",
+                                    seed = 2)
 
   
   fig4_geo = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
@@ -156,12 +132,104 @@ load(paste0("Data/",species_f,"BBS","_data.RData"))
           strip.text.x = element_blank(),
           axis.text.x = element_text(size = 5))
   
-  pdf(file = paste0("Figures/Figure_4.pdf"),
+  pdf(file = paste0("Figures/Figure_3.pdf"),
       width = 7,
       height = 10)
   print(fig4_geo)
   dev.off()
 
+
+# 4 trajectory Masked data --------------------------------------------------
+
+  tp <- "non_linear"
+  
+  load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
+  
+  sns <- ""
+  mk <- "mask_"
+  output_dir <- "output/"
+  out_base <- paste0(species_f,"_sim_",sns,mk,tp,"_BBS")
+  out_base_sim <- paste0("_sim_",sns,mk,tp,"_BBS")
+  
+  load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
+  
+
+
+  # strat_grid <- geofacet::grid_auto(realized_strata_map,
+  #                                   codes = "Stratum_Factored",
+  #                                   seed = 3)
+  # 
+  
+  fig4_sp = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
+                                             x = Year))+
+    geom_ribbon(aes(ymin = lci,ymax = uci,
+                    fill = version),alpha = 0.3)+
+    geom_point(data = nsmooth_comp2,aes(x = Year,y = mean_count),
+               alpha = 0.1,
+               size = 0.2,
+               inherit.aes = FALSE)+
+    geom_line(aes(colour = version))+
+    scale_colour_viridis_d(aesthetics = c("colour","fill"),
+                           begin = 0,
+                           end = 0.5,
+                           direction = -1)+
+    scale_y_continuous(limits = c(0,NA))+
+    geofacet::facet_geo(~Stratum_Factored,grid = strat_grid,
+                        scales = "free")+
+    xlab("")+
+    ylab("Mean annual smooth trajectory")+
+    theme_bw() +
+    theme(legend.position = "none",
+          strip.background = element_blank(),
+          strip.text.x = element_blank(),
+          axis.text.x = element_text(size = 5))
+  
+  
+  sns <- "nonSpatial_alt_"
+  mk <- "mask_"
+  output_dir <- "output/"
+  out_base <- paste0(species_f,"_sim_",sns,mk,tp,"_BBS")
+  out_base_sim <- paste0("_sim_",sns,mk,tp,"_BBS")
+  
+  load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
+  
+  
+  
+  # strat_grid <- geofacet::grid_auto(realized_strata_map,
+  #                                   codes = "Stratum_Factored",
+  #                                   seed = 4)
+  # 
+  
+  fig4_nsp = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
+                                            x = Year))+
+    geom_ribbon(aes(ymin = lci,ymax = uci,
+                    fill = version),alpha = 0.3)+
+    geom_point(data = nsmooth_comp2,aes(x = Year,y = mean_count),
+               alpha = 0.1,
+               size = 0.2,
+               inherit.aes = FALSE)+
+    geom_line(aes(colour = version))+
+    scale_colour_viridis_d(aesthetics = c("colour","fill"),
+                           begin = 0,
+                           end = 0.5,
+                           direction = -1)+
+    scale_y_continuous(limits = c(0,NA))+
+    geofacet::facet_geo(~Stratum_Factored,grid = strat_grid,
+                        scales = "free")+
+    xlab("")+
+    ylab("Mean annual smooth trajectory")+
+    theme_bw() +
+    theme(legend.position = "none",
+          strip.background = element_blank(),
+          strip.text.x = element_blank(),
+          axis.text.x = element_text(size = 5))
+  
+  pdf(file = paste0("Figures/Figure_4.pdf"),
+      width = 7,
+      height = 10)
+  print(fig4_sp / fig4_nsp)
+  dev.off()
+  
 # 5 Trend comparisons ---------------------------------------------------
 
 output_dir <- "output/"
