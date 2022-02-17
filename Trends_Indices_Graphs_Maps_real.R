@@ -29,7 +29,10 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                                      "strata_vec",
                                      "stratn"))
 
-
+fls[4,] <- fls[1,]
+fls[4,"species_f"] <- "Dickcissel"
+fls[4,"species"] <- "Dickcissel"
+fls[4,"out_base"] <- paste0("Dickcissel","_real_","BBS")
 
 
 # Species loop ------------------------------------------------------------
@@ -46,7 +49,7 @@ ind_plots_list = tt_map_list
 Ind_plots_list = tt_map_list
 
 
-for(i in c(1:3)){#1:nrow(fls)){
+for(i in c(1:4)){#1:nrow(fls)){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -247,7 +250,8 @@ for(i in c(1:3)){#1:nrow(fls)){
                                     names = "hex_name")
   }else{
   strat_grid <- geofacet::grid_auto(realized_strata_map,
-                                    codes = st_n)
+                                    codes = st_n,
+                                    names = "Stratum")
   }
   indices_geo <- indices_all %>% 
     rename_with(~gsub(x = .x,

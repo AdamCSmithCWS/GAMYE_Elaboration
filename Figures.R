@@ -69,6 +69,7 @@ out_base_sim <- paste0("_sim_",sns,mk,tp,"_BBS")
 
 load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
 
+
 fig2 <- ggplot(data = BETA_comp)+
   geom_point(aes(x = k,y = True_BETA),
              size = 1)+
@@ -98,7 +99,7 @@ dev.off()
 
 
 output_dir <- "output/"
-tp = "non_linear"
+#tp = "non_linear"
 load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
 load(paste0("Data/",species_f,"BBS","_data.RData"))
 
@@ -141,9 +142,25 @@ load(paste0("Data/",species_f,"BBS","_data.RData"))
 
 # 4 trajectory Masked data --------------------------------------------------
 
-  tp <- "non_linear"
+  #tp <- "non_linear"
   
   load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
+  
+
+  sns <- ""
+  mk <- ""
+  output_dir <- "output/"
+  out_base <- paste0(species_f,"_sim_",sns,mk,tp,"_BBS")
+  out_base_sim <- paste0("_sim_",sns,mk,tp,"_BBS")
+  
+  load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
+  
+  smooth_spatial <- nsmooth_comp2 %>% 
+    filter(version == "Estimated") %>% 
+    mutate(version = "Spatial Full",
+           mean_count = NA,
+           lci = NA,
+           uci = NA)
   
   sns <- ""
   mk <- "mask_"
@@ -160,29 +177,20 @@ load(paste0("Data/",species_f,"BBS","_data.RData"))
   #                                   seed = 3)
   # 
   
-  fig4_sp = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
-                                             x = Year))+
-    geom_ribbon(aes(ymin = lci,ymax = uci,
-                    fill = version),alpha = 0.3)+
-    geom_point(data = nsmooth_comp2,aes(x = Year,y = mean_count),
-               alpha = 0.1,
-               size = 0.2,
-               inherit.aes = FALSE)+
-    geom_line(aes(colour = version))+
-    scale_colour_viridis_d(aesthetics = c("colour","fill"),
-                           begin = 0,
-                           end = 0.5,
-                           direction = -1)+
-    scale_y_continuous(limits = c(0,NA))+
-    geofacet::facet_geo(~Stratum_Factored,grid = strat_grid,
-                        scales = "free")+
-    xlab("")+
-    ylab("Mean annual smooth trajectory")+
-    theme_bw() +
-    theme(legend.position = "none",
-          strip.background = element_blank(),
-          strip.text.x = element_blank(),
-          axis.text.x = element_text(size = 5))
+  smooth_spatial_mask <- nsmooth_comp2 %>% 
+    filter(masked == TRUE,
+           version == "Estimated Masked") %>% 
+    mutate(version = "Spatial")
+  
+  smooth_spatial <- smooth_spatial %>% 
+    filter(Stratum_Factored %in% unique(smooth_spatial_mask$Stratum_Factored))
+  
+  
+  smooth_t_mask <- nsmooth_comp2 %>% 
+    filter(masked == TRUE,
+           version == "True") %>% 
+    mutate(version = "True",
+           mean_count = NA)
   
   
   sns <- "nonSpatial_alt_"
@@ -194,46 +202,54 @@ load(paste0("Data/",species_f,"BBS","_data.RData"))
   load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
   
   
+  smooth_nonSp_mask <- nsmooth_comp2 %>% 
+    filter(masked == TRUE,
+           version == "Estimated Masked") %>% 
+    mutate(version = "NonSpatial",
+           mean_count = NA)
   
-  # strat_grid <- geofacet::grid_auto(realized_strata_map,
-  #                                   codes = "Stratum_Factored",
-  #                                   seed = 4)
-  # 
+  #smooth_spatial,
   
-  fig4_nsp = ggplot(data = nsmooth_comp2,aes(y = True_nsmooth,
-                                            x = Year))+
+  nsmooth_comp_mask <- bind_rows(smooth_nonSp_mask,
+                                 smooth_spatial_mask,
+                                 smooth_t_mask)
+  
+  fig4_comb = ggplot(data = nsmooth_comp_mask,aes(y = True_nsmooth,
+                                             x = Year))+
     geom_ribbon(aes(ymin = lci,ymax = uci,
                     fill = version),alpha = 0.3)+
-    geom_point(data = nsmooth_comp2,aes(x = Year,y = mean_count),
+    geom_point(data = nsmooth_comp_mask,aes(x = Year,y = mean_count),
                alpha = 0.1,
                size = 0.2,
                inherit.aes = FALSE)+
     geom_line(aes(colour = version))+
     scale_colour_viridis_d(aesthetics = c("colour","fill"),
                            begin = 0,
-                           end = 0.5,
+                           end = 1,
                            direction = -1)+
     scale_y_continuous(limits = c(0,NA))+
-    geofacet::facet_geo(~Stratum_Factored,grid = strat_grid,
+    facet_wrap(~Stratum_Factored,
                         scales = "free")+
     xlab("")+
     ylab("Mean annual smooth trajectory")+
     theme_bw() +
-    theme(legend.position = "none",
+    theme(legend.position = "bottom",
           strip.background = element_blank(),
           strip.text.x = element_blank(),
           axis.text.x = element_text(size = 5))
   
+  
+ 
   pdf(file = paste0("Figures/Figure_4.pdf"),
       width = 7,
       height = 10)
-  print(fig4_sp / fig4_nsp)
-  dev.off()
-  
+  print(fig4_comb)
+    dev.off()
+
 # 5 Trend comparisons ---------------------------------------------------
 
 output_dir <- "output/"
-tp = "non_linear"
+#tp = "non_linear"
 load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
 
 strat_df <- as.data.frame(strata_mask) %>% 
@@ -280,7 +296,7 @@ for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
 
 strat_trends <- strat_trends %>% 
   left_join(.,strat_df,by = "Stratum_Factored") %>%
-  filter(first_year %in% c(1970,1980,1990,2009)) %>% 
+  filter(first_year %in% c(1970:2009)) %>% 
   mutate(t_dif = true_trend - trend,
          t_abs_dif = abs(t_dif))
 
@@ -289,14 +305,26 @@ strat_trends_nm <- strat_trends %>%
   filter(version %in% c("NonSpatial","Spatial")) %>% 
   mutate(first_year = factor(paste0(first_year,"-2019")))
 
-m1 = lm(t_abs_dif~version*True_trajectory+first_year,
-        data = strat_trends_nm)
-summary(m1)
 
-trends4a_plot <- ggplot(data = strat_trends_nm,
-                       aes(x = first_year,y = t_abs_dif,fill = version))+
-  geom_boxplot(aes(fill = version),
-             position = position_dodge(width = 1))+
+mean_difs <- strat_trends_nm %>% 
+  group_by(True_trajectory,
+           version,
+           first_year) %>% 
+  summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
+            lci = quantile(t_abs_dif,0.05,na.rm = T),
+            uci = quantile(t_abs_dif,0.95,na.rm = T))
+
+trends4means_plot <- ggplot(data = mean_difs,
+                              aes(x = first_year,
+                                  y = mean_abs_dif,
+                                  colour = version),
+                              position = position_dodge(width = 0.5))+
+  geom_errorbar(aes(colour = version,ymin = lci,
+                    ymax = uci),
+                alpha = 0.3,
+                width = 0,
+                position = position_dodge(width = 0.5))+
+  geom_point(position = position_dodge(width = 0.5))+
   scale_y_continuous(limits = c(0,NA))+
   ylab("Absolute difference in trend (Estimated - True)")+
   xlab("Timespan of Trend")+
@@ -304,26 +332,73 @@ trends4a_plot <- ggplot(data = strat_trends_nm,
   facet_wrap(vars(True_trajectory),
              nrow = 2,
              scales = "free")
+print(trends4means_plot)
 
-  print(trends4a_plot)
-
-
-  
+# m1 = lm(t_abs_dif~version*True_trajectory+first_year,
+#         data = strat_trends_nm)
+# summary(m1)
+# 
+# trends4a_plot <- ggplot(data = strat_trends_nm,
+#                        aes(x = first_year,y = t_abs_dif,fill = version))+
+#   geom_boxplot(aes(fill = version),
+#              position = position_dodge(width = 1))+
+#   scale_y_continuous(limits = c(0,NA))+
+#   ylab("Absolute difference in trend (Estimated - True)")+
+#   xlab("Timespan of Trend")+
+#   theme_bw()+
+#   facet_wrap(vars(True_trajectory),
+#              nrow = 2,
+#              scales = "free")
+# 
+#   print(trends4a_plot)
+# 
+# 
+#   
   strat_trends_m <- strat_trends %>%
-    filter(first_year %in% c(1970,1980,1990,2009),
+    filter(first_year %in% c(1970:2009),
            masked == TRUE,
-           version %in% c("NonSpatial Masked","Spatial Masked")) %>% 
+           version %in% c("NonSpatial Masked","Spatial Masked")) %>%
     mutate(first_year = factor(paste0(first_year,"-2019")))
+
+#   m2 = lm(t_abs_dif~version*True_trajectory+first_year,
+#           data = strat_trends_m)
+#   summary(m2)
+#   
+#   
+#   trends4b_plot <- ggplot(data = strat_trends_m,
+#                           aes(x = first_year,y = t_abs_dif,fill = version))+
+#     geom_boxplot(aes(fill = version),
+#                  position = position_dodge(width = 1),
+#                  coef = 3)+
+#     scale_y_continuous(limits = c(0,NA))+
+#     ylab("Absolute difference in trend (Estimated - True)")+
+#     xlab("Timespan of Trend")+
+#     theme_bw()+
+#     facet_wrap(vars(True_trajectory),
+#                nrow = 2,
+#                scales = "free")
+#   
+#   print(trends4b_plot)
+ 
+  mean_difs_m <- strat_trends_m %>% 
+    group_by(True_trajectory,
+             version,
+             first_year) %>% 
+    summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
+              lci = quantile(t_abs_dif,0.05,na.rm = T),
+              uci = quantile(t_abs_dif,0.95,na.rm = T))
   
-  m2 = lm(t_abs_dif~version*True_trajectory+first_year,
-          data = strat_trends_m)
-  summary(m2)
-  
-  
-  trends4b_plot <- ggplot(data = strat_trends_m,
-                          aes(x = first_year,y = t_abs_dif,fill = version))+
-    geom_boxplot(aes(fill = version),
-                 position = position_dodge(width = 1))+
+  trends4means_plot_m <- ggplot(data = mean_difs_m,
+                          aes(x = first_year,
+                              y = mean_abs_dif,
+                              colour = version),
+                          position = position_dodge(width = 0.5))+
+    geom_errorbar(aes(colour = version,ymin = lci,
+                      ymax = uci),
+                  alpha = 0.3,
+                  width = 0,
+                  position = position_dodge(width = 0.5))+
+    geom_point(position = position_dodge(width = 0.5))+
     scale_y_continuous(limits = c(0,NA))+
     ylab("Absolute difference in trend (Estimated - True)")+
     xlab("Timespan of Trend")+
@@ -332,31 +407,13 @@ trends4a_plot <- ggplot(data = strat_trends_nm,
                nrow = 2,
                scales = "free")
   
-  print(trends4b_plot)
- 
+  pdf(file = paste0("Figures/Figure_5.pdf"),
+      width = 7,
+      height = 4)
+  print(trends4means_plot_m)
+  dev.off()
   
   
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  ### try a version of the above plot with the points and connected lines
-  trends4c_plot <- ggplot(data = strat_trends_m,
-                          aes(x = version,
-                              y = t_abs_dif,
-                              group = Stratum_Factored))+
-    geom_point(position = position_dodge(width = 1),
-               size = 0.5)+
-    geom_line(position = position_dodge(width = 1))+
-    facet_wrap(vars(True_trajectory,first_year),
-               nrow = 2,
-               scales = "free")
-  
-  print(trends4c_plot)
   
   
 
