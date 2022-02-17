@@ -11,18 +11,22 @@ species = "Yellow-headed Blackbird"
 
   species_f <- gsub(species,pattern = " ",replacement = "_")
  
-  for(tp in c("non_linear_2","linear_2")){
-    
+tp = "non_linear"
+
+MAs <- round(log(c(1,5,10,20,50)),2)# true mean abundances for different simulations
+
+
+  for(ma in MAs){  
          #STRATA_True <- log(2)
         output_dir <- "output/"
-        out_base <- paste0(species_f,"_sim_",tp,"_BBS")
+        out_base <- paste0("sim_",tp,"_",ma,"_BBS")
         csv_files <- paste0(out_base,"-",1:3,".csv")
         
+        load(paste0("Data/Simulated_data_",ma,"_",tp,"_BBS.RData"))
         
         
         if(!file.exists(paste0(output_dir,csv_files[1]))){
           
-          load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
         
 tmp_data = realised
   
@@ -107,7 +111,7 @@ stan_data = list(#scalar indicators
 
 # Fit model ---------------------------------------------------------------
 
-print(paste("beginning",species,"with",nstrata,"strata",Sys.time()))
+print(paste("beginning",out_base,Sys.time()))
 
 
   mod.file = "models/gamye_iCAR_sim.stan"
@@ -161,5 +165,5 @@ save(list = c("stanfit","stan_data","csv_files",
 
 }
 
-}#end tp loop
+}#end ma loop
 

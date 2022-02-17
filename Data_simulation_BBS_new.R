@@ -273,14 +273,7 @@ Beta_True[k,] <- yscale*0.75 + BETA_mid[k] + rnorm(nstrata,0,0.5)*xscale
                ncol = ceiling(sqrt(nstrata)))
   
   
-  pdf(paste0("Figures/Simulated_",ma,"_",tp,"_True_smooth.pdf"),
-      width = 11,
-      height = 8.5)
-  print(pfs)
-  print(pf)
-  
- dev.off()
- 
+
 
 # Add observer, route intercepts ----------------------------
 
@@ -346,7 +339,24 @@ balanced <- balanced %>%
            count = rpois(nrow(balanced),expected_count))%>% 
   mutate(Year_Index = Year-(min(Year)-1))
 
+mean_exp_count <- balanced %>% 
+  group_by(Stratum_Factored,Year) %>% 
+  summarise(mean_exp = mean(expected_count))
+
+mean_ec_plot <- ggplot(data = mean_exp_count,
+                       aes(x = Year,y = mean_exp))+
+  geom_line()+
+  scale_y_continuous(limits = c(0,NA))+
+  facet_wrap(vars(Stratum_Factored),
+             scales = "free_y")
   
+pdf(paste0("Figures/Simulated_",ma,"_",tp,"_True_smooth.pdf"),
+    width = 11,
+    height = 8.5)
+print(pfs)
+print(pf)
+print(mean_ec_plot)
+dev.off()
 
 
 realised <- real_df %>% select(-c("Observer")) %>% 
@@ -462,22 +472,22 @@ rm(list = to_save)
 
 }#end ma loop
 
-  slp = function(x,y){
-    m = lm(x~y)
-    sl = coefficients(m)[[2]]
-    return(sl)
-  }
-  tmp = realised %>% 
-    group_by(Stratum,Year,Route) %>% 
-    summarise(mean = mean(log_expected),
-              n = n()) %>% 
-    group_by(Stratum) %>% 
-    summarise(slp = slp(mean,Year),
-              n = sum(n))
-  
-  tmpmap <- left_join(strata_map,tmp,by = "Stratum")
- 
-  pl = ggplot(data = tmpmap)+
-    geom_sf(aes(fill = slp))+
-    scale_fill_viridis_c()
-print(pl)  
+#   slp = function(x,y){
+#     m = lm(x~y)
+#     sl = coefficients(m)[[2]]
+#     return(sl)
+#   }
+#   tmp = realised %>% 
+#     group_by(Stratum,Year,Route) %>% 
+#     summarise(mean = mean(log_expected),
+#               n = n()) %>% 
+#     group_by(Stratum) %>% 
+#     summarise(slp = slp(mean,Year),
+#               n = sum(n))
+#   
+#   tmpmap <- left_join(strata_map,tmp,by = "Stratum")
+#  
+#   pl = ggplot(data = tmpmap)+
+#     geom_sf(aes(fill = slp))+
+#     scale_fill_viridis_c()
+# print(pl)  
