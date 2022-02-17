@@ -54,8 +54,15 @@ dev.off()
 
 
 
+# 2 geo true trajectories and counts --------------------------------------
 
-# 2 BETA accuracy -----------------------------------------------------
+## show all of the true trajectories and mean counts
+## in a geo facet so the reader can see how the counts and trajectories
+## vary - geofacet of the mean expected counts from balanced
+## and observed counts from realised.
+
+
+# 3 BETA accuracy -----------------------------------------------------
 
 tp <- "non_linear"
 

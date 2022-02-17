@@ -32,6 +32,10 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                                      "strata_vec",
                                      "stratn"))
 
+fls[4,] <- fls[1,]
+fls[4,"species_f"] <- "Dickcissel"
+fls[4,"species"] <- "Dickcissel"
+fls[4,"out_base"] <- paste0("Dickcissel","_real_","BBS")
 
 
 output_dir <- "output/"
@@ -130,7 +134,7 @@ for(j in 1:length(tyrs)){
     theme_bw()+
     xlab("")+
     ylab("")+
-    labs(title = paste("Annual Trend",yy,"-",yy2))+
+    labs(title = paste("Annual Trends in space",yy,"-",yy2))+
     scale_colour_manual(values = map_palette_s, 
                         aesthetics = c("fill"),
                         guide = guide_legend(reverse=TRUE),
@@ -148,7 +152,7 @@ for(j in 1:length(tyrs)){
       xlab("")+
       ylab("Mean annual prediction")+
       theme(legend.position = "none")+
-      labs(title = paste(species,dd))
+      labs(title = paste("Survey-wide trajectory",species,dd))
     
     pout <-  pl_Inds + angif +
       plot_layout(ncol = 1,

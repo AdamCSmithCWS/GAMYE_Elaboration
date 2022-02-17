@@ -49,7 +49,7 @@ ind_plots_list = tt_map_list
 Ind_plots_list = tt_map_list
 
 
-for(i in c(1:4)){#1:nrow(fls)){
+for(i in c(3:4)){#1:nrow(fls)){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -248,10 +248,16 @@ for(i in c(1:4)){#1:nrow(fls)){
   strat_grid <- geofacet::grid_auto(realized_strata_map,
                                     codes = st_n,
                                     names = "hex_name")
-  }else{
+  }
+  if(dd == "BBS"){
   strat_grid <- geofacet::grid_auto(realized_strata_map,
                                     codes = st_n,
                                     names = "Stratum")
+  }
+  if(dd == "CBC"){
+    strat_grid <- geofacet::grid_auto(realized_strata_map,
+                                      codes = st_n,
+                                      names = "stratum")
   }
   indices_geo <- indices_all %>% 
     rename_with(~gsub(x = .x,
