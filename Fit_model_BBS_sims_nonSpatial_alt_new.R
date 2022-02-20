@@ -141,8 +141,8 @@ model <- cmdstan_model(mod.file)
 stanfit <- model$sample(
   data=stan_data,
   refresh=200,
-  chains=3, iter_sampling=1000,
-  iter_warmup=1000,
+  chains=3, iter_sampling=1500,
+  iter_warmup=1500,
   parallel_chains = 3,
   #pars = parms,
   adapt_delta = 0.8,

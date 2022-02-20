@@ -16,8 +16,10 @@ tp = "non_linear"
 MAs <- round(log(c(1,5,10,20,50)),2)# true mean abundances for different simulations
 
 
-  for(ma in MAs){  
-         output_dir <- "output/"
+for(ma in MAs[c(2,4)]){  
+  
+  
+  output_dir <- "output/"
         out_base <- paste0("sim_",tp,"_",ma,"_BBS")
         csv_files <- paste0(out_base,"-",1:3,".csv")
         
@@ -143,8 +145,8 @@ model <- cmdstan_model(mod.file)
 stanfit <- model$sample(
   data=stan_data,
   refresh=200,
-  chains=3, iter_sampling=1000,
-  iter_warmup=1000,
+  chains=3, iter_sampling=1500,
+  iter_warmup=1500,
   parallel_chains = 3,
   #pars = parms,
   adapt_delta = 0.8,

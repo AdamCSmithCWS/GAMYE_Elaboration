@@ -57,7 +57,7 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                            "BBS"),
                   out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
                                paste0("Cinclus_mexicanus","_CBC_B"),
-                               paste0("Red Knot","_Shorebird"),
+                               paste0("Red_Knot","_Shorebird"),
                                paste0("Dickcissel","_real_","BBS"),
                                paste0("sim_non_linear_",MAs,"_BBS"),
                                paste0("sim_nonSpatial_alt_non_linear_",MAs,"_BBS")),
@@ -110,7 +110,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(10:nrow(fls))){#1:nrow(fls)){
+for(i in c(3:nrow(fls))){#1:nrow(fls)){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
