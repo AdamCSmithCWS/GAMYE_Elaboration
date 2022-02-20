@@ -17,8 +17,7 @@ MAs <- round(log(c(1,5,10,20,50)),2)# true mean abundances for different simulat
 
 
   for(ma in MAs){  
-         #STRATA_True <- log(2)
-        output_dir <- "output/"
+         output_dir <- "output/"
         out_base <- paste0("sim_",tp,"_",ma,"_BBS")
         csv_files <- paste0(out_base,"-",1:3,".csv")
         
@@ -117,6 +116,8 @@ print(paste("beginning",out_base,Sys.time()))
   mod.file = "models/gamye_iCAR_sim.stan"
   
   
+ 
+
   init_def <- function(){ list(noise_raw = rnorm(ncounts,0,0.1),
                                strata_raw = rnorm(nstrata,0,0.1),
                                STRATA = 0,

@@ -2,7 +2,7 @@
 library(tidyverse)
 library(cmdstanr)
 library(sf)
-setwd("C:/Users/adam_/OneDrivedelete/Documents/GitHub/GAMYE_Elaboration")
+setwd("C:/GitHub/GAMYE_Elaboration")
 
 
 source("functions/neighbours_define_alt.R")
@@ -296,8 +296,8 @@ year_basis = GAM_year$Year_basis
   stanfit <- model$sample(
     data=stan_data,
     refresh=200,
-    chains=3, iter_sampling=1000,
-    iter_warmup=1000,
+    chains=3, iter_sampling=2000,
+    iter_warmup=2000,
     parallel_chains = 3,
     #pars = parms,
     adapt_delta = 0.8,

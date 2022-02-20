@@ -1,4 +1,5 @@
 ### trends indices graphs and maps for real data
+setwd("C:/GitHub/GAMYE_Elaboration")
 
 library(tidyverse)
 library(cmdstanr)
@@ -20,11 +21,21 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                               "Yellow-headed_Blackbird",
                               "Yellow-headed_Blackbird",
                               "Yellow-headed_Blackbird",
+                              "Yellow-headed_Blackbird",
+                              "Yellow-headed_Blackbird",
+                              "Yellow-headed_Blackbird",
+                              "Yellow-headed_Blackbird",
+                              "Yellow-headed_Blackbird",
                               "Yellow-headed_Blackbird"),
                   species = c("Yellow-headed Blackbird",
                               "Cinclus_mexicanus",
                               "Red Knot",
                               "Dickcissel",
+                              "Yellow-headed Blackbird",
+                              "Yellow-headed Blackbird",
+                              "Yellow-headed Blackbird",
+                              "Yellow-headed Blackbird",
+                              "Yellow-headed Blackbird",
                               "Yellow-headed Blackbird",
                               "Yellow-headed Blackbird",
                               "Yellow-headed Blackbird",
@@ -38,15 +49,26 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                            "BBS",
                            "BBS",
                            "BBS",
+                           "BBS",
+                           "BBS",
+                           "BBS",
+                           "BBS",
+                           "BBS",
                            "BBS"),
                   out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
                                paste0("Cinclus_mexicanus","_CBC_B"),
                                paste0("Red Knot","_Shorebird"),
                                paste0("Dickcissel","_real_","BBS"),
-                               paste0("sim_non_linear_",MAs,"_BBS")),
+                               paste0("sim_non_linear_",MAs,"_BBS"),
+                               paste0("sim_nonSpatial_alt_non_linear_",MAs,"_BBS")),
                   y1 = c(1966,
                          1966,
                          1980,
+                         1966,
+                         1966,
+                         1966,
+                         1966,
+                         1966,
                          1966,
                          1966,
                          1966,
@@ -61,8 +83,14 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                                      "Stratum_Factored",
                                      "Stratum_Factored",
                                      "Stratum_Factored",
+                                     "Stratum_Factored",
+                                     "Stratum_Factored",
+                                     "Stratum_Factored",
+                                     "Stratum_Factored",
+                                     "Stratum_Factored",
                                      "Stratum_Factored"),
                   real = c(TRUE,TRUE,TRUE,TRUE,
+                           FALSE,FALSE,FALSE,FALSE,FALSE,
                            FALSE,FALSE,FALSE,FALSE,FALSE))
 
 
@@ -82,7 +110,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(1:4)){#1:nrow(fls)){
+for(i in c(10:nrow(fls))){#1:nrow(fls)){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -94,25 +122,30 @@ for(i in c(1:4)){#1:nrow(fls)){
   if(reald){
     load(paste0("Data/",species_f,dd,"_data.RData"))
   }else{
+    if(i < 10){
     ma <- MAs[i-4]
-  paste0("Simulated_data_",ma,"_non_linear_BBS")
+  load(paste0("Data/Simulated_data_",ma,"_non_linear_BBS.RData"))
+  realized_strata_map = strata_map
+    }else{
+      
+      ma <- MAs[i-9]
+      load(paste0("Data/Simulated_data_",ma,"_non_linear_BBS.RData"))
+      realized_strata_map = strata_map 
+    }
   }
   
   load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
   csv_files <- paste0(output_dir,out_base,"-",1:3,".csv")
   
-  #stan_data
-  #neighbours
-  #realized_strata_map
-  #data_1
-  
- ## 
+
   
   
   stanfit <- as_cmdstan_fit(files = csv_files)
-# Strata Annual indices file -----------------------------------------------------
-  strat_df <- as.data.frame(realized_strata_map)
+ strat_df <- as.data.frame(realized_strata_map)
   
+
+# convergence summary -----------------------------------------------------
+
   
   stanf_df <- stanfit$draws(format = "df")
   
@@ -159,7 +192,7 @@ for(i in c(1:4)){#1:nrow(fls)){
   
   
  
-  if(dd %in% c("BBS","CBC")){
+  if((dd %in% c("BBS","CBC")) & reald){
     # obs_strat_means <- stan_df %>% 
     #   group_by(stratnumber) %>% 
     #   summarise(mean = mean(count),
@@ -207,7 +240,7 @@ for(i in c(1:4)){#1:nrow(fls)){
 
 # indices and trends ------------------------------------------------------
 
-    
+  
  strat_inds <- index_function(fit = stanfit,
                               parameter = "n",
                               year_1 = year_1,
@@ -328,10 +361,14 @@ for(i in c(1:4)){#1:nrow(fls)){
           strip.background = element_blank(),
           panel.spacing = unit(0.1,"mm"),
     axis.text.x = element_text(size = 5)))
-  
-  pdf(paste0("figures/",species_f,"_geofacet.pdf"),
+  if(reald){  pdf(paste0("figures/",species_f,"_geofacet.pdf"),
+                  height = 14,
+                  width = 14)
+    }else{
+  pdf(paste0("figures/",out_base,"_geofacet.pdf"),
       height = 14,
       width = 14)
+  }
   print(g_inds)
  dev.off()
  
@@ -393,7 +430,11 @@ for(j in 1:length(tyrs)){
  
   stratum_trends <- bind_rows(stratum_trends,tt)
 }
-pdf(file = paste0("Figures/",species_f,"trend_maps.pdf"))
+if(reald){
+  pdf(file = paste0("Figures/",species_f,"trend_maps.pdf"))
+}else{
+  pdf(file = paste0("Figures/",out_base,"trend_maps.pdf"))
+}
 for(j in 1:length(tt_map)){
   print(tt_map[[j]])
 }
@@ -481,7 +522,11 @@ if(dd == "Shorebird"){
   
   
 }
+if(reald){
 pdf(file = paste0("Figures/",species_f,"_Indices.pdf"))
+}else{
+pdf(file = paste0("Figures/",out_base,"_Indices.pdf"))
+}
 pl_Inds
 pl_inds
 dev.off()
@@ -525,4 +570,12 @@ save(list = c("all_trends",
               "Ind_plots_list",
               "conv_summaries"),
      file = "output/real_data_summaries.RData")
+
+
+failed_rhat <- conv_summaries %>% 
+  filter(rhat > 1.05)
+
+failed_ess_bulk <- conv_summaries %>% 
+  filter(ess_bulk < 100)
+
 

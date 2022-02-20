@@ -16,7 +16,7 @@ tp = "non_linear"
 MAs <- round(log(c(1,5,10,20,50)),2)# true mean abundances for different simulations
 
 
-for(ma in MAs[c(1,3,5)]){  
+for(ma in MAs[c(2,4)]){  
   
          #STRATA_True <- log(2)
         output_dir <- "output/"
