@@ -13,7 +13,7 @@ species_f <- gsub(species,pattern = " ",replacement = "_")
 
 tp = "non_linear"
 
-MAs <- round(log(c(1,5,10,20,50)),2)# true mean abundances for different simulations
+MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
 
 for(ma in MAs[c(2,4)]){  

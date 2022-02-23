@@ -182,7 +182,8 @@ neigh_mat <- neighbours$adj_matrix
 save(list = c("to_save1",to_save1),
      file = "data/new_simulation_basic_data.RData")
 
-MAs <- round(log(c(1,5,10,20,50)),2)
+#MAs <- round(log(c(1,5,10,20,50)),2)
+MAs <- round(log(c(0.1,0.5,1,5,10,20,50)),2)# true mean abundances for different simulations
 
 # Loop Mean Abundance -----------------------------------------------------
 
