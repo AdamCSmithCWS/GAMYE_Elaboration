@@ -11,7 +11,7 @@ source("functions/posterior_summary_functions.R")
 source("Functions/palettes.R")
 
 
-MAs <- round(log(c(1,5,10,20,50)),2)# true mean abundances for different simulations
+MAs <- round(log(c(0.1,0.5,1,5,10,20,50)),2)# true mean abundances for different simulations
 
 fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                               "Cinclus_mexicanus",
