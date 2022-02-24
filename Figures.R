@@ -5,6 +5,7 @@ library(posterior)
 library(sf)
 library(patchwork)
 library(geofacet)
+library(brms)
 source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
 source("Functions/palettes.R")
@@ -254,7 +255,7 @@ load(paste0("Data/",species_f,"BBS","_data.RData"))
     dev.off()
 
 # 5 Trend comparisons ---------------------------------------------------
-    MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
+    MAs <- round(log(c(0.1,0.5,1,50)),2)# true mean abundances for different simulations
     
 output_dir <- "output/"
 tp = "non_linear"
@@ -333,12 +334,11 @@ trends4means_plot <- ggplot(data = mean_difs,
   theme_bw()+
   facet_wrap(vars(true_mean),
              nrow = 2,
-             scales = "free")
+             scales = "fixed")
 print(trends4means_plot)
 
-m1 = lm(t_abs_dif~version*true_mean+first_year,
-        data = strat_trends_nm,
-        weights = t_prec)
+m1 = brm(t_abs_dif ~ version*true_mean+first_year + (1|Stratum_Factored),
+        data = strat_trends_nm)
 summary(m1)
 
 # trends4a_plot <- ggplot(data = strat_trends_nm,
