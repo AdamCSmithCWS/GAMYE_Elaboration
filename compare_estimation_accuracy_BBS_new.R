@@ -23,7 +23,7 @@ mk = ""
 MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
 
-for(ma in MAs[c(1)]){  
+for(ma in MAs[c(-1)]){  
   load(paste0("Data/Simulated_data_",ma,"_",tp,"_BBS.RData"))
   
   

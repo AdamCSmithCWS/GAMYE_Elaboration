@@ -254,9 +254,10 @@ load(paste0("Data/",species_f,"BBS","_data.RData"))
     dev.off()
 
 # 5 Trend comparisons ---------------------------------------------------
-
+    MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
+    
 output_dir <- "output/"
-#tp = "non_linear"
+tp = "non_linear"
 load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
 
 strat_df <- as.data.frame(strata_mask) %>% 
@@ -264,22 +265,17 @@ strat_df <- as.data.frame(strata_mask) %>%
 sw_trends <- NULL
 strat_trends <- NULL
 
-for(tp in c("linear","non_linear")){
-  if(tp == "linear"){
-    tplab = "Simple"}else{
-      tplab = "Complex"
-    }
 for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
-  for(mk in c("","mask_")){
-    out_base_sim <- paste0("_sim_",sns,mk,tp,"_BBS")
+  for(ma in MAs){
+    
+    out_base_sim <- paste0("sim_",sns,tp,"_",ma,"_BBS")
     
     lbl <- "Spatial"
     if(sns == "nonSpatial_alt_"){
       lbl <- "NonSpatial"
     }
-    if(mk != ""){
-    lbl <- paste0(lbl," Masked")
-      }
+    lblm <- paste0(signif(exp(ma),1))
+      
    
     
     load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
@@ -287,34 +283,33 @@ for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
       filter(Region_type == "Survey_Wide_Mean",
              last_year == 2019) %>% 
       mutate(version = lbl,
-             True_trajectory = tplab)
+             true_mean = lblm)
     sw_trends <- bind_rows(sw_trends,sw_t)
     
     strat_t <- all_trends %>% 
       filter(Region_type == "Stratum_Factored",
              last_year == 2019) %>% 
       mutate(version = lbl,
-             True_trajectory = tplab)
+             true_mean = lblm)
     strat_trends <- bind_rows(strat_trends,strat_t)
   }
 }
-}
 
-
-strat_trends <- strat_trends %>% 
-  left_join(.,strat_df,by = "Stratum_Factored") %>%
-  filter(first_year %in% c(1970:2009)) %>% 
-  mutate(t_dif = true_trend - trend,
-         t_abs_dif = abs(t_dif))
 
 
 strat_trends_nm <- strat_trends %>% 
-  filter(version %in% c("NonSpatial","Spatial")) %>% 
+  left_join(.,strat_df,by = "Stratum_Factored") %>%
+  filter(first_year %in% c(1970:2009)) %>% 
+  mutate(t_dif = true_trend - trend,
+         t_abs_dif = abs(t_dif),
+         t_se = ((uci-lci)/(1.96*2)),
+         t_prec = 1/t_se^2)%>% 
   mutate(first_year = factor(paste0(first_year,"-2019")))
 
 
+
 mean_difs <- strat_trends_nm %>% 
-  group_by(True_trajectory,
+  group_by(true_mean,
            version,
            first_year) %>% 
   summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
@@ -336,15 +331,16 @@ trends4means_plot <- ggplot(data = mean_difs,
   ylab("Absolute difference in trend (Estimated - True)")+
   xlab("Timespan of Trend")+
   theme_bw()+
-  facet_wrap(vars(True_trajectory),
+  facet_wrap(vars(true_mean),
              nrow = 2,
              scales = "free")
 print(trends4means_plot)
 
-# m1 = lm(t_abs_dif~version*True_trajectory+first_year,
-#         data = strat_trends_nm)
-# summary(m1)
-# 
+m1 = lm(t_abs_dif~version*true_mean+first_year,
+        data = strat_trends_nm,
+        weights = t_prec)
+summary(m1)
+
 # trends4a_plot <- ggplot(data = strat_trends_nm,
 #                        aes(x = first_year,y = t_abs_dif,fill = version))+
 #   geom_boxplot(aes(fill = version),
@@ -353,7 +349,7 @@ print(trends4means_plot)
 #   ylab("Absolute difference in trend (Estimated - True)")+
 #   xlab("Timespan of Trend")+
 #   theme_bw()+
-#   facet_wrap(vars(True_trajectory),
+#   facet_wrap(vars(true_mean),
 #              nrow = 2,
 #              scales = "free")
 # 
@@ -361,13 +357,13 @@ print(trends4means_plot)
 # 
 # 
 #   
-  strat_trends_m <- strat_trends %>%
-    filter(first_year %in% c(1970:2009),
-           masked == TRUE,
-           version %in% c("NonSpatial Masked","Spatial Masked")) %>%
-    mutate(first_year = factor(paste0(first_year,"-2019")))
+  # strat_trends_m <- strat_trends %>%
+  #   filter(first_year %in% c(1970:2009),
+  #          masked == TRUE,
+  #          version %in% c("NonSpatial Masked","Spatial Masked")) %>%
+  #   mutate(first_year = factor(paste0(first_year,"-2019")))
 
-#   m2 = lm(t_abs_dif~version*True_trajectory+first_year,
+#   m2 = lm(t_abs_dif~version*true_mean+first_year,
 #           data = strat_trends_m)
 #   summary(m2)
 #   
@@ -381,14 +377,14 @@ print(trends4means_plot)
 #     ylab("Absolute difference in trend (Estimated - True)")+
 #     xlab("Timespan of Trend")+
 #     theme_bw()+
-#     facet_wrap(vars(True_trajectory),
+#     facet_wrap(vars(true_mean),
 #                nrow = 2,
 #                scales = "free")
 #   
 #   print(trends4b_plot)
  
   mean_difs_m <- strat_trends_m %>% 
-    group_by(True_trajectory,
+    group_by(true_mean,
              version,
              first_year) %>% 
     summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
@@ -410,7 +406,7 @@ print(trends4means_plot)
     ylab("Absolute difference in trend (Estimated - True)")+
     xlab("Timespan of Trend")+
     theme_bw()+
-    facet_wrap(vars(True_trajectory),
+    facet_wrap(vars(true_mean),
                nrow = 2,
                scales = "free")
   

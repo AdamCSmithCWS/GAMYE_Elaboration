@@ -11,50 +11,23 @@ source("functions/posterior_summary_functions.R")
 source("Functions/palettes.R")
 
 
-MAs <- round(log(c(0.1,0.5,1,5,10,20,50)),2)# true mean abundances for different simulations
+MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
 fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                               "Cinclus_mexicanus",
                               "Red_Knot",
                               "Dickcissel",
-                              "Yellow-headed_Blackbird",
-                              "Yellow-headed_Blackbird",
-                              "Yellow-headed_Blackbird",
-                              "Yellow-headed_Blackbird",
-                              "Yellow-headed_Blackbird",
-                              "Yellow-headed_Blackbird",
-                              "Yellow-headed_Blackbird",
-                              "Yellow-headed_Blackbird",
-                              "Yellow-headed_Blackbird",
-                              "Yellow-headed_Blackbird"),
+                              rep("Yellow-headed_Blackbird",length(MAs)*2)),
                   species = c("Yellow-headed Blackbird",
                               "Cinclus_mexicanus",
                               "Red Knot",
                               "Dickcissel",
-                              "Yellow-headed Blackbird",
-                              "Yellow-headed Blackbird",
-                              "Yellow-headed Blackbird",
-                              "Yellow-headed Blackbird",
-                              "Yellow-headed Blackbird",
-                              "Yellow-headed Blackbird",
-                              "Yellow-headed Blackbird",
-                              "Yellow-headed Blackbird",
-                              "Yellow-headed Blackbird",
-                              "Yellow-headed Blackbird"),
+                              rep("Yellow-headed Blackbird",length(MAs)*2)),
                   data = c("BBS",
                            "CBC",
                            "Shorebird",
                            "BBS",
-                           "BBS",
-                           "BBS",
-                           "BBS",
-                           "BBS",
-                           "BBS",
-                           "BBS",
-                           "BBS",
-                           "BBS",
-                           "BBS",
-                           "BBS"),
+                           rep("BBS",length(MAs)*2)),
                   out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
                                paste0("Cinclus_mexicanus","_CBC_B"),
                                paste0("Red_Knot","_Shorebird"),
@@ -65,33 +38,14 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                          1966,
                          1980,
                          1966,
-                         1966,
-                         1966,
-                         1966,
-                         1966,
-                         1966,
-                         1966,
-                         1966,
-                         1966,
-                         1966,
-                         1966),
+                         rep(1966,length(MAs)*2)),
                   strat_map_name = c("Stratum_Factored",
                                      "strata_vec",
                                      "stratn",
                                      "Stratum_Factored",
-                                     "Stratum_Factored",
-                                     "Stratum_Factored",
-                                     "Stratum_Factored",
-                                     "Stratum_Factored",
-                                     "Stratum_Factored",
-                                     "Stratum_Factored",
-                                     "Stratum_Factored",
-                                     "Stratum_Factored",
-                                     "Stratum_Factored",
-                                     "Stratum_Factored"),
+                                     rep("Stratum_Factored",length(MAs)*2)),
                   real = c(TRUE,TRUE,TRUE,TRUE,
-                           FALSE,FALSE,FALSE,FALSE,FALSE,
-                           FALSE,FALSE,FALSE,FALSE,FALSE))
+                           rep(FALSE,length(MAs)*2)))
 
 
 
@@ -110,7 +64,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(3:nrow(fls))){#1:nrow(fls)){
+for(i in c(1:nrow(fls))){#1:nrow(fls)){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
