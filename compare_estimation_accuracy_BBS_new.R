@@ -24,18 +24,20 @@ MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different si
 
 
 for(ma in MAs[c(1)]){  
+  load(paste0("Data/Simulated_data_",ma,"_",tp,"_BBS.RData"))
+  
   
   for(sns in c("nonSpatial_alt_","")){
     
   output_dir <- "output/"
   out_base <- paste0("sim_",sns,tp,"_",ma,"_BBS")
-  out_base_sim <- out_base
+ 
+  
+  load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+
+    out_base_sim <- out_base
   csv_files <- paste0(output_dir,out_base,"-",1:3,".csv")
   
-  load(paste0("Data/Simulated_data_",ma,"_",tp,"_BBS.RData"))
-  
-
-load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
 
 stanfit <- as_cmdstan_fit(files = csv_files)
 
