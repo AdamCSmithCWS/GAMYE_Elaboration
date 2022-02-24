@@ -23,14 +23,14 @@ mk = ""
 MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
 
-for(ma in MAs[c(1,2)]){  
+for(ma in MAs[c(1)]){  
   
   for(sns in c("nonSpatial_alt_","")){
     
   output_dir <- "output/"
   out_base <- paste0("sim_",sns,tp,"_",ma,"_BBS")
   out_base_sim <- out_base
-  csv_files <- paste0(out_base,"-",1:3,".csv")
+  csv_files <- paste0(output_dir,out_base,"-",1:3,".csv")
   
   load(paste0("Data/Simulated_data_",ma,"_",tp,"_BBS.RData"))
   

@@ -11,6 +11,6 @@ models/*.exe
 Figures/
 doc/
 data/archived_bbsBayes_2019.rds
-
+data/
 
 
