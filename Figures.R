@@ -448,8 +448,7 @@ summary(m2)
   
   output_dir <- "output/"
   tp = "non_linear"
-  load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
-  
+  load(paste0("Data/Simulated_data_",MAs[1],"_",tp,"_BBS.RData"))
   strat_df <- as.data.frame(strata_mask) %>% 
     select(Stratum_Factored,masked)
   strat_smooths <- NULL
@@ -482,9 +481,9 @@ summary(m2)
     mutate(stratf = factor(Stratum_Factored))
 
   
-  m1 = brm(mean_abs_err  ~ version*stratf+ (1|Year),
-           data = mean_smooth_comp)
-  summary(m1)
+  # m1 = brm(mean_abs_err  ~ version*stratf+ (1|Year),
+  #          data = mean_smooth_comp)
+  # summary(m1)
 
   plot_smooth_comp <- ggplot(data = mean_smooth_comp,
                              aes(x = true_mean,y = mean_abs_err,
