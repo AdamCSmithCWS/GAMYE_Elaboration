@@ -282,14 +282,16 @@ for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
     load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
     sw_t <- all_trends %>% 
       filter(Region_type == "Survey_Wide_Mean",
-             last_year == 2019) %>% 
+             #last_year-first_year == 2019,
+             last_year-first_year == 5) %>% 
       mutate(version = lbl,
              true_mean = lblm)
     sw_trends <- bind_rows(sw_trends,sw_t)
     
     strat_t <- all_trends %>% 
       filter(Region_type == "Stratum_Factored",
-             last_year == 2019) %>% 
+             #last_year-first_year == 2019,
+             last_year-first_year == 5) %>% 
       mutate(version = lbl,
              true_mean = lblm)
     strat_trends <- bind_rows(strat_trends,strat_t)
@@ -300,25 +302,40 @@ for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
 
 strat_trends_nm <- strat_trends %>% 
   left_join(.,strat_df,by = "Stratum_Factored") %>%
-  filter(first_year %in% c(1970:2009)) %>% 
+  #filter(first_year %in% c(1970:2009)) %>% 
   mutate(t_dif = true_trend - trend,
          t_abs_dif = abs(t_dif),
          t_se = ((uci-lci)/(1.96*2)),
          t_prec = 1/t_se^2)%>% 
-  mutate(first_year = factor(paste0(first_year,"-2019")))
+  mutate(trend_time = factor(paste0(first_year,"-",last_year)))
 
 
 
 mean_difs <- strat_trends_nm %>% 
   group_by(true_mean,
            version,
-           first_year) %>% 
+           trend_time) %>% 
+  summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
+            lci = quantile(t_abs_dif,0.05,na.rm = T),
+            uci = quantile(t_abs_dif,0.95,na.rm = T))
+
+sw_trends_ab <- sw_trends %>% 
+  mutate(t_dif = true_trend - trend,
+         t_abs_dif = abs(t_dif),
+         t_se = ((uci-lci)/(1.96*2)),
+         t_prec = 1/t_se^2)%>% 
+  mutate(trend_time = factor(paste0(first_year,"-",last_year)))
+
+mean_difs_sw <- sw_trends_ab %>% 
+  group_by(true_mean,
+           version,
+           trend_time) %>% 
   summarise(mean_abs_dif = mean(t_abs_dif,na.rm = T),
             lci = quantile(t_abs_dif,0.05,na.rm = T),
             uci = quantile(t_abs_dif,0.95,na.rm = T))
 
 trends4means_plot <- ggplot(data = mean_difs,
-                              aes(x = first_year,
+                              aes(x = trend_time,
                                   y = mean_abs_dif,
                                   colour = version),
                               position = position_dodge(width = 0.5))+
@@ -337,9 +354,14 @@ trends4means_plot <- ggplot(data = mean_difs,
              scales = "fixed")
 print(trends4means_plot)
 
-m1 = brm(t_abs_dif ~ version*true_mean+first_year + (1|Stratum_Factored),
+m1 = brm(t_abs_dif  ~ version*true_mean+trend_time + (1|Stratum_Factored),
         data = strat_trends_nm)
 summary(m1)
+
+m2 = brm(t_abs_dif  ~ version*true_mean+trend_time,
+         data = sw_trends_ab)
+summary(m2)
+
 
 # trends4a_plot <- ggplot(data = strat_trends_nm,
 #                        aes(x = first_year,y = t_abs_dif,fill = version))+
@@ -417,10 +439,61 @@ summary(m1)
   dev.off()
   
   
-  
-  
 
-# 6 real data overall trajectories for 3 species --------------------------
+# 5a Smooth accuracry -----------------------------------------------------
+
+  
+  
+  MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
+  
+  output_dir <- "output/"
+  tp = "non_linear"
+  load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
+  
+  strat_df <- as.data.frame(strata_mask) %>% 
+    select(Stratum_Factored,masked)
+  strat_smooths <- NULL
+  
+  for(sns in c("","nonSpatial_alt_")){#,"nonSpatial_"))
+    for(ma in MAs){
+      
+      out_base_sim <- paste0("sim_",sns,tp,"_",ma,"_BBS")
+      
+      lbl <- "Spatial"
+      if(sns == "nonSpatial_alt_"){
+        lbl <- "NonSpatial"
+      }
+      lblm <- paste0(signif(exp(ma),1))
+      load(paste0("data/",out_base_sim,"_accuracy_comp.RData"))
+     
+      smooth_t <- smooth_comp %>% 
+        mutate(version = lbl,
+               true_mean = lblm)
+      strat_smooths <- bind_rows(strat_smooths,smooth_t)
+    }
+  }
+  
+  mean_smooth_comp <- strat_smooths %>% 
+    group_by(version,Stratum_Factored,true_mean) %>% 
+    summarise(mean_err = mean(smooth_error),
+              mean_abs_err = mean(smooth_abs_error)) %>% 
+    mutate(stratf = factor(Stratum_Factored))
+
+  
+  m1 = brm(mean_abs_err  ~ version*stratf+ (1|Year),
+           data = mean_smooth_comp)
+  summary(m1)
+
+  plot_smooth_comp <- ggplot(data = mean_smooth_comp,
+                             aes(x = true_mean,y = mean_abs_err,
+                                 groups = version,colour = version))+
+    geom_point(position = position_dodge(width = 0.2))+
+    facet_wrap(vars(Stratum_Factored),
+               scales = "free")
+ 
+print(plot_smooth_comp)
+  
+  # 6 real data overall trajectories for 3 species --------------------------
 
   
   load("output/real_data_summaries.RData")

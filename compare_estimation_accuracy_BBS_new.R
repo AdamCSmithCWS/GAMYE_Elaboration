@@ -23,7 +23,7 @@ mk = ""
 MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
 
-for(ma in MAs[c(-1)]){  
+for(ma in MAs){  
   load(paste0("Data/Simulated_data_",ma,"_",tp,"_BBS.RData"))
   
   
@@ -82,7 +82,7 @@ sdbetas_est <- posterior_samples(stanfit,
 
 # compare stratum level smoothed indices ----------------------------------
 
-true_inds <- realised %>% 
+true_inds <- balanced %>% 
   select(Stratum_Factored,Smooth,Year,True_log_traj,True_strata_effects) %>% 
   distinct() %>% 
   mutate(True_nsmooth = exp(Smooth + True_strata_effects)) %>% 
@@ -106,12 +106,44 @@ if(mk == ""){
               .groups = "drop") 
 }
 
-# nsmooth_est <- posterior_samples(stanfit,
-#                                parm = "nsmooth",
-#                                dims = c("Stratum_Factored","Year_Index")) %>% 
-#   posterior_sums(.,
-#                  dims = c("Stratum_Factored","Year_Index")) %>% 
-#   mutate(Year = Year_Index+min(balanced$Year)-1)
+strat_log_smooths <- GAM_year$Year_basis %*% Beta_True 
+
+true_log_smooths <- as.data.frame(strat_log_smooths)
+true_log_smooths[,"Year"] <- min_year : 2019
+log_smooth_plot <- true_log_smooths %>% 
+  pivot_longer(cols = starts_with("V"),
+               names_to = "Stratum_Factored",
+               names_prefix = "V",
+               values_to = "Smooth")%>% 
+  mutate(index = exp(Smooth),
+         Stratum_Factored = as.integer(Stratum_Factored)) %>% 
+  left_join(.,strata_df,by = c("Stratum_Factored")) %>% 
+  select(Year,Stratum_Factored,Smooth,index,Stratum) %>% 
+  arrange(Year,Stratum_Factored) 
+
+
+smooth_samples <- posterior_samples(stanfit,
+                               parm = "smooth_pred",
+                               dims = c("Year_Index","Stratum_Factored")) %>%
+   mutate(Year = Year_Index+min(balanced$Year)-1) %>% 
+   left_join(.,log_smooth_plot,by = c("Year","Stratum_Factored")) %>% 
+   mutate(smooth_err = .value - Smooth)
+
+ 
+smooth_comp <- smooth_samples %>% 
+  group_by(Year,Stratum_Factored) %>% 
+  summarise(smooth_est = mean(.value,na.rm = T),
+            smooth_est_lci = quantile(.value,0.025,na.rm = T),
+            smooth_est_uci = quantile(.value,0.975,na.rm = T),
+            smooth_error = mean(smooth_err,na.rm = T),
+            smooth_error_lci = quantile(smooth_err,0.025,na.rm = T),
+            smooth_error_uci = quantile(smooth_err,0.975,na.rm = T),
+            smooth_abs_error = mean(abs(smooth_err),na.rm = T),
+            smooth_abs_error_lci = quantile(abs(smooth_err),0.025,na.rm = T),
+            smooth_abs_error_uci = quantile(abs(smooth_err),0.975,na.rm = T))
+
+to_save <- c(to_save,"smooth_comp")
+
 
 
 strat_inds_smooth <- index_function(fit = stanfit,
