@@ -476,7 +476,9 @@ summary(m2)
   mean_smooth_comp <- strat_smooths %>% 
     group_by(version,Stratum_Factored,true_mean) %>% 
     summarise(mean_err = mean(smooth_error),
-              mean_abs_err = mean(smooth_abs_error)) %>% 
+              mean_abs_err = mean(smooth_abs_error),
+              lci_abs_err = quantile(smooth_abs_error,0.25),
+              uci_abs_err = quantile(smooth_abs_error,0.75)) %>% 
     mutate(stratf = factor(Stratum_Factored))
 
   
@@ -488,8 +490,11 @@ summary(m2)
                              aes(x = true_mean,y = mean_abs_err,
                                  groups = version,colour = version))+
     geom_point(position = position_dodge(width = 0.2))+
+    geom_errorbar(aes(ymin = lci_abs_err,ymax = uci_abs_err),
+                  width = 0,
+                  alpha = 0.2,position = position_dodge(width = 0.2))+
     facet_wrap(vars(Stratum_Factored),
-               scales = "free")
+               scales = "fixed")
  
 print(plot_smooth_comp)
   
