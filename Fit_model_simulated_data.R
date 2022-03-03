@@ -16,7 +16,7 @@ species = "Yellow-headed Blackbird"
 MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
 
-for(ma in MAs[c(1,2)]){  
+for(ma in MAs[c(6,1,2,3,4,5)]){  
   
   
   output_dir <- "output/"
