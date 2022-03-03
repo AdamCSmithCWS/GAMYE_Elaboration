@@ -158,7 +158,7 @@ for(i in 1:nstrata){
 source("Functions/GAM_basis_function_mgcv.R")
 years_df <- data.frame(Year = min(data_1$year_vec):max(data_1$year_vec))
 
-nknots = floor(nrow(years_df)/4)
+nknots = floor(nrow(years_df)/5)
 
 GAM_year <- gam_basis(years_df$Year,
                       nknots = nknots,
@@ -217,8 +217,6 @@ stan_data = list(#scalar indicators
   #weights
   nonzeroweight = nonzeroweight
 )
-
-
 
 
 # Fit model ---------------------------------------------------------------

@@ -6,6 +6,7 @@ library(sf)
 library(patchwork)
 library(geofacet)
 library(brms)
+library(ggrepel)
 source("functions/indices_cmdstan.R")
 source("functions/posterior_summary_functions.R")
 source("Functions/palettes.R")
@@ -53,6 +54,84 @@ pdf(file = paste0("Figures/Figure_1.pdf"),
 print(ggp)
 dev.off()
 
+
+# 1alt spline basis plot --------------------------------------------------
+
+# plot the basis functions ------------------------------------------------
+tp <- "non_linear"
+
+load(paste0("Data/Simulated_data_",species_f,"_",tp,"_BBS.RData"))
+
+basis_plot <- data.frame(GAM_year$Year_basis) %>% 
+  mutate(n = rep(min_year:2019)) %>% 
+  pivot_longer(.,
+               cols = starts_with("X"),
+               names_to = "knot",
+               values_to = "basis") %>% 
+  mutate(K = as.integer(str_remove(knot,pattern = "X"))) %>% 
+  filter(K < 9)
+lbl <- basis_plot %>% 
+  filter(n == 2019)
+lbl2 <- basis_plot %>% 
+  filter(n == 1966)
+
+bpl <- ggplot(data = basis_plot,aes(x = n,y = basis,group = K))+
+  geom_line(aes(colour = K))+
+  scale_x_continuous(limits = c(1960,2030))+
+  xlab("")+
+  ylab("Basis function")+
+  geom_label_repel(data = lbl,
+                   aes(x = n,y = basis,label = K,colour = K),
+                   min.segment.length = 0,
+                   nudge_x = 4,
+                   seed = 2019)+
+  geom_label_repel(data = lbl2,
+                   aes(x = n,y = basis,label = K,colour = K),
+                   min.segment.length = 0,
+                   nudge_x = -4,
+                   seed = 2019)+
+  scale_color_viridis_c(option = "D")+
+  theme(legend.position = "none")+
+  theme_classic()
+
+print(bpl)
+
+
+dat = data.frame(y = rep(min_year:2019),
+                 x = 1)
+
+Md = mgcv::smoothCon(s(y,k = GAM_year$nknots_Year-2, bs = "tp"),data = dat,
+                    absorb.cons=TRUE,#this drops the constant, so that identifibility constraints are abosrbed into the basis
+                    diagonal.penalty=TRUE) ## If TRUE then the smooth is reparameterized to turn the penalty into an identity matrix, with the final diagonal elements zeroed (corresponding to the penalty nullspace). 
+
+identical(Md[[1]]$X,GAM_year$Year_basis)
+
+basis_plot2 <- data.frame(Md[[1]]$X) %>% 
+  mutate(n = rep(min_year:2019)) %>% 
+  pivot_longer(.,
+               cols = starts_with("X"),
+               names_to = "knot",
+               values_to = "basis") %>% 
+  mutate(K = as.integer(str_remove(knot,pattern = "X")))
+
+
+lbl2 <- basis_plot2 %>% 
+  filter(n == 2019)
+bpl2 <- ggplot(data = basis_plot2,aes(x = n,y = basis,group = K))+
+  geom_line(aes(colour = K))+
+  scale_x_continuous(limits = c(1965,2030))+
+  xlab("")+
+  ylab("Basis function")+
+  geom_label_repel(data = lbl2,
+             aes(x = n,y = basis,label = K,colour = K),
+             min.segment.length = 0,
+             nudge_x = 4,
+             seed = 2019)+
+  scale_color_viridis_c()+
+  theme(legend.position = "none")+
+  theme_classic()
+
+print(bpl2)
 
 
 # 2 geo true trajectories and counts --------------------------------------

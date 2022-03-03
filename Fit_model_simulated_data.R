@@ -11,12 +11,12 @@ species = "Yellow-headed Blackbird"
 
   species_f <- gsub(species,pattern = " ",replacement = "_")
  
-tp = "non_linear"
-
+  tp = "breakpoint_cycle"
+  
 MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
 
-for(ma in MAs[6]){  
+for(ma in MAs[c(1,2)]){  
   
   
   output_dir <- "output/"

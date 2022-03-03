@@ -13,6 +13,7 @@ source("Functions/palettes.R")
 
 MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
+
 fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                               "Cinclus_mexicanus",
                               "Red_Knot",
@@ -38,8 +39,8 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                                paste0("Cinclus_mexicanus","_CBC_B"),
                                paste0("Red_Knot","_Shorebird"),
                                paste0("Dickcissel","_real_","BBS"),
-                               paste0("sim_non_linear_",MAs,"_BBS"),
-                               paste0("sim_nonSpatial_alt_non_linear_",MAs,"_BBS"),
+                               paste0("sim_breakpoint_cycle_",MAs,"_BBS"),
+                               paste0("sim_nonSpatial_alt_breakpoint_cycle_",MAs,"_BBS"),
                                paste0("Yellow-headed_Blackbird","_real_Non_spatial","BBS"),
                                paste0("Cinclus_mexicanus","_CBC_Non_spatial")),
                   y1 = c(1966,
@@ -77,7 +78,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(2,18)){#1:nrow(fls)){
+for(i in c(10,16)){#1:nrow(fls)){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -91,12 +92,12 @@ for(i in c(2,18)){#1:nrow(fls)){
   }else{
     if(i < 11){
     ma <- MAs[i-4]
-  load(paste0("Data/Simulated_data_",ma,"_non_linear_BBS.RData"))
+  load(paste0("Data/Simulated_data_",ma,"_breakpoint_cycle_BBS.RData"))
   realized_strata_map = strata_map
     }else{
       
       ma <- MAs[i-(4+length(MAs))]
-      load(paste0("Data/Simulated_data_",ma,"_non_linear_BBS.RData"))
+      load(paste0("Data/Simulated_data_",ma,"_breakpoint_cycle_BBS.RData"))
       realized_strata_map = strata_map 
     }
   }

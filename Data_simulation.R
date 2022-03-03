@@ -1,4 +1,7 @@
 ### simulating fake BBS time-series data
+# library(rsoi)
+# pdo <- download_pdo()
+# save(list = c("pdo"),file = "data/pdo.RData")
 
 library(tidyverse)
 library(bbsBayes)
@@ -13,7 +16,7 @@ BBS_data <- stratify("bbs_usgs")
 species = "Yellow-headed Blackbird"  
 species_f <- gsub(species,pattern = " ",replacement = "_")
   
-  tp = "non_linear"
+  tp = "breakpoint_cycle"
     
 source("Functions/prepare-jags-data-alt.R")
 
@@ -86,7 +89,6 @@ balanced <- balanced %>%
 to_save1 <- c(to_save1,"balanced")
 
 # Generate mean smooth ----------------------------------------
-
 source("Functions/GAM_basis_function_mgcv.R")
 years_df <- data.frame(Year = min(balanced$Year):max(balanced$Year))
 
@@ -99,16 +101,31 @@ GAM_year <- gam_basis(years_df$Year,
 
 to_save1 <- c(to_save1,"GAM_year")
 
-#select random initial BETA values to seed the spatial variation in trajetories
-set.seed(2017)
-BETA_mid <- rnorm(GAM_year$nknots_Year,0,1.5)
+# add a non-linear trend - broken stick with a single breakpoint and a
+# latitudinal variation in the first and last slopes
+Y_change = 1995
+SLOPE_1 = 0
+SLOPE_2 = -2
 
+# a cyclical pattern similar to something climatic (~approximately 5 year cycle)
+# shift the cycle intensity from east to west
+# 
+### using the a loess smooth of the realised time-series of the pacific decadal oscillation
+### span of the smooth set to 10 years
+load("data/pdo.RData")
+pdo_ann <- pdo %>% 
+  group_by(Year) %>% 
+  summarise(mean_pdo = mean(PDO)) %>% 
+  filter(Year > 1965)
+sp = 10/nrow(pdo_ann)
+sm = loess(mean_pdo~Year,
+           data = pdo_ann,
+           span = sp)
+CYCLE <- predict(sm)## CYCLE is now a mean smoothed time-series to add to the main breakpoint trends
+to_save1 <- c(to_save1,"CYCLE","pdo_ann",
+              "Y_change","SLOPE_1","SLOPE_2")
 
-to_save1 <- c(to_save1,"BETA_mid")
-
-mean_log_smooth <-  GAM_year$Year_basis %*% BETA_mid
-
-#plot(exp(mean_log_smooth),type = "l",ylim = c(0,max(exp(mean_log_smooth))))
+years_df <- data.frame(Year = min(balanced$Year):max(balanced$Year))
 
 ## strata neighbourhoods Generate ---------------------------------
 nstrata <- real_data$nstrata
@@ -161,10 +178,15 @@ to_save1 <- c(to_save1,"neighbours")
 ### use simple, smooth, x-y coordinate variation in betas and stratas
 
 strata_df <- strata_df %>% 
-  mutate(yscale = 2*scale(Y,scale = TRUE),
-         xscale = -1*scale(X,scale = TRUE),
+  mutate(yscale = as.numeric(2*scale(Y,scale = TRUE)),
+         xscale = as.numeric(-1*scale(X,scale = TRUE)),
          sumxy = yscale+xscale,
-         xy = yscale*xscale)
+         xy = yscale*xscale,
+         y_change = round(Y_change+yscale),
+         slope_1 = log(((SLOPE_1+yscale*0.25)/100)+1),
+         slope_2 = log(((SLOPE_2+SLOPE_1+yscale*0.25+xscale*0.5)/100)+1),
+         cycle_str = 0.02*(yscale-min(yscale)))
+
 
 
 # strat_tempplot <- ggplot(data = strata_df,aes(x = X,y = Y))+
@@ -181,7 +203,7 @@ neigh_mat <- neighbours$adj_matrix
 
 
 save(list = c("to_save1",to_save1),
-     file = "data/new_simulation_basic_data.RData")
+     file = paste0("data/","simulation_",tp,"_basic_data.RData"))
 
 #MAs <- round(log(c(1,5,10,20,50)),2)
 MAs <- round(log(c(0.1,0.5,1,5,10,20,50)),2)# true mean abundances for different simulations
@@ -191,9 +213,9 @@ MAs <- round(log(c(0.1,0.5,1,5,10,20,50)),2)# true mean abundances for different
 
 for(ma in MAs){
   
-  load("data/new_simulation_basic_data.RData")
+  load(paste0("data/","simulation_",tp,"_basic_data.RData"))
   
-  to_save <- c(to_save1,"Beta_True","strata_True","BETA_True",
+  to_save <- c(to_save1,"strata_True",
                "observer_df","routes_df","strata_df","realised",
                "mask_map","strata_mask","realised_mask",
                "routes_mask","event_mask_retain")
@@ -204,51 +226,54 @@ strata_df <- strata_df %>%
   mutate(strata_True = STRATA_True - abs(yscale)) # abundance peaks at middle latitudes
 strata_True <- as.numeric(strata_df$strata_True)
 
-
-### strata betas
-Beta_True <- matrix(NA,nrow = GAM_year$nknots_Year,
-                    ncol = nstrata)
-yscale <- as.numeric(strata_df$yscale)
-xscale <- as.numeric(strata_df$xscale)
-
-for(k in 1:GAM_year$nknots_Year){
-   set.seed(k+1)
-
-Beta_True[k,] <- yscale*0.75 + BETA_mid[k] + rnorm(nstrata,0,0.5)*xscale
-
-
-  }
-
+smooth_func <- function(my = 1992,
+                        cy = 1995,
+                        y = 1966,
+                        s1 = 0,
+                        s2 = 0.1,
+                        cyc = 0.1,
+                        cyc_r = 0.05){
   
-  BETA_True <- rowMeans(Beta_True)
+  sm = ifelse(y <= cy,
+              s1*(y-cy)+(cyc_r*cyc*2),
+              s2*(y-cy)+(cyc_r*cyc*2))
   
+  return(sm)
+}
+
+### strata trajectories
+log_smooth_plot <- expand_grid(Year = 1966:2019,
+                               Stratum_Factored = strata_df$Stratum_Factored) %>% 
+  left_join(.,strata_df,by = "Stratum_Factored") %>% 
+  mutate(cycle = CYCLE[Year-1965],
+         Smooth = smooth_func(my = 1992,
+                              cy = y_change,
+                              y = Year,
+                              s1 = slope_1,
+                              s2 = slope_2,
+                              cyc = cycle,
+                              cyc_r = cycle_str),
+         index = exp(Smooth))
+
+
+
  
 ## stratum-level smooths ----------------------------------------
 
-  strat_log_smooths <- GAM_year$Year_basis %*% Beta_True 
-
-  true_log_smooths <- as.data.frame(strat_log_smooths)
-  true_log_smooths[,"Year"] <- min_year : 2019
-  
-  log_smooth_plot <- true_log_smooths %>% 
-    pivot_longer(cols = starts_with("V"),
-                 names_to = "Stratum_Factored",
-                 names_prefix = "V",
-                 values_to = "Smooth")%>% 
-    mutate(index = exp(Smooth),
-           Stratum_Factored = as.integer(Stratum_Factored)) %>% 
-    left_join(.,strata_df,by = c("Stratum_Factored")) %>% 
-    arrange(Y,Year) 
-
-  pfs <- ggplot(data = log_smooth_plot,aes(x = Year,y = index,colour = Y))+
-    geom_line(size = 2)+
+ch_years <- log_smooth_plot %>% 
+  filter(Year == y_change)
+  pfs <- ggplot(data = log_smooth_plot,
+                aes(x = Year,y = index,colour = Y))+
+    geom_point(data = ch_years,colour = "red",size = 0.2)+
+    geom_line(size = 1)+
     scale_color_viridis_c()+
-    scale_y_continuous(limits = c(0,NA))+
-    facet_wrap(~Stratum,scales = "free_y",
+    geom_point(data = ch_years,colour = "red")+
+    #scale_y_continuous(limits = c(0,NA))+
+    facet_wrap(~Stratum,scales = "fixed",
                nrow = ceiling(sqrt(nstrata)),
                ncol = ceiling(sqrt(nstrata)))
   
-  #print(pfs)
+  print(pfs)
   
   ## Add random annual fluctuations ----------------------------------------
 
@@ -263,7 +288,8 @@ Beta_True[k,] <- yscale*0.75 + BETA_mid[k] + rnorm(nstrata,0,0.5)*xscale
     group_by(Stratum) %>% 
     mutate(YearEffect = ye_funct(Smooth),
            True_log_traj = Smooth + YearEffect,
-           True_traj = exp(True_log_traj))
+           True_traj = exp(True_log_traj),
+           True_scaled_smooth = exp(Smooth + strata_True))
   
 
   pf <- ggplot(data = log_true_traj,aes(x = Year,y = True_traj,colour = Y))+
@@ -273,6 +299,27 @@ Beta_True[k,] <- yscale*0.75 + BETA_mid[k] + rnorm(nstrata,0,0.5)*xscale
     facet_wrap(~Stratum,scales = "free_y",
                nrow = ceiling(sqrt(nstrata)),
                ncol = ceiling(sqrt(nstrata)))
+  
+  
+  strat_grid <- geofacet::grid_auto(strata_map,
+                                    codes = "Stratum_Factored",
+                                    names = "Stratum",
+                                    seed = 2019)
+  
+  g_inds <- ggplot(data = log_true_traj,aes(x = Year,
+                                            y = True_scaled_smooth,
+                                            colour = Y))+
+    geom_line(size = 1)+
+    scale_color_viridis_c()+
+    scale_y_continuous(limits = c(0,NA))+
+    geofacet::facet_geo(~Stratum,grid = strat_grid,
+                      scales = "free")+
+    theme(strip.text = element_text(size = 6),
+          strip.background = element_blank(),
+          panel.spacing = unit(0.1,"mm"),
+          axis.text.x = element_text(size = 5))
+
+  
   
   
 
@@ -351,13 +398,17 @@ mean_ec_plot <- ggplot(data = mean_exp_count,
   scale_y_continuous(limits = c(0,NA))+
   facet_wrap(vars(Stratum_Factored),
              scales = "free_y")
-  
+
+
+
 pdf(paste0("Figures/Simulated_",ma,"_",tp,"_True_smooth.pdf"),
     width = 11,
     height = 8.5)
 print(pfs)
 print(pf)
 print(mean_ec_plot)
+print(g_inds)
+
 dev.off()
 
 
