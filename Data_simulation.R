@@ -178,14 +178,14 @@ to_save1 <- c(to_save1,"neighbours")
 ### use simple, smooth, x-y coordinate variation in betas and stratas
 
 strata_df <- strata_df %>% 
-  mutate(yscale = as.numeric(2*scale(Y,scale = TRUE)),
+  mutate(yscale = as.numeric(scale(Y,scale = TRUE)),
          xscale = as.numeric(-1*scale(X,scale = TRUE)),
          sumxy = yscale+xscale,
          xy = yscale*xscale,
          y_change = round(Y_change+yscale),
-         slope_1 = log(((SLOPE_1+yscale*0.25)/100)+1),
-         slope_2 = log(((SLOPE_2+SLOPE_1+yscale*0.25+xscale*0.5)/100)+1),
-         cycle_str = 0.02*(yscale-min(yscale)))
+         slope_1 = log(((SLOPE_1+yscale*-0.5)/100)+1),
+         slope_2 = log(((SLOPE_2+SLOPE_1+yscale*-0.5+xscale*-0.5)/100)+1),
+         cycle_str = (0.02*exp(0.6*(max(yscale)-(yscale)))))
 
 
 
@@ -524,23 +524,3 @@ rm(list = to_save)
 
 
 }#end ma loop
-
-#   slp = function(x,y){
-#     m = lm(x~y)
-#     sl = coefficients(m)[[2]]
-#     return(sl)
-#   }
-#   tmp = realised %>% 
-#     group_by(Stratum,Year,Route) %>% 
-#     summarise(mean = mean(log_expected),
-#               n = n()) %>% 
-#     group_by(Stratum) %>% 
-#     summarise(slp = slp(mean,Year),
-#               n = sum(n))
-#   
-#   tmpmap <- left_join(strata_map,tmp,by = "Stratum")
-#  
-#   pl = ggplot(data = tmpmap)+
-#     geom_sf(aes(fill = slp))+
-#     scale_fill_viridis_c()
-# print(pl)  
