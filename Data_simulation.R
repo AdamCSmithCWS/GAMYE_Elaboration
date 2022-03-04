@@ -218,7 +218,8 @@ for(ma in MAs){
   to_save <- c(to_save1,"strata_True",
                "observer_df","routes_df","strata_df","realised",
                "mask_map","strata_mask","realised_mask",
-               "routes_mask","event_mask_retain")
+               "routes_mask","event_mask_retain",
+               "log_true_traj")
 ### strata intercepts
 nstrata <- nrow(strata_df)
 STRATA_True <- ma #mean abundance
@@ -474,7 +475,6 @@ realised_mask <- realised %>%
   filter(!Route %in% routes_mask$Route) %>% 
   bind_rows(.,event_mask_retain)
   
-
 
 
 # tst1 = realised_mask %>% 

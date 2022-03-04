@@ -207,7 +207,11 @@ for(i in c(10,16)){#1:nrow(fls)){
   # abline(0,1)
 
 # indices and trends ------------------------------------------------------
-
+true_smooths <- balanced %>% 
+    select(Stratum_Factored,Year,
+           True_scaled_smooth) %>%
+    rename(true_year = Year) %>% 
+    distinct() 
   
  strat_inds <- index_function(fit = stanfit,
                               parameter = "n",
@@ -216,7 +220,8 @@ for(i in c(10,16)){#1:nrow(fls)){
   indices <- strat_inds$indices %>% 
     inner_join(.,strat_df)%>% 
     mutate(version = "full") %>% 
-    inner_join(.,obs_means)
+    inner_join(.,obs_means) %>% 
+    left_join(.,true_smooths,by = c("true_year","Stratum_Factored"))
 
   strat_inds_smooth <- index_function(fit = stanfit,
                                parameter = "nsmooth",
@@ -224,7 +229,8 @@ for(i in c(10,16)){#1:nrow(fls)){
                                strat = st_n)
   indices_smooth <- strat_inds_smooth$indices %>% 
     inner_join(.,strat_df) %>% 
-    mutate(version = "smooth")
+    mutate(version = "smooth")%>% 
+    left_join(.,true_smooths,by = c("true_year","Stratum_Factored"))
   
   indices_all <- bind_rows(indices,
                            indices_smooth) %>% 
@@ -241,11 +247,17 @@ for(i in c(10,16)){#1:nrow(fls)){
   
   
   
-  pl_inds <- ggplot(data = indices_all,aes(x = Year,y = median))+
-    geom_point(aes(x = Year,y = mean_obs*zero,alpha = n_surveys),
+  pl_inds <- ggplot(data = indices_all,aes(x = true_year,y = median))+
+    geom_point(aes(x = true_year,y = mean_obs*zero,alpha = n_surveys),
                inherit.aes = FALSE)+
     geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
     geom_line(aes(colour = version))+
+    geom_line(data = indices_all,
+              aes(x = true_year,
+                  y = True_scaled_smooth),
+              colour = "black",
+              alpha = 0.3,
+              inherit.aes = FALSE)+
     labs(title = species)+
     scale_y_continuous(limits = c(0,NA))+
     facet_wrap(vars(original_strat_name),
@@ -253,8 +265,7 @@ for(i in c(10,16)){#1:nrow(fls)){
                ncol = pd,
                scales = "free_y")
  
-  
-
+  print(pl_inds)
 # geofacet ----------------------------------------------------------------
 
   # row_col_cat <- function(x,n){
@@ -319,9 +330,14 @@ for(i in c(10,16)){#1:nrow(fls)){
                       replacement = "strat_labs")) 
   
 
-  g_inds <- suppressMessages(ggplot(data = indices_geo,aes(x = Year,y = median))+
-    geom_point(aes(x = Year,y = mean_obs*zero,alpha = n_surveys),
+  g_inds <- suppressMessages(ggplot(data = indices_geo,aes(x = true_year,y = median))+
+    geom_point(aes(x = true_year,y = mean_obs*zero,alpha = n_surveys),
                inherit.aes = FALSE)+
+      geom_line(aes(x = true_year,
+                    y = True_scaled_smooth),
+                colour = "black",
+                alpha = 0.3,
+                inherit.aes = FALSE)+
     geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
     geom_line(aes(colour = version))+
     labs(title = species)+
