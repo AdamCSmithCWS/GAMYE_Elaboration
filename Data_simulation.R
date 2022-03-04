@@ -183,9 +183,9 @@ strata_df <- strata_df %>%
          sumxy = yscale+xscale,
          xy = yscale*xscale,
          y_change = round(Y_change+yscale),
-         slope_1 = log(((SLOPE_1+yscale*-0.5)/100)+1),
-         slope_2 = log(((SLOPE_2+SLOPE_1+yscale*-0.5+xscale*-0.5)/100)+1),
-         cycle_str = (0.02*exp(0.6*(max(yscale)-(yscale)))))
+         slope_1 = log(((SLOPE_1+yscale*0.2)/100)+1),
+         slope_2 = log(((SLOPE_2+yscale*-0.75+xscale*-0.5)/100)+1),
+         cycle_str = -(0.03*exp(0.4*(max(yscale)-(yscale)))))
 
 
 

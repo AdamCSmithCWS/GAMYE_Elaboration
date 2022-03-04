@@ -120,11 +120,14 @@ for(s in 1:nstrata){
   
 model {
   sdnoise ~ normal(0,0.5); //prior on scale of extra Poisson log-normal variance
-  noise_raw ~ normal(0,1);
   sdobs ~ normal(0,0.5); //prior on sd of observer effects
   sdste ~ std_normal(); //prior on sd of site effects
   sdyear ~ gamma(2,2); // prior on sd of yeareffects - stratum specific, and boundary-avoiding with a prior mode at 0.5 (1/2) - recommended by https://doi.org/10.1007/s11336-013-9328-2 
-  sdBETA ~ std_normal(); // prior on sd of GAM parameters
+  sdBETA ~ student_t(4,0,3); // prior on sd of GAM parameters
+  sdbeta ~ student_t(4,0,1); // prior on sd of GAM parameters
+  sdstrata ~ std_normal(); //prior on sd of intercept variation
+  
+  noise_raw ~ normal(0,1);
   
   obs_raw ~ std_normal();//observer effects
   sum(obs_raw) ~ normal(0,0.001*nobservers);
@@ -141,15 +144,9 @@ model {
  }
   
   BETA_raw ~ std_normal();// prior on fixed effect mean GAM parameters
-  //sum to zero constraint
-  // not necessary because built into the basis function
-  //sum(BETA_raw) ~ normal(0,0.001*nknots_year);
-  
+ 
   STRATA ~ std_normal();// prior on fixed effect mean intercept
 
-  //spatial iCAR intercepts and gam parameters by strata
-  sdstrata ~ std_normal(); //prior on sd of intercept variation
-  sdbeta ~ normal(0,1); //prior on sd of GAM parameter variation
 
 for(k in 1:nknots_year){
     beta_raw[,k] ~ icar_normal(nstrata, node1, node2);

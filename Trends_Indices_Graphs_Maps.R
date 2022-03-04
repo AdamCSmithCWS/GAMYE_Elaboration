@@ -207,11 +207,11 @@ for(i in c(10,16)){#1:nrow(fls)){
   # abline(0,1)
 
 # indices and trends ------------------------------------------------------
-true_smooths <- balanced %>% 
+true_smooths <- log_true_traj %>% 
+    ungroup() %>% 
     select(Stratum_Factored,Year,
            True_scaled_smooth) %>%
-    rename(true_year = Year) %>% 
-    distinct() 
+    rename(true_year = Year) 
   
  strat_inds <- index_function(fit = stanfit,
                               parameter = "n",
@@ -265,7 +265,7 @@ true_smooths <- balanced %>%
                ncol = pd,
                scales = "free_y")
  
-  print(pl_inds)
+ # print(pl_inds)
 # geofacet ----------------------------------------------------------------
 
   # row_col_cat <- function(x,n){
