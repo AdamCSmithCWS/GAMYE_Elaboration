@@ -1,7 +1,20 @@
 // This is a Stan implementation of the gamye model
+// with iCAR component for the stratum-level intercepts and smooth parameters
 
 // Consider moving annual index calculations outside of Stan to 
 // facilitate the ragged array issues
+
+// iCAR function, from Morris et al. 2019
+// Morris, M., K. Wheeler-Martin, D. Simpson, S. J. Mooney, A. Gelman, and C. DiMaggio (2019). 
+// Bayesian hierarchical spatial models: Implementing the Besag York Mollié model in stan. 
+// Spatial and Spatio-temporal Epidemiology 31:100301.
+
+functions {
+  real icar_normal_lpdf(vector bb, int ns, int[] n1, int[] n2) {
+    return -0.5 * dot_self(bb[n1] - bb[n2])
+      + normal_lpdf(sum(bb) | 0, 0.001 * ns); //soft sum to zero constraint on bb
+ }
+}
 
 
 data {
@@ -25,10 +38,15 @@ data {
   // above is actually a ragged array, but filled with 0 values so that it works
   // but throws an error if an incorrect strata-site combination is called
  
-  // data for spline s(year)
-  int<lower=1> nknots_year;  // number of knots in the basis function for year
-  matrix[nyears, nknots_year] year_basis; // basis function matrix
- 
+  // spatial neighbourhood information
+  int<lower=1> N_edges;
+  int<lower=1, upper=nstrata> node1[N_edges];  // node1[i] adjacent to node2[i]
+  int<lower=1, upper=nstrata> node2[N_edges];  // and node1[i] < node2[i]
+
+
+
+  // data to center the abundance estimate
+  int midyear; //middle year of the time-series scaled to ~(nyears/2)
 
 }
 
@@ -37,48 +55,45 @@ parameters {
  
  vector[nstrata] strata_raw;
   real STRATA; 
-  matrix[nstrata,nyears] yeareffect_raw;
 
   vector[nobservers] obs_raw;    // sd of year effects
   vector[nsites] ste_raw;   // 
   real<lower=0> sdnoise;    // sd of over-dispersion
   real<lower=0> sdobs;    // sd of observer effects
   real<lower=0> sdste;    // sd of site effects
-  real<lower=0> sdbeta[nstrata];    // sd of GAM coefficients among strata 
+  real<lower=0> sdbeta[nyears-1];    // sd of annual changes among strata 
   real<lower=0> sdstrata;    // sd of intercepts
-  real<lower=0> sdBETA;    // sd of GAM coefficients
-  real<lower=0> sdyear[nstrata];    // sd of year effects
- 
-  vector[nknots_year] BETA_raw;//_raw; 
-  matrix[nstrata,nknots_year] beta_raw;         // GAM strata level parameters
+  real<lower=0> sdBETA;    // sd of overall annual changes
+
+  vector[nyears-1] BETA_raw;//_raw; 
+  matrix[nstrata,nyears] beta_raw;         // strata level parameters
 
 }
 
 transformed parameters { 
   vector[ncounts] E;           // log_scale additive likelihood
-  matrix[nstrata,nknots_year] beta;         // spatial effect slopes (0-centered deviation from continental mean slope B)
-  matrix[nyears,nstrata] smooth_pred;
-  vector[nyears] SMOOTH_pred;  
+  matrix[nstrata,nyears] beta;         // spatial effect slopes (0-centered deviation from continental mean slope B)
 
   matrix[nstrata,nyears] yeareffect;
-  vector[nknots_year] BETA;
+  vector[nyears-1] BETA;
+  vector[nstrata] zero_betas = 0;
+  
   
   
   BETA = sdBETA*BETA_raw;
-  SMOOTH_pred = year_basis * BETA; 
- 
-  for(s in 1:nstrata){
-    beta[s,] = (sdbeta[s] * beta_raw[s,]) + transpose(BETA);
-  } 
   
-  for(s in 1:nstrata){
-     smooth_pred[,s] = year_basis * transpose(beta[s,]);
-}
+  for(t in 1:(midyear-1)){
+    beta[,t] = (sdbeta[t] * beta_raw[,t]) + BETA[t];
+  }
+ 
+   for(t in (midyear+1):nyears){
+    beta[,t] = (sdbeta[t-1] * beta_raw[,t-1]) + BETA[t-1];
+  }
+ 
+   beta[,midyear] = zero_betas;
+  
 
-for(s in 1:nstrata){
-    yeareffect[s,] = sdyear[s]*yeareffect_raw[s,];
 
-}
 
 // intercepts and slopes
 
@@ -100,14 +115,15 @@ for(s in 1:nstrata){
   
 model {
   sdnoise ~ normal(0,0.5); //prior on scale of extra Poisson log-normal variance
-  noise_raw ~ normal(0,1);
   sdobs ~ normal(0,0.5); //prior on sd of observer effects
   sdste ~ std_normal(); //prior on sd of site effects
   sdyear ~ gamma(2,2); // prior on sd of yeareffects - stratum specific, and boundary-avoiding with a prior mode at 0.5 (1/2) - recommended by https://doi.org/10.1007/s11336-013-9328-2 
   sdBETA ~ student_t(3,0,4); // prior on sd of GAM parameters
   sdbeta ~ student_t(3,0,1); // prior on sd of GAM parameters
- sdstrata ~ std_normal(); //prior on sd of intercept variation
- 
+  sdstrata ~ std_normal(); //prior on sd of intercept variation
+  
+  noise_raw ~ normal(0,1);
+  
   obs_raw ~ std_normal();//observer effects
   sum(obs_raw) ~ normal(0,0.001*nobservers);
 
@@ -126,14 +142,11 @@ model {
  
   STRATA ~ std_normal();// prior on fixed effect mean intercept
 
-  //spatial iCAR intercepts and gam parameters by strata
 
-for(s in 1:nstrata){
-    beta_raw[s,] ~ normal(0,1);
+for(k in 1:nknots_year){
+    beta_raw[,k] ~ icar_normal(nstrata, node1, node2);
 }
-   strata_raw ~ normal(0,1);
-    sum(strata_raw) ~ normal(0,0.001*nstrata);
-  
+   strata_raw ~ icar_normal(nstrata, node1, node2);
 
   count ~ poisson_log(E); //vectorized count likelihood with log-transformation
 
@@ -147,7 +160,7 @@ for(s in 1:nstrata){
    real<lower=0> retrans_noise;
    real<lower=0> retrans_obs;
   // vector[ncounts] log_lik; // alternative value to track the observervation level log-likelihood
-  //  useful for estimating loo-diagnostics, such as looic
+  // potentially useful for estimating loo-diagnostics, such as looic
   
   // for(i in 1:ncounts){
   // log_lik[i] = poisson_log_lpmf(count[i] | E[i]);

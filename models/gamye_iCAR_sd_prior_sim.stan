@@ -23,7 +23,7 @@ data {
   int<lower=1> nyears;
   
   real<lower=0>  prior_scale;
-  int<lower=0> pnorm; // indicator for the prior distribution 1 = normal, 0 = gamma
+  int<lower=0,upper=2> pnorm; // indicator for the prior distribution 2 = t, 1 = normal, 0 = gamma
 
  // spatial neighbourhood information
   int<lower=1> N_edges;
@@ -81,10 +81,18 @@ model {
 
 if(pnorm == 1){
  sdbeta ~ normal(0,prior_scale); //prior on sd of GAM parameter variation
-}else{
+}
+if(pnorm == 0){
+ 
   sdbeta ~ gamma(2,prior_scale); //prior on sd of GAM parameter variation
  
 }
+if(pnorm == 2){
+ 
+  sdbeta ~ student_t(3,0,prior_scale); //prior on sd of GAM parameter variation
+ 
+}
+
 for(k in 1:nknots_year){
     beta_raw[,k] ~ icar_normal(nstrata, node1, node2);
 }

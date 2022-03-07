@@ -78,7 +78,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(10,16)){#1:nrow(fls)){
+for(i in c(5,10,11,16)){#1:nrow(fls)){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -572,6 +572,24 @@ sdbetas <- conv_summaries %>%
   filter(grepl("sdbeta",x = variable)) %>% 
   arrange(ess_bulk)
 
+sdb_ess_plot = ggplot(data = sdbetas,aes(x = ess_bulk))+
+  geom_histogram(bins = 50)+
+  facet_wrap(vars(model),
+             nrow = 4,
+             ncol = 5)+
+  geom_vline(xintercept = 500)
+print(sdb_ess_plot)
+
+
+sdbetas <- conv_summaries %>% 
+  filter(grepl("sdbeta",x = variable),
+         grepl(x = model, pattern = "sim_breakpoint")) %>% 
+  arrange(ess_bulk)
+
+BETAs <- conv_summaries %>% 
+  filter(grepl("BETA",x = variable),
+         grepl(x = model, pattern = "sim_breakpoint")) %>% 
+  arrange(ess_bulk)
 
 betas <- conv_summaries %>% 
   filter(grepl("^beta\\[",x = variable))%>% 

@@ -12,36 +12,14 @@ setwd("C:/GitHub/GAMYE_Elaboration")
 species <- "Yellow-headed Blackbird"
 species_f <- gsub(species,pattern = " ",replacement = "_")
 
-dd <- NULL
-for(rr in c(0.5,1,2,4)){
- tmp = data.frame(p = rgamma(10000,2,rr),
-                  i = 1:10000,
-                  pr = paste0("gamma_",rr)) %>% 
-   mutate()
- dd <- bind_rows(dd,tmp)
- 
-}
-for(rr in rev(c(0.5,1,2,4))){
-  tmp = data.frame(p = abs(rnorm(10000,0,rr)),
-                   i = 1:10000,
-                   pr = paste0("norm_",rr))
-  dd <- bind_rows(dd,tmp)
-  
-}
-
-hists = ggplot(data = dd)+
-  geom_histogram(aes(x = p))+
-  facet_wrap(~pr,nrow = 2,ncol = 4)
-print(hists)
-
 for(pp in c("gamma","norm","t")){
   for(prior_scale in c(0.5,1,2,4)){
     
-  tp = paste0(pp,"_rate_",prior_scale)
+  tp = paste0("GAM_",pp,prior_scale,"_rate")
 
   #STRATA_True <- log(2)
   output_dir <- "output/"
-  out_base <- paste0(species_f,"_sim_",tp,"_BBS")
+  out_base <- tp
   csv_files <- paste0(out_base,"-",1:3,".csv")
   
   if(pp == "gamma"){
@@ -60,26 +38,15 @@ for(pp in c("gamma","norm","t")){
     
     tmp_data = original_data_df
     
-    nstrata = max(strata_df$Stratum_Factored)
     nyears = max(tmp_data$Year_Index)
     
-    
-    N_edges = neighbours$N_edges
-    node1 = neighbours$node1
-    node2 = neighbours$node2
     
     nknots_year = GAM_year$nknots_Year
     year_basis = GAM_year$Year_basis
     
     stan_data = list(#scalar indicators
-      nstrata = nstrata,
       nyears = nyears,
-      
-      
-      #spatial structure
-      N_edges = N_edges,
-      node1 = node1,
-      node2 = node2,
+
       
       #GAM structure
       nknots_year = nknots_year,
@@ -96,7 +63,7 @@ for(pp in c("gamma","norm","t")){
     
     print(paste("beginning",tp,Sys.time()))
     
-    mod.file = "models/gamye_iCAR_sd_prior_sim.stan"
+    mod.file = "models/GAM_prior_sim.stan"
     
     ## compile model
     model <- cmdstan_model(mod.file)
@@ -105,8 +72,8 @@ for(pp in c("gamma","norm","t")){
     # Initial Values ----------------------------------------------------------
     
     
-    init_def <- function(){ list(sdbeta = runif(nknots_year,0.01,0.1),
-                                 beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
+    init_def <- function(){ list(sdbeta = runif(1,0.01,0.1),
+                                 BETA_raw = rnorm(nknots_year,0,0.01))}
     
     stanfit <- model$sample(
       data=stan_data,
@@ -147,14 +114,14 @@ nsmooth_out <- NULL
 trends_out <- NULL
 summ_out <- NULL
 
-for(pp in c("gamma","norm")){
+for(pp in c("gamma","norm","t")){
   for(prior_scale in c(0.5,1,2,4)){
     
-    tp = paste0(pp,"_rate_",prior_scale)
+    tp = paste0("GAM_",pp,prior_scale,"_rate")
     
     #STRATA_True <- log(2)
     output_dir <- "output/"
-    out_base <- paste0(species_f,"_sim_",tp,"_BBS")
+    out_base <- tp
     csv_files <- paste0(out_base,"-",1:3,".csv")
     
 
@@ -169,11 +136,44 @@ summ <- summ %>%
 
 nsmooth_samples <- posterior_samples(stanfit,
                                  parm = "nsmooth",
-                                 dims = c("Stratum_Factored","Year_Index"))
+                                 dims = c("Year_Index"))
+
+
+
+BETA_samples <- posterior_samples(stanfit,
+                                  parm = "BETA",
+                                  dims = c("k"))
+BETA_wide <- BETA_samples %>% 
+  pivot_wider(.,id_cols = .draw,
+              names_from = k,
+              names_prefix = "BETA",
+              values_from = .value)
+
+
+nsmooth_samples <- nsmooth_samples %>% 
+  left_join(., BETA_wide,by = ".draw")
+
+
+nsmooth_sel <- nsmooth_samples %>% 
+  filter(BETA12 < 5 , BETA12 > -5)
+
+nsmooth_plot <- ggplot(data = nsmooth_sel,
+                       aes(x = Year_Index,
+                           y = .value,
+                           group = .draw))+
+  geom_line(alpha = 0.1)+
+  #scale_y_continuous(trans = "log10")+
+  coord_cartesian(ylim = c(0,1000))
+print(nsmooth_plot)
+
+
+
+
+
 
 nsmooth <- nsmooth_samples %>% 
   posterior_sums(.,
-                 dims = c("Stratum_Factored","Year_Index"))%>% 
+                 dims = c("Year_Index"))%>% 
   mutate(prior_scale = prior_scale,
          distribution = pp)
 
@@ -184,12 +184,12 @@ trs <- function(y1,y2,ny){
 }
 trends <- nsmooth_samples %>% 
   filter(Year_Index %in% c(1,nyears)) %>% 
-  select(.draw,.value,Stratum_Factored,Year_Index) %>% 
+  select(.draw,.value,Year_Index) %>% 
   pivot_wider(.,names_from = Year_Index,
               values_from = .value,
               names_prefix = "Y") %>%
   rename_with(.,~gsub(pattern = nyh,replacement = "Y2", .x)) %>% 
-  group_by(.draw,Stratum_Factored) %>% 
+  group_by(.draw) %>% 
   summarise(trend = trs(Y1,Y2,nyears))%>% 
   mutate(prior_scale = prior_scale,
          distribution = pp)
