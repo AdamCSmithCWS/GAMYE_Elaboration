@@ -13,7 +13,7 @@ species <- "Yellow-headed Blackbird"
 species_f <- gsub(species,pattern = " ",replacement = "_")
 
 for(pp in c("gamma","norm","t")){
-  for(prior_scale in c(0.5,1,2,4)){
+  for(prior_scale in c(0.5,1,2,3,4)){
     
   tp = paste0("GAM_",pp,prior_scale,"_rate")
 
@@ -115,7 +115,7 @@ trends_out <- NULL
 summ_out <- NULL
 
 for(pp in c("gamma","norm","t")){
-  for(prior_scale in c(0.5,1,2,4)){
+  for(prior_scale in c(0.5,1,2,3,4)){
     
     tp = paste0("GAM_",pp,prior_scale,"_rate")
     
@@ -132,7 +132,6 @@ summ = stanfit$summary()
 summ <- summ %>% 
   mutate(prior_scale = prior_scale,
          distribution = pp)
-
 
 nsmooth_samples <- posterior_samples(stanfit,
                                  parm = "nsmooth",
@@ -151,104 +150,168 @@ BETA_wide <- BETA_samples %>%
 
 
 nsmooth_samples <- nsmooth_samples %>% 
-  left_join(., BETA_wide,by = ".draw")
-
-
-nsmooth_sel <- nsmooth_samples %>% 
-  filter(BETA12 < 5 , BETA12 > -5)
-
-nsmooth_plot <- ggplot(data = nsmooth_sel,
-                       aes(x = Year_Index,
-                           y = .value,
-                           group = .draw))+
-  geom_line(alpha = 0.1)+
-  #scale_y_continuous(trans = "log10")+
-  coord_cartesian(ylim = c(0,1000))
-print(nsmooth_plot)
-
-
-
-
-
-
-nsmooth <- nsmooth_samples %>% 
-  posterior_sums(.,
-                 dims = c("Year_Index"))%>% 
+  left_join(., BETA_wide,by = ".draw") %>% 
   mutate(prior_scale = prior_scale,
          distribution = pp)
 
+
+# 
+# nsmooth_sel <- nsmooth_samples %>% 
+#   filter(BETA12 < 5 , BETA12 > -5)
+# 
+# nsmooth_plot <- ggplot(data = nsmooth_sel,
+#                        aes(x = Year_Index,
+#                            y = .value,
+#                            group = .draw))+
+#   geom_line(alpha = 0.1)+
+#   #scale_y_continuous(trans = "log10")+
+#   coord_cartesian(ylim = c(0,250))
+# print(nsmooth_plot)
+
+
+
+
+
+
+# nsmooth <- nsmooth_samples %>% 
+#   posterior_sums(.,
+#                  dims = c("Year_Index"))%>% 
+#   mutate(prior_scale = prior_scale,
+#          distribution = pp)
+
 nyears = max(nsmooth_samples$Year_Index)
-nyh <- paste0("Y",nyears)
 trs <- function(y1,y2,ny){
   tt <- (((y2/y1)^(1/ny))-1)*100
 }
+
+for(y2 in c(seq(2,nyears,by = 5),nyears)){
+nyh <- paste0("Y",y2)
+ny = y2-1
 trends <- nsmooth_samples %>% 
-  filter(Year_Index %in% c(1,nyears)) %>% 
+  filter(Year_Index %in% c(1,y2)) %>% 
   select(.draw,.value,Year_Index) %>% 
   pivot_wider(.,names_from = Year_Index,
               values_from = .value,
               names_prefix = "Y") %>%
   rename_with(.,~gsub(pattern = nyh,replacement = "Y2", .x)) %>% 
   group_by(.draw) %>% 
-  summarise(trend = trs(Y1,Y2,nyears))%>% 
+  summarise(trend = trs(Y1,Y2,ny))%>% 
   mutate(prior_scale = prior_scale,
-         distribution = pp)
-
-
-nsmooth_out <- bind_rows(nsmooth_out,nsmooth)
+         distribution = pp,
+         first_year = 1,
+         last_year = y2,
+         nyears = ny)
 trends_out <- bind_rows(trends_out,trends)
+}
+
+nsmooth_out <- bind_rows(nsmooth_out,nsmooth_samples)
 summ_out <- bind_rows(summ_out,summ)
 
   }#prior_scale
   print(paste(pp,prior_scale))
 }# pp
 
-save(file = "output/prior_sim_summary.RData",
+save(file = "output/GAM_prior_sim_summary.RData",
      list = c("nsmooth_out",
               "trends_out",
               "summ_out"))
 
-trend_h <- ggplot(data = trends_out)+
-  geom_histogram(aes(x = trend))+
+
+
+
+
+# summarize and plot ------------------------------------------------------
+
+load("output/GAM_prior_sim_summary.RData")
+
+
+bbs_trends <- read.csv("data_basic/2019All BBS trends continent and national.csv")
+bbs_short <- bbs_trends %>% 
+  filter(Trend_Time == "Short-term",
+         Region_type == "continental",
+         !grepl(pattern = "^unid",species),
+         species != "Cave Swallow") %>% # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
+  select(Trend,Start_year,species) %>% 
+  mutate(abs_trend = abs(Trend))
+
+bbs_long <- bbs_trends %>% 
+  filter(Trend_Time == "Long-term",
+         Region_type == "continental",
+         !grepl(pattern = "^unid",species),
+         species != "Cave Swallow")%>%  # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
+  select(Trend,Start_year,species) %>% 
+  mutate(abs_trend = abs(Trend)) %>% 
+  arrange(abs_trend)
+
+hist(bbs_long$abs_trend,breaks = 20)
+hist(bbs_short$abs_trend,breaks = 20)
+
+trends_out <- trends_out %>% 
+  mutate(abs_trend = abs(trend))
+
+trends_long <- trends_out %>% 
+  filter(nyears == 53 ) 
+
+trend_h <- ggplot(data = trends_long)+
+  geom_histogram(aes(x = abs_trend),binwidth = 2)+
   facet_wrap(facets = vars(distribution,prior_scale),
-             nrow = 2,
-             ncol = 4,
-             scales = "free")
+             nrow = 3,
+             ncol = 5,
+             scales = "free_y")+
+  #coord_cartesian(xlim = c(-20,20))+
+  coord_cartesian(xlim = c(0,30))+
+  theme_bw()
 print(trend_h)
 
-trend_f <- ggplot(data = trends_out)+
+quant_long_tends <- trends_long %>% 
+  group_by(distribution,prior_scale) %>% 
+  summarise(mean_abs_t = mean(abs(trend)),
+            median_abs_t = median(abs(trend)),
+            U90 = quantile(abs(trend),0.90),
+            U80 = quantile(abs(trend),0.80),
+            pGT10 = length(which(abs_trend > 10))/length(abs_trend))
+
+
+
+
+trends_short <- trends_out %>% 
+  filter(nyears < 15 )
+
+trend_hs <- ggplot(data = trends_short)+
+  geom_histogram(aes(x = abs_trend),binwidth = 2)+
+  facet_wrap(facets = vars(distribution,prior_scale),
+             nrow = 3,
+             ncol = 5,
+             scales = "free_y")+
+  coord_cartesian(xlim = c(0,20))+
+  theme_classic()
+print(trend_hs)
+
+quant_short_tends <- trends_short %>% 
+  group_by(distribution,prior_scale) %>% 
+  summarise(mean_abs_t = mean(abs(trend)),
+            median_abs_t = median(abs(trend)),
+            U90 = quantile(abs(trend),0.90),
+            U80 = quantile(abs(trend),0.80),
+            pGT20 = length(which(abs_trend > 20))/length(abs_trend))
+
+
+
+trend_f <- ggplot(data = trends_long)+
   geom_freqpoly(aes(x = trend, group = prior_scale,
                     colour = prior_scale),
-                bins = 1000)+
+                bins = 5000)+
   scale_color_viridis_c()+
   coord_cartesian(xlim = c(-20,20),
-                  ylim = c(0,10000))+
+                  ylim = c(0,1000))+
   #scale_x_continuous(limits = c(-30,30))+
   facet_wrap(facets = vars(distribution),
-             nrow = 2,
+             nrow = 3,
              scales = "fixed")
 print(trend_f)
 
 
-# 95%ile of trends ---------------------------------------------------------
-w_95 <- function(x){
-  d <- diff(quantile(x,c(0.025,0.975)))
-}
-percentile_trends <- trends_out %>% 
-  group_by(distribution,prior_scale,.draw) %>% 
-  summarise(p_95 = w_95(trend)) 
 
-
-perc_f <- ggplot(data = percentile_trends)+
-  geom_freqpoly(aes(x = p_95, group = prior_scale,
-                    colour = prior_scale),
-                bins = 50)+
-  scale_color_viridis_c()+
-  scale_x_continuous(limits = c(0,50))+
-  facet_wrap(facets = vars(distribution),
-             nrow = 2,
-             scales = "fixed")
-print(perc_f)
 
 
 
