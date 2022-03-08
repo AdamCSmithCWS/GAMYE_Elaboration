@@ -9,8 +9,6 @@ setwd("C:/GitHub/GAMYE_Elaboration")
 
 # fit model with fixed data for all parameters except the local sm --------
 
-species <- "Yellow-headed Blackbird"
-species_f <- gsub(species,pattern = " ",replacement = "_")
 
 for(pp in c("gamma","norm","t")){
   for(prior_scale in c(0.5,1,2,3,4)){
@@ -36,13 +34,11 @@ for(pp in c("gamma","norm","t")){
     
     load(paste0("Data/Real_data_",species_f,"_BBS.RData"))
     
-    tmp_data = original_data_df
-    
-    nyears = max(tmp_data$Year_Index)
     
     
     nknots_year = GAM_year$nknots_Year
     year_basis = GAM_year$Year_basis
+    nyears = nrow(year_basis)
     
     stan_data = list(#scalar indicators
       nyears = nyears,
@@ -243,10 +239,37 @@ bbs_long <- bbs_trends %>%
   mutate(abs_trend = abs(Trend)) %>% 
   arrange(abs_trend)
 
+
+
 hist(bbs_long$abs_trend,breaks = 20)
 hist(bbs_short$abs_trend,breaks = 20)
 G_short <- max(bbs_short$abs_trend)
 G_long <- max(bbs_long$abs_trend)
+# USGS trends -------------------------------------------------------------
+
+bbs_trends_usgs <- read.csv("data/BBS_1966-2019_core_best_trend.csv")
+
+
+
+bbs_trends_usgs_long <-bbs_trends_usgs %>% 
+  filter(Region == "SU1",
+         !grepl(pattern = "^unid",Species.Name))%>%  
+  select(Trend,Species.Name) %>% 
+  mutate(abs_trend = abs(Trend)) %>% 
+  arrange(-abs_trend)
+
+G_long_usgs <- max(bbs_trends_usgs_long$abs_trend)
+G_short_usgs <- 23.5 #Eurasian Collared Dove trend for short-term 1966-2019 analysis USGS
+    # short-term trends not included in Science Base, but visible here:
+    # https://www.mbr-pwrc.usgs.gov/bbs/reglist19v3.shtml
+
+
+
+
+
+# exploring prior sims ----------------------------------------------------
+
+
 
 trends_out <- trends_out %>% 
   mutate(abs_trend = abs(trend))
@@ -272,7 +295,7 @@ quant_long_tends <- trends_long %>%
             U90 = quantile(abs(trend),0.90),
             U80 = quantile(abs(trend),0.80),
             U99 = quantile(abs(trend),0.99),
-            pGTmax = length(which(abs_trend > G_long))/length(abs_trend))
+            pGTmax = length(which(abs_trend > G_long_usgs))/length(abs_trend))
 
 
 
@@ -297,22 +320,27 @@ quant_short_tends <- trends_short %>%
             U90 = quantile(abs(trend),0.90),
             U80 = quantile(abs(trend),0.80),
             U99 = quantile(abs(trend),0.99),
-            pGT20 = length(which(abs_trend > G_short))/length(abs_trend))
+            pGTMax = length(which(abs_trend > G_short_usgs))/length(abs_trend))
 
 
 
-trend_f <- ggplot(data = trends_long)+
-  geom_freqpoly(aes(x = trend, group = prior_scale,
-                    colour = prior_scale),
-                bins = 5000)+
-  scale_color_viridis_c()+
-  coord_cartesian(xlim = c(-20,20),
-                  ylim = c(0,1000))+
-  #scale_x_continuous(limits = c(-30,30))+
-  facet_wrap(facets = vars(distribution),
-             nrow = 3,
-             scales = "fixed")
-print(trend_f)
+
+
+
+
+
+# trend_f <- ggplot(data = trends_long)+
+#   geom_freqpoly(aes(x = trend, group = prior_scale,
+#                     colour = prior_scale),
+#                 bins = 5000)+
+#   scale_color_viridis_c()+
+#   coord_cartesian(xlim = c(-20,20),
+#                   ylim = c(0,1000))+
+#   #scale_x_continuous(limits = c(-30,30))+
+#   facet_wrap(facets = vars(distribution),
+#              nrow = 3,
+#              scales = "fixed")
+# print(trend_f)
 
 
 

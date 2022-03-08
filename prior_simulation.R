@@ -11,6 +11,8 @@ setwd("C:/GitHub/GAMYE_Elaboration")
 
 species <- "Yellow-headed Blackbird"
 species_f <- gsub(species,pattern = " ",replacement = "_")
+
+
 bbs_trends <- read.csv("data_basic/2019All BBS trends stratum.csv")
 
 sd_trends_long <- bbs_trends %>% 
@@ -29,6 +31,32 @@ sd_trends_long <- bbs_trends %>%
 hist(sd_trends_long$range_trend)
 hist(sd_trends_long$span_90_trend)
 
+
+# USGS trends -------------------------------------------------------------
+# download_bbs_data(sb_id = sb_items[6,2],
+#                   bbs_dir = "data/")
+
+
+
+bbs_trends_usgs <- read.csv("data/BBS_1966-2019_core_best_trend.csv")
+
+sd_trends_long_usgs <- bbs_trends_usgs %>% 
+  filter(Region.Name != "Survey-Wide",
+         Region.Name != "CA1",
+         Region.Name != "US1",
+         !grepl(pattern = "^unid",Species.Name)) %>% 
+  group_by(Species.Name) %>% 
+  summarise(sd_trends = sd(Trend),
+            min_trend = min(Trend),
+            max_trend = max(Trend),
+            uci_trend = quantile(Trend,0.95),
+            lci_trend = quantile(Trend,0.05)) %>% 
+  mutate(range_trend = max_trend - min_trend,
+         span_90_trend = uci_trend-lci_trend) %>% 
+  arrange(-span_90_trend)
+
+hist(sd_trends_long_usgs$range_trend)
+hist(sd_trends_long_usgs$span_90_trend)
 
 
 
@@ -145,8 +173,8 @@ nsmooth_out <- NULL
 trends_out <- NULL
 summ_out <- NULL
 
-for(pp in c("gamma","norm")){
-  for(prior_scale in c(0.5,1,2,4)){
+for(pp in c("gamma","norm","t")){
+  for(prior_scale in c(0.5,1,2,3,4)){
     
     tp = paste0(pp,"_rate_",prior_scale)
     
@@ -201,31 +229,70 @@ summ_out <- bind_rows(summ_out,summ)
   print(paste(pp,prior_scale))
 }# pp
 
-save(file = "output/prior_sim_summary.RData",
-     list = c("nsmooth_out",
-              "trends_out",
-              "summ_out"))
+# save(file = "output/prior_sim_summary.RData",
+#      list = c("nsmooth_out",
+#               "trends_out",
+#               "summ_out"))
+
+
+
+# summarise ---------------------------------------------------------------
+
+load("output/prior_sim_summary.RData")
+
+trends_out <- trends_out %>% 
+  mutate(abs_trend = abs(trend))
+
 
 trend_h <- ggplot(data = trends_out)+
-  geom_histogram(aes(x = trend))+
+  geom_histogram(aes(x = abs_trend),
+                 binwidth = 2)+
+  coord_cartesian(xlim = c(0,50))+
   facet_wrap(facets = vars(distribution,prior_scale),
-             nrow = 2,
-             ncol = 4,
+             nrow = 3,
+             ncol = 5,
              scales = "free")
 print(trend_h)
 
-trend_f <- ggplot(data = trends_out)+
-  geom_freqpoly(aes(x = trend, group = prior_scale,
-                    colour = prior_scale),
-                bins = 1000)+
-  scale_color_viridis_c()+
-  coord_cartesian(xlim = c(-20,20),
-                  ylim = c(0,10000))+
-  #scale_x_continuous(limits = c(-30,30))+
-  facet_wrap(facets = vars(distribution),
-             nrow = 2,
-             scales = "fixed")
-print(trend_f)
+
+trends_sd <- trends_out %>% 
+  group_by(.draw,prior_scale,distribution) %>% 
+  summarise(sd_trends = sd(trend),
+            min_trend = min(trend),
+            max_trend = max(trend),
+            lci95 = quantile(trend,0.025),
+            uci95 = quantile(trend,0.975),
+            span_95 = uci95 - lci95,
+            range_trend = max_trend - min_trend)
+
+trendsd_h <- ggplot(data = trends_sd)+
+  geom_histogram(aes(x = range_trend),
+                 binwidth = 2)+
+  coord_cartesian(xlim = c(0,50))+
+  facet_wrap(facets = vars(distribution,prior_scale),
+             nrow = 3,
+             ncol = 5,
+             scales = "free")
+print(trendsd_h)
+
+
+
+
+
+
+# 
+# trend_f <- ggplot(data = trends_out)+
+#   geom_freqpoly(aes(x = trend, group = prior_scale,
+#                     colour = prior_scale),
+#                 bins = 1000)+
+#   scale_color_viridis_c()+
+#   coord_cartesian(xlim = c(-20,20),
+#                   ylim = c(0,10000))+
+#   #scale_x_continuous(limits = c(-30,30))+
+#   facet_wrap(facets = vars(distribution),
+#              nrow = 2,
+#              scales = "fixed")
+# print(trend_f)
 
 
 # 95%ile of trends ---------------------------------------------------------

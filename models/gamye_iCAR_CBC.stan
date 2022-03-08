@@ -131,7 +131,8 @@ model {
   noise_raw ~ normal(0,1);
   sdste ~ std_normal(); //prior on sd of site effects
   sdyear ~ gamma(2,2); // prior on sd of yeareffects - stratum specific, and boundary-avoiding with a prior mode at 0.5 (1/2) - recommended by https://doi.org/10.1007/s11336-013-9328-2 
-  sdBETA ~ std_normal(); // prior on sd of GAM parameters
+  sdBETA ~ student_t(3,0,2); // prior on sd of GAM parameters
+  sdbeta ~ student_t(3,0,1); // prior on sd of GAM parameters
   
   b_raw ~ std_normal();//effort slopes by stratum
   sum(b_raw) ~ normal(0,0.001*nstrata);
@@ -165,7 +166,7 @@ model {
 
   //spatial iCAR intercepts and gam parameters by strata
   sdstrata ~ std_normal(); //prior on sd of intercept variation
-  sdbeta ~ normal(0,1); //prior on sd of GAM parameter variation
+
 
 for(k in 1:nknots_year){
     beta_raw[,k] ~ icar_normal(nstrata, node1, node2);
