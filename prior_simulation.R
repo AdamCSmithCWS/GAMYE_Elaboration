@@ -11,31 +11,29 @@ setwd("C:/GitHub/GAMYE_Elaboration")
 
 species <- "Yellow-headed Blackbird"
 species_f <- gsub(species,pattern = " ",replacement = "_")
+bbs_trends <- read.csv("data_basic/2019All BBS trends stratum.csv")
 
-dd <- NULL
-for(rr in c(0.5,1,2,4)){
- tmp = data.frame(p = rgamma(10000,2,rr),
-                  i = 1:10000,
-                  pr = paste0("gamma_",rr)) %>% 
-   mutate()
- dd <- bind_rows(dd,tmp)
- 
-}
-for(rr in rev(c(0.5,1,2,4))){
-  tmp = data.frame(p = abs(rnorm(10000,0,rr)),
-                   i = 1:10000,
-                   pr = paste0("norm_",rr))
-  dd <- bind_rows(dd,tmp)
-  
-}
+sd_trends_long <- bbs_trends %>% 
+  filter(Trend_Time == "Long-term",
+         !grepl(pattern = "^unid",species)) %>% 
+  group_by(species) %>% 
+  summarise(sd_trends = sd(Trend),
+            min_trend = min(Trend),
+            max_trend = max(Trend),
+            uci_trend = quantile(Trend,0.95),
+            lci_trend = quantile(Trend,0.05)) %>% 
+  mutate(range_trend = max_trend - min_trend,
+         span_90_trend = uci_trend-lci_trend) %>% 
+  arrange(-span_90_trend)
 
-hists = ggplot(data = dd)+
-  geom_histogram(aes(x = p))+
-  facet_wrap(~pr,nrow = 2,ncol = 4)
-print(hists)
+hist(sd_trends_long$range_trend)
+hist(sd_trends_long$span_90_trend)
+
+
+
 
 for(pp in c("gamma","norm","t")){
-  for(prior_scale in c(0.5,1,2,4)){
+  for(prior_scale in c(0.5,1,2,3,4)){
     
   tp = paste0(pp,"_rate_",prior_scale)
 

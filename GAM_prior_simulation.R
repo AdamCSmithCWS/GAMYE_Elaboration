@@ -229,8 +229,7 @@ bbs_trends <- read.csv("data_basic/2019All BBS trends continent and national.csv
 bbs_short <- bbs_trends %>% 
   filter(Trend_Time == "Short-term",
          Region_type == "continental",
-         !grepl(pattern = "^unid",species),
-         species != "Cave Swallow") %>% # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
+         !grepl(pattern = "^unid",species)) %>% # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
   select(Trend,Start_year,species) %>% 
   mutate(abs_trend = abs(Trend))
 
@@ -238,13 +237,16 @@ bbs_long <- bbs_trends %>%
   filter(Trend_Time == "Long-term",
          Region_type == "continental",
          !grepl(pattern = "^unid",species),
-         species != "Cave Swallow")%>%  # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
+         species != "Cave Swallow",
+         species != "Northern Gannet")%>%  # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
   select(Trend,Start_year,species) %>% 
   mutate(abs_trend = abs(Trend)) %>% 
   arrange(abs_trend)
 
 hist(bbs_long$abs_trend,breaks = 20)
 hist(bbs_short$abs_trend,breaks = 20)
+G_short <- max(bbs_short$abs_trend)
+G_long <- max(bbs_long$abs_trend)
 
 trends_out <- trends_out %>% 
   mutate(abs_trend = abs(trend))
@@ -269,13 +271,14 @@ quant_long_tends <- trends_long %>%
             median_abs_t = median(abs(trend)),
             U90 = quantile(abs(trend),0.90),
             U80 = quantile(abs(trend),0.80),
-            pGT10 = length(which(abs_trend > 10))/length(abs_trend))
+            U99 = quantile(abs(trend),0.99),
+            pGTmax = length(which(abs_trend > G_long))/length(abs_trend))
 
 
 
 
 trends_short <- trends_out %>% 
-  filter(nyears < 15 )
+  filter(nyears == 11 )
 
 trend_hs <- ggplot(data = trends_short)+
   geom_histogram(aes(x = abs_trend),binwidth = 2)+
@@ -284,7 +287,7 @@ trend_hs <- ggplot(data = trends_short)+
              ncol = 5,
              scales = "free_y")+
   coord_cartesian(xlim = c(0,20))+
-  theme_classic()
+  theme_bw()
 print(trend_hs)
 
 quant_short_tends <- trends_short %>% 
@@ -293,7 +296,8 @@ quant_short_tends <- trends_short %>%
             median_abs_t = median(abs(trend)),
             U90 = quantile(abs(trend),0.90),
             U80 = quantile(abs(trend),0.80),
-            pGT20 = length(which(abs_trend > 20))/length(abs_trend))
+            U99 = quantile(abs(trend),0.99),
+            pGT20 = length(which(abs_trend > G_short))/length(abs_trend))
 
 
 
