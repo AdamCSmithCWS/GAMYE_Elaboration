@@ -1,105 +1,109 @@
 ### prior simulation of spatial GAM sd
 
-library(bbsBayes)
-library(tidyverse)
-library(cmdstanr)
 
 setwd("C:/GitHub/GAMYE_Elaboration")
 
+# this is all set-up
+library(tidyverse)
+library(cmdstanr)
+library(mgcv) 
 
-# fit model with fixed data for all parameters except the local sm --------
 
 
-for(pp in c("gamma","norm","t")){
+for(pp in c("norm","t")){
   for(prior_scale in c(0.5,1,2,3,4)){
     
-  tp = paste0("GAM_",pp,prior_scale,"_rate")
-
-  #STRATA_True <- log(2)
-  output_dir <- "output/"
-  out_base <- tp
-  csv_files <- paste0(out_base,"-",1:3,".csv")
-  
-  if(pp == "gamma"){
-    pnorm <- 0
-  }
-  if(pp == "norm"){
-    pnorm <- 1
-  }
-  if(pp == "t"){
-    pnorm <- 2
-  }
-  
-  if(!file.exists(paste0(output_dir,csv_files[1]))){
+    tp = paste0("GAM_",pp,prior_scale,"_rate")
     
-    load(paste0("Data/Real_data_",species_f,"_BBS.RData"))
+    #STRATA_True <- log(2)
+    output_dir <- "output/"
+    out_base <- tp
+    csv_files <- paste0(out_base,"-",1:3,".csv")
     
     
+    if(pp == "norm"){
+      pnorm <- 1
+    }
+    if(pp == "t"){
+      pnorm <- 0
+    }
     
-    nknots_year = GAM_year$nknots_Year
-    year_basis = GAM_year$Year_basis
-    nyears = nrow(year_basis)
-    
-    stan_data = list(#scalar indicators
-      nyears = nyears,
-
+    #if(!file.exists(paste0(output_dir,csv_files[1]))){
       
-      #GAM structure
-      nknots_year = nknots_year,
-      year_basis = year_basis,
+      nyears = 54 #to match the time-scales of BBS and CBC analyses
+      dat = data.frame(year = 1:nyears)
+      nknots = 13  
+      nknots_realised = nknots-1 
       
-      prior_scale = prior_scale,
-      pnorm = pnorm
+      M = mgcv::smoothCon(s(year,k = nknots, bs = "tp"),data = dat,
+                          absorb.cons=TRUE,#this drops the constant
+                          diagonal.penalty=TRUE) ## If TRUE then the smooth is reparameterized to turn the penalty into an identity matrix, with the final diagonal elements zeroed (corresponding to the penalty nullspace). This fits with the Bayesian interpretation of the complexity penalty as the inverse of the variance of the i.i.d. collection of parameters.
+      
+      
+      year_basis = M[[1]]$X
+      
+      
+      
+      
+      stan_data = list(#scalar indicators
+        nyears = nyears,
+        
+        
+        #GAM structure
+        nknots_year = nknots_realised,
+        year_basis = year_basis,
+        
+        prior_scale = prior_scale,
+        pnorm = pnorm
       )
-    
-    
-    
-    
-    # Fit model ---------------------------------------------------------------
-    
-    print(paste("beginning",tp,Sys.time()))
-    
-    mod.file = "models/GAM_prior_sim.stan"
-    
-    ## compile model
-    model <- cmdstan_model(mod.file)
-    
-    
-    # Initial Values ----------------------------------------------------------
-    
-    
-    init_def <- function(){ list(sdbeta = runif(1,0.01,0.1),
-                                 BETA_raw = rnorm(nknots_year,0,0.01))}
-    
-    stanfit <- model$sample(
-      data=stan_data,
-      refresh=100,
-      chains=2, iter_sampling=1000,
-      iter_warmup=500,
-      parallel_chains = 2,
-      #pars = parms,
-      adapt_delta = 0.8,
-      max_treedepth = 14,
-      seed = 123,
-      init = init_def,
-      output_dir = output_dir,
-      output_basename = out_base)
-    
-    
-    #stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
-    
-    
-    save(list = c("stanfit","stan_data","csv_files",
+      
+      
+      
+      
+      # Fit model ---------------------------------------------------------------
+      
+      print(paste("beginning",tp,Sys.time()))
+      
+      mod.file = "models/GAM_prior_sim.stan"
+      
+      ## compile model
+      model <- cmdstan_model(mod.file)
+      
+      
+      # Initial Values ----------------------------------------------------------
+      
+      
+      init_def <- function(){ list(sdbeta = runif(1,0.01,0.1),
+                                   BETA_raw = rnorm(nknots_realised,0,0.01))}
+      
+      stanfit <- model$sample(
+        data=stan_data,
+        refresh=100,
+        chains=2, iter_sampling=1000,
+        iter_warmup=500,
+        parallel_chains = 2,
+        #pars = parms,
+        adapt_delta = 0.8,
+        max_treedepth = 14,
+        seed = 123,
+        init = init_def,
+        output_dir = output_dir,
+        output_basename = out_base)
+      
+      
+      #stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
+      
+      
+      save(list = c("stanfit","stan_data","csv_files",
                   "out_base"),
          file = paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
     
     
     
-  }
+  
   
 }#end prior_scale loop
 }#end pp loop
-
 
 
 # post model summary of priors --------------------------------------------
@@ -110,7 +114,7 @@ nsmooth_out <- NULL
 trends_out <- NULL
 summ_out <- NULL
 
-for(pp in c("gamma","norm","t")){
+for(pp in c("norm","t")){
   for(prior_scale in c(0.5,1,2,3,4)){
     
     tp = paste0("GAM_",pp,prior_scale,"_rate")
@@ -151,60 +155,46 @@ nsmooth_samples <- nsmooth_samples %>%
          distribution = pp)
 
 
-# 
-# nsmooth_sel <- nsmooth_samples %>% 
-#   filter(BETA12 < 5 , BETA12 > -5)
-# 
-# nsmooth_plot <- ggplot(data = nsmooth_sel,
-#                        aes(x = Year_Index,
-#                            y = .value,
-#                            group = .draw))+
-#   geom_line(alpha = 0.1)+
-#   #scale_y_continuous(trans = "log10")+
-#   coord_cartesian(ylim = c(0,250))
-# print(nsmooth_plot)
-
-
-
-
-
-
-# nsmooth <- nsmooth_samples %>% 
-#   posterior_sums(.,
-#                  dims = c("Year_Index"))%>% 
-#   mutate(prior_scale = prior_scale,
-#          distribution = pp)
 
 nyears = max(nsmooth_samples$Year_Index)
+# function to calculate a %/year trend from a count-scale trajectory
 trs <- function(y1,y2,ny){
   tt <- (((y2/y1)^(1/ny))-1)*100
 }
 
-for(y2 in c(seq(2,nyears,by = 5),nyears)){
-nyh <- paste0("Y",y2)
-ny = y2-1
+for(tl in c(2,11,nyears)){ #estimating all possible 1-year, 10-year, and full trends
+  ny = tl-1
+  yrs1 <- seq(1,(nyears-ny),by = ny)
+  yrs2 <- yrs1+ny
+  for(j in 1:length(yrs1)){
+    y2 <- yrs2[j]
+    y1 <- yrs1[j]
+    
+nyh2 <- paste0("Y",y2)
+nyh1 <- paste0("Y",y1)
 trends <- nsmooth_samples %>% 
-  filter(Year_Index %in% c(1,y2)) %>% 
+  filter(Year_Index %in% c(y1,y2)) %>% 
   select(.draw,.value,Year_Index) %>% 
   pivot_wider(.,names_from = Year_Index,
               values_from = .value,
               names_prefix = "Y") %>%
-  rename_with(.,~gsub(pattern = nyh,replacement = "Y2", .x)) %>% 
+  rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
+  rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
   group_by(.draw) %>% 
-  summarise(trend = trs(Y1,Y2,ny))%>% 
+  summarise(trend = trs(YS,YE,ny))%>% 
   mutate(prior_scale = prior_scale,
          distribution = pp,
-         first_year = 1,
+         first_year = y1,
          last_year = y2,
          nyears = ny)
 trends_out <- bind_rows(trends_out,trends)
 }
-
+}
 nsmooth_out <- bind_rows(nsmooth_out,nsmooth_samples)
 summ_out <- bind_rows(summ_out,summ)
+print(paste(pp,prior_scale))
 
   }#prior_scale
-  print(paste(pp,prior_scale))
 }# pp
 
 save(file = "output/GAM_prior_sim_summary.RData",
@@ -218,47 +208,54 @@ save(file = "output/GAM_prior_sim_summary.RData",
 
 # summarize and plot ------------------------------------------------------
 
-load("output/GAM_prior_sim_summary.RData")
 
 
-bbs_trends <- read.csv("data_basic/2019All BBS trends continent and national.csv")
-bbs_short <- bbs_trends %>% 
-  filter(Trend_Time == "Short-term",
-         Region_type == "continental",
-         !grepl(pattern = "^unid",species)) %>% # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
-  select(Trend,Start_year,species) %>% 
-  mutate(abs_trend = abs(Trend))
-
-bbs_long <- bbs_trends %>% 
-  filter(Trend_Time == "Long-term",
-         Region_type == "continental",
-         !grepl(pattern = "^unid",species),
-         species != "Cave Swallow",
-         species != "Northern Gannet")%>%  # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
-  select(Trend,Start_year,species) %>% 
-  mutate(abs_trend = abs(Trend)) %>% 
-  arrange(abs_trend)
-
-
-
-hist(bbs_long$abs_trend,breaks = 20)
-hist(bbs_short$abs_trend,breaks = 20)
-G_short <- max(bbs_short$abs_trend)
-G_long <- max(bbs_long$abs_trend)
+# bbs_trends <- read.csv("data_basic/2019All BBS trends continent and national.csv")
+# bbs_short <- bbs_trends %>% 
+#   filter(Trend_Time == "Short-term",
+#          Region_type == "continental",
+#          !grepl(pattern = "^unid",species)) %>% # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
+#   select(Trend,Start_year,species) %>% 
+#   mutate(abs_trend = abs(Trend))
+# 
+# bbs_long <- bbs_trends %>% 
+#   filter(Trend_Time == "Long-term",
+#          Region_type == "continental",
+#          !grepl(pattern = "^unid",species),
+#          species != "Cave Swallow",
+#          species != "Northern Gannet")%>%  # removing Cave Swallow - original abundance == 0 and rate of change is not meaningful
+#   select(Trend,Start_year,species) %>% 
+#   mutate(abs_trend = abs(Trend)) %>% 
+#   arrange(abs_trend)
+# 
+# 
+# 
+# hist(bbs_long$abs_trend,breaks = 20)
+# hist(bbs_short$abs_trend,breaks = 20)
+# G_short <- max(bbs_short$abs_trend)
+# G_long <- max(bbs_long$abs_trend)
 # USGS trends -------------------------------------------------------------
 
 bbs_trends_usgs <- read.csv("data/BBS_1966-2019_core_best_trend.csv")
 
 
-
+## selecting survey-wide trend estimates
 bbs_trends_usgs_long <-bbs_trends_usgs %>% 
-  filter(Region == "SU1",
-         !grepl(pattern = "^unid",Species.Name))%>%  
+  filter(Region == "SU1")%>%  
   select(Trend,Species.Name) %>% 
-  mutate(abs_trend = abs(Trend)) %>% 
+  mutate(abs_trend = abs(Trend)) %>% #calculating absolute values of the trends
   arrange(-abs_trend)
 
+realised_long_bbs_hist <- ggplot(data = bbs_trends_usgs_long,
+                            aes(abs_trend,after_stat(density)))+
+  geom_freqpoly(breaks = seq(0,13,0.5),center = 0)+
+  xlab("Absolute value of long-term BBS trends USGS models (1966-2019)")+
+  theme_bw()
+print(realised_long_bbs_hist)
+
 G_long_usgs <- max(bbs_trends_usgs_long$abs_trend)
+
+
 G_short_usgs <- 23.5 #Eurasian Collared Dove trend for short-term 1966-2019 analysis USGS
     # short-term trends not included in Science Base, but visible here:
     # https://www.mbr-pwrc.usgs.gov/bbs/reglist19v3.shtml
@@ -270,6 +267,7 @@ G_short_usgs <- 23.5 #Eurasian Collared Dove trend for short-term 1966-2019 anal
 # exploring prior sims ----------------------------------------------------
 
 
+load("output/GAM_prior_sim_summary.RData")
 
 trends_out <- trends_out %>% 
   mutate(abs_trend = abs(trend))

@@ -586,6 +586,11 @@ sdbetas <- conv_summaries %>%
          grepl(x = model, pattern = "sim_breakpoint")) %>% 
   arrange(ess_bulk)
 
+sdbetas <- conv_summaries %>% 
+  filter(grepl("sdbeta",x = variable),
+         grepl(x = model, pattern = "nonSpatial")) %>% 
+  arrange(ess_bulk)
+
 BETAs <- conv_summaries %>% 
   filter(grepl("BETA",x = variable),
          grepl(x = model, pattern = "sim_breakpoint")) %>% 
