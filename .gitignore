@@ -12,5 +12,15 @@ Figures/
 doc/
 data/archived_bbsBayes_2019.rds
 data/
+*.docx
+*.knit.md
+*.log
+*.tex
+*.bib
+*_cache/
+*_files/
+test.jags
+**stratum.csv
+
 
 

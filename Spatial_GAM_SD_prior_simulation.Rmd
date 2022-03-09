@@ -1,5 +1,5 @@
 ---
-title: "GAM_BETA_SD_Prior_Simulation"
+title: "GAM_spatial_SD_Prior_Simulation"
 author: "Adam C. Smith"
 date: "08/03/2022"
 output: pdf_document
@@ -16,23 +16,43 @@ library(kableExtra)
 
 ```
 
-# Prior Simulation of the SD of GAM parameters
+# Priors for the spatial variance in GAM parameters
 
-Running a prior simulation for alternative prior distributions on the SD of the GAM BETA parameters, which are the hyperparameters that control the shape and wiggliness of the survey-wide mean smoothed population trajectory. This simulation compares the effects of alternative priors on derived estimates of the long-term (53-year), and short-term (10-year) population trend estimates that would result from a population trajectory estimated with the same spline basis function used in this paper. This SD parameter controls the scale and variation of the parameters that link the spline basis function to the estimated smooth population trajectory. The posterior estimate of this SD parameter is what determines the complexity (wiggliness) and magnitude of the population change ([@crainiceanu2005; @bürkner2017; @goodrich2020]).
+The stratum-level population trajectories are fit using a spatially explicit, hierarchical GAM smooth. This spatial hierarchical structure allows the model to share information on the shape of the population trajectory among neighbouring strata and across the full range of the sites monitored for a given species. The variation among strata in the shape of the population trajectory is estimated using an intrinsic conditional autoregressive (iCAR) structure. This iCAR component of the model estimates the parameters of the GAM smooth as drawn from a normal distribution centered on the means of the parameter values in the neighbouring strata and with an estimated standard deviation (SD). The value of the SD controls the amount of variation in the shape of the trajectories among strata.
 
-The semi-parametric nature of smooths and the variation among alternative basis functions complicates the use of default or informative priors ([@lemoine2019; @banner2020]). We've used a prior simulation to translate these alternative priors into intuitive values of population trends that are directly interpretable as biological parameters. We then compare the prior distribution of trends that would result from these alternative priors to:
+An appropriate prior for the SD parameter is not intuitive, because the GAM parameters do not directly reflect a biological process for which prior knowledge might provide an informative prior. Priors on variance parameters can be unintentionally informative if they put substantial prior mass at improbable levels of variation ([@gelman2006; @lemoine2019; @wesner2021]). Therefore, we conducted a prior simulation to translate the SD priors into a variation in long-term population trends, for which we do have some biological intuition. The simulation was designed to ensure that the prior on the spatial SD was largely uninformative, allowing for a reasonably broad range of long-term (1966-2019) population trend estimates across a species range, and that it did not contain substantial prior mass at highly improbable levels of variation.
 
-1.  the collection of realised long-term trend estimates from a different statistical model applied to the North American Breeding Bird Survey ([@link2020]).
+We compared the variation in stratum-level trends under the alternative priors to observed variation in trends from a collection of realised long-term trend estimates from a different statistical model applied to the North American Breeding Bird Survey ([@link2020]).
 
-2.  our own prior knowledge about probable rates of change in wild bird populations at continental scales.
+We compared three possible prior distributions for the Standard Deviation of the among-stratum variance on the GAM parameters.
 
-We compared half normal and half t-distributions for the priors on the Standard Deviation on the GAM parameters.
+1.  half-normal
 
-1.  normal
+2.  half-t-distribution with 3 degrees of freedom
 
-2.  t-distribution with 3 degrees of freedom
+3.  gamma with shape parameter = 2
 
-And, for each of the half-normal and half-t-distributions, we compared 5 different values to set the prior-scale: (0.5, 1, 2, 3, and 4). Given the log-link in the trend model and the scaling of the low-rank thin-plate regression spline with identifiability constraints ([@wood2020]), these 5-values of prior-scales should cover the range of plausible parameter values.
+And, for each of the prior distributions, we compared 5 different values to set the prior-scale: (0.5, 1, 2, 3, and 4). Given the log-link in the trend model and the scaling of the low-rank thin-plate regression spline with identifiability constraints ([@wood2020]), these 5-values of prior-scales should cover the range of plausible parameter values.
+
+# Spoiler
+
+We suggest a half t-distribution, with a scale parameter = 2, fits the realised distributions of both long and short-term trends for most bird species surveyed by the BBS (i.e., most bird species with the best information on population trends at continental scales and for \~50 years). This half-t prior results in prior distributions of long-term and short-term trends that fit the realized distributions and includes long tails that cover the range of plausible trend estimates without including large amounts of prior probability mass at implausibly extreme values.
+
+```{r load saved plots, echo=FALSE}
+load("data/prior_t_sel_long.Rdata")
+load("data/prior_t_sel_short.Rdata")
+```
+
+```{r plot spoiler, fig.show='asis', fig.dim = c(6,6), fig.cap= "Observed distributions of the absolute values of long-term (top) and short-term (bottom) population trends from the BBS data using non-GAM models (in black), and the simulated prior distribution (in green) of long- and short-term trends from the spline smooth basis used in this paper, with a half-t (df = 3 and scale parameter = 2) prior distribution on the standard deviation of the spline parameters"}
+
+ print(overp_t2 / overp_short_t2)
+```
+
+\newpage
+
+------------------------------------------------------------------------
+
+# Details on the prior simulations
 
 Here's the code that runs the simulations in Stan.
 
@@ -299,8 +319,6 @@ save(file = "output/GAM_prior_sim_summary.RData",
 
 ```
 
-
-
 # Comparing simulation priors to realised data
 
 ## Realised trend estimates
@@ -353,7 +371,6 @@ kable(bbs_declines_usgs_long[1:3,], booktabs = TRUE,
 
 ```
 
-
 ## Summarize the long-term trends from the prior simulations
 
 ```{r prior_trend_distributions}
@@ -370,6 +387,7 @@ trends_long <- trends_out %>%  #select long-term trends only
 trends_normal <- trends_long %>% 
   filter(distribution == "norm")
 ```
+
 The distributions for the normal priors do a reasonable job of covering the range of possible long-term trend values, but the heavier-tailed t-distributions seem to better fit the shape of the distributions.
 
 ```{r overplots long-term}
@@ -399,15 +417,32 @@ The distributions for the normal priors do a reasonable job of covering the rang
                            "Prior Scale\nSD half-t df=3")+
   coord_cartesian(xlim = c(0,20))
  
+  
+  
 ```
 
-The half-t-distributions with a scale value of 2 or 3 fit the shape of the realised trend distribution reasonably well, and the long-tail includes significant prior mass at and beyond the observed maximum absolute values of trends. 
+```{r save plots for start long, echo=FALSE}
+trends_t2 <- trends_t %>% 
+  filter(prior_scale == 2)
+
+  overp_t2 <- realised_long_bbs_hist +
+    geom_freqpoly(data = trends_t2,
+                aes(abs_trend,after_stat(density)),
+                colour = "darkgreen",
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  coord_cartesian(xlim = c(0,20))
+ 
+  save(list = "overp_t2",file = "data/prior_t_sel_long.Rdata")
+```
+
+The half-t-distributions with a scale value of 2 or 3 fit the shape of the realised trend distribution reasonably well, and the long-tail includes significant prior mass at and beyond the observed maximum absolute values of trends.
 
 ```{r plot_prior_trend_distributions, fig.show='asis', fig.dim = c(8, 10)}
  print(overp_normal / overp_t)
 ```
 
-In addition, each of the prior distributions include some prior mass at trend values beyond the realised maximum values. And the broadest priors (scales of 3 or 4), include prior mass at trend values that are extremely unlikely for a wild population to sustain over >50 years.
+In addition, each of the prior distributions include some prior mass at trend values beyond the realised maximum values. And the broadest priors (scales of 3 or 4), include prior mass at trend values that are extremely unlikely for a wild population to sustain over \>50 years. For example, more than 10% of the two widest distributions are at values larger than the largest observed value of long-term trends, and the 99th percentiles extend to values that are truly extreme (40 - 50%/year).
 
 ```{r prior_table}
 quant_long_tends <- trends_long %>% 
@@ -425,5 +460,127 @@ kable(quant_long_tends, booktabs = TRUE,
  
 ```
 
+# Short-term trends
+
+The maximum observed short-term trend from the same USGS analysis of BBS trends is for Eurasian Collared-dove, which have a ten-year trend rate of 23.5%/year. Although the full set of short-term trends is not available for download, this extreme rate of short-term increase provides a useful benchmark against which we can compare the prior distributions of short-term trends. This ten-year trend rate implies a `r signif(((((23.5/100)+1)^10)-1)*100,2)` % overall increase in the population over this time. This is an extreme increase over a short-period of time.
+
+```{r short-term max}
+G_short_usgs <- 23.5 #Eurasian Collared Dove trend for short-term 2009-2019 analysis USGS
+    # short-term trends not included in Science Base, but visible here:
+    # https://www.mbr-pwrc.usgs.gov/bbs/reglist19v3.shtml
+```
+
+We can also use archived estimates from the Canadian Wildlife Service for 1970 - 2017, which were derived from a different model than the GAM used here.
+
+```{r canadian short term, cache=TRUE}
+bbs2017_Canada <- read.csv("data_basic/All BBS trends 2017 w reliab.csv")
+
+bbs_short_survey_wide <- bbs2017_Canada %>% 
+  filter(region.type == "Continental",
+         trendtype == "short-term",
+         startyear == 2007,
+         trendtime == "full") %>% 
+  select(species,trend) %>% 
+  mutate(abs_trend = abs(trend)) %>% 
+  arrange(-abs_trend)
+
+```
+
+The realised distribution of short-term trends from this archived analysis shows that short-term trends are generally more extreme than long-term trends.
+
+```{r short term hist , fig.show='asis', fig.dim = c(8, 8)}
+realised_short_bbs_hist <- ggplot(data = bbs_short_survey_wide,
+                            aes(abs_trend,after_stat(density)))+
+  geom_freqpoly(breaks = seq(0,20,0.5),center = 0)+
+  xlab("Absolute value of long-term BBS trends CWS model (2007-2017)")+
+  theme_bw()+
+  scale_y_continuous(limits = c(0,1))
+print(realised_short_bbs_hist)
+
+```
+
+The short-term trends from the prior distributions represent all possible ten-year trends, not just the final ten-years of the trajectory.
+
+```{r prior_short-term_trend_distributions}
+ 
+
+trends_short <- trends_out %>%  #select long-term trends only
+  filter(nyears == 10 ) 
+
+trends_short_normal <- trends_short %>% 
+  filter(distribution == "norm")
+
+trends_short_t <- trends_short %>% 
+  filter(distribution == "t")
+
+
+```
+
+Overplotting the simulation prior distributions of short-term trends with the realised collection of short-term trends.
+
+```{r overplots short-term}
+
+  overp_normal_short <- realised_short_bbs_hist +
+    geom_freqpoly(data = trends_short_normal,
+                aes(abs_trend,after_stat(density),
+                    colour = scale_factor),
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                           "Prior Scale\nSD half-normal")+
+  coord_cartesian(xlim = c(0,20))
+    
+
+
+  overp_t_short <- realised_short_bbs_hist +
+    geom_freqpoly(data = trends_short_t,
+                aes(abs_trend,after_stat(density),
+                    colour = scale_factor),
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                           "Prior Scale\nSD half-t df=3")+
+  coord_cartesian(xlim = c(0,20))
+ 
+```
+
+```{r save plots for start, echo=FALSE}
+trends_short_t2 <- trends_short_t %>% 
+  filter(prior_scale == 2)
+
+  overp_short_t2 <- realised_short_bbs_hist +
+    geom_freqpoly(data = trends_short_t2,
+                aes(abs_trend,after_stat(density)),
+                colour = "darkgreen",
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  coord_cartesian(xlim = c(0,20))
+ 
+  save(list = "overp_short_t2",file = "data/prior_t_sel_short.Rdata")
+```
+
+The t-distribution scale parameter = 2, does a reasonably good job of covering the range of realistic short-term trends in the BBS data, and includes a long tail that includes much more extreme values when supported by the data. The distributions with larger scale parameters place significant prior density at rates of short-term change that are highly improbable at continental scales. For example, approximately 10% of the two widest distributions are at values larger than the largest observed value, and the 99th percentiles extend to values that are truly extreme (64 - 92%/year).
+
+```{r plot_prior_short_trend_distributions, fig.show='asis', fig.dim = c(8, 10)}
+ print(overp_normal_short / overp_t_short)
+```
+
+Below, you can see that the half-t-distribution with scale parameter = 2 has a long-tail that will allow for extreme trends when supported by the data (e.g., it has approximately 5% of the prior distribution covering values larger than the maximum observed value and a 99th percentile far beyond the most extreme observed value).
+
+```{r prior_table_short}
+quant_short_tends <- trends_short %>% 
+  group_by(distribution,prior_scale) %>% 
+  summarise(median_abs_t = median(abs_trend),
+            U80 = quantile(abs_trend,0.80),
+            U90 = quantile(abs_trend,0.90),
+            U99 = quantile(abs_trend,0.99),
+            pGTmax = length(which(abs_trend > G_short_usgs))/length(abs_trend))
+
+kable(quant_short_tends, booktabs = TRUE,
+      digits = 3) %>%
+  kable_styling(font_size = 8)
+
+ 
+```
 
 # References
