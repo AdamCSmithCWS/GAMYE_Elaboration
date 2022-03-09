@@ -348,4 +348,45 @@ print(overp_t/overp_gamma/overp_norm)
 
 
 
+trends_sd_t1 <- trends_sd_t %>% 
+  filter(prior_scale == 1)
+trends_sd_norm1 <- trends_sd_norm %>% 
+  filter(prior_scale == 1)
+trends_sd_gamma1 <- trends_sd_gamma %>% 
+  filter(prior_scale == 2)
+
+
+overp_t1 <- realised_long_bbs_hist +
+  geom_freqpoly(data = trends_sd_t1,
+                aes(sd_trends,after_stat(density)),
+                    colour = "darkgreen",
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_t1)
+
+overp_norm1 <- realised_long_bbs_hist +
+  geom_freqpoly(data = trends_sd_norm1,
+                aes(sd_trends,after_stat(density)),
+                    colour = "darkgreen",
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_norm1)
+
+overp_gamma1 <- realised_long_bbs_hist +
+  geom_freqpoly(data = trends_sd_gamma1,
+                aes(sd_trends,after_stat(density)),
+                colour = "darkgreen",
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_gamma1)
+
+save(list = c("overp_gamma1","overp_norm1","overp_t1"),
+     file = "data/sd_GAM_spatial_saved_long-term.RData")
+
 
