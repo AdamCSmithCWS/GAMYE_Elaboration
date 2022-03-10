@@ -207,22 +207,32 @@ for(i in c(1:nrow(fls))){
   # abline(0,1)
 
 # indices and trends ------------------------------------------------------
-true_smooths <- log_true_traj %>% 
-    ungroup() %>% 
-    select(Stratum_Factored,Year,
-           True_scaled_smooth) %>%
-    rename(true_year = Year) 
-  
- strat_inds <- index_function(fit = stanfit,
-                              parameter = "n",
-                              year_1 = year_1,
-                              strat = st_n)
-  indices <- strat_inds$indices %>% 
-    inner_join(.,strat_df)%>% 
-    mutate(version = "full") %>% 
-    inner_join(.,obs_means) %>% 
-    left_join(.,true_smooths,by = c("true_year","Stratum_Factored"))
 
+  strat_inds <- index_function(fit = stanfit,
+                               parameter = "n",
+                               year_1 = year_1,
+                               strat = st_n)
+  if(!reald){
+    true_smooths <- log_true_traj %>% 
+      ungroup() %>% 
+      select(Stratum_Factored,Year,
+             True_scaled_smooth) %>%
+      rename(true_year = Year) 
+    
+    indices <- strat_inds$indices %>% 
+      inner_join(.,strat_df)%>% 
+      mutate(version = "full") %>% 
+      inner_join(.,obs_means) %>% 
+      left_join(.,true_smooths,by = c("true_year","Stratum_Factored"))
+    
+  }else{
+    indices <- strat_inds$indices %>% 
+      inner_join(.,strat_df)%>% 
+      mutate(version = "full") %>% 
+      inner_join(.,obs_means) 
+  }
+
+ 
   strat_inds_smooth <- index_function(fit = stanfit,
                                parameter = "nsmooth",
                                year_1 = year_1,
@@ -252,12 +262,6 @@ true_smooths <- log_true_traj %>%
                inherit.aes = FALSE)+
     geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
     geom_line(aes(colour = version))+
-    geom_line(data = indices_all,
-              aes(x = true_year,
-                  y = True_scaled_smooth),
-              colour = "black",
-              alpha = 0.3,
-              inherit.aes = FALSE)+
     labs(title = species)+
     scale_y_continuous(limits = c(0,NA))+
     facet_wrap(vars(original_strat_name),
@@ -265,6 +269,15 @@ true_smooths <- log_true_traj %>%
                ncol = pd,
                scales = "free_y")
  
+  if(!reald){
+    pl_inds <- pl_inds +
+      geom_line(data = indices_all,
+                aes(x = true_year,
+                    y = True_scaled_smooth),
+                colour = "black",
+                alpha = 0.3,
+                inherit.aes = FALSE)
+  }
  # print(pl_inds)
 # geofacet ----------------------------------------------------------------
 
@@ -333,11 +346,6 @@ true_smooths <- log_true_traj %>%
   g_inds <- suppressMessages(ggplot(data = indices_geo,aes(x = true_year,y = median))+
     geom_point(aes(x = true_year,y = mean_obs*zero,alpha = n_surveys),
                inherit.aes = FALSE)+
-      geom_line(aes(x = true_year,
-                    y = True_scaled_smooth),
-                colour = "black",
-                alpha = 0.3,
-                inherit.aes = FALSE)+
     geom_ribbon(aes(ymin = lci,ymax = uci,fill = version),alpha = 0.1)+
     geom_line(aes(colour = version))+
     labs(title = species)+
@@ -349,6 +357,16 @@ true_smooths <- log_true_traj %>%
           panel.spacing = unit(0.1,"mm"),
     axis.text.x = element_text(size = 5)))
 
+  if(!reald){
+    
+    g_inds <- g_inds +
+      geom_line(aes(x = true_year,
+                    y = True_scaled_smooth),
+                colour = "black",
+                alpha = 0.3,
+                inherit.aes = FALSE)
+    
+  }
     pdf(paste0("figures/",out_base,"_geofacet.pdf"),
       height = 14,
       width = 14)
