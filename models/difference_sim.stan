@@ -9,12 +9,12 @@
 // Bayesian hierarchical spatial models: Implementing the Besag York Mollié model in stan. 
 // Spatial and Spatio-temporal Epidemiology 31:100301.
 
-functions {
-  real icar_normal_lpdf(vector bb, int ns, int[] n1, int[] n2) {
-    return -0.5 * dot_self(bb[n1] - bb[n2])
-      + normal_lpdf(sum(bb) | 0, 0.001 * ns); //soft sum to zero constraint on bb
- }
-}
+// functions {
+//   real icar_normal_lpdf(vector bb, int ns, int[] n1, int[] n2) {
+//     return -0.5 * dot_self(bb[n1] - bb[n2])
+//       + normal_lpdf(sum(bb) | 0, 0.001 * ns); //soft sum to zero constraint on bb
+//  }
+// }
 
 
 data {
@@ -38,10 +38,10 @@ data {
   // above is actually a ragged array, but filled with 0 values so that it works
   // but throws an error if an incorrect strata-site combination is called
  
-  // spatial neighbourhood information
-  int<lower=1> N_edges;
-  int<lower=1, upper=nstrata> node1[N_edges];  // node1[i] adjacent to node2[i]
-  int<lower=1, upper=nstrata> node2[N_edges];  // and node1[i] < node2[i]
+  // // spatial neighbourhood information
+  // int<lower=1> N_edges;
+  // int<lower=1, upper=nstrata> node1[N_edges];  // node1[i] adjacent to node2[i]
+  // int<lower=1, upper=nstrata> node2[N_edges];  // and node1[i] < node2[i]
 
 
 
@@ -66,7 +66,7 @@ parameters {
   real<lower=0> sdBETA;    // sd of overall annual changes
 
   vector[nyears-1] BETA_raw;//_raw; 
-  matrix[nstrata,nyears] beta_raw;         // strata level parameters
+  matrix[nstrata,nyears-1] beta_raw;         // strata level parameters
 
 }
 
@@ -77,20 +77,23 @@ transformed parameters {
   matrix[nstrata,nyears] yeareffect;
   vector[nyears-1] BETA;
   vector[nstrata] zero_betas = 0;
+  vector[nstrata] strata;
   
-  
-  
+  strata = (sdstrata*strata_raw) + STRATA;
+  beta[,midyear] = zero_betas;
+  yeareffect[,midyear] = strata;
 
-  for(t in 1:(midyear-1)){
-    beta[,t] = (sdbeta[t] * beta_raw[,t]);
+  for(t in (midyear-1):1){
+    beta[,t] = (sdbeta[t] * beta_raw[,t]) + BETA[t];
+    yeareffect[,t] = yeareffect[,t+1] + beta[,t];
   }
  
    for(t in (midyear+1):nyears){
-    beta[,t] = (sdbeta[t-1] * beta_raw[,t-1]) + BETA[t-1];
+    beta[,t] = (sdbeta[t-1] * beta_raw[,t-1]) + BETA[t-1];//t-1 indicators to match dimensionality
+    yeareffect[,t] = yeareffect[,t-1] + beta[,t];
   }
  
-   beta[,midyear] = zero_betas;
-  
+   
 
 
 
@@ -102,10 +105,9 @@ transformed parameters {
   for(i in 1:ncounts){
     real noise = sdnoise*noise_raw[i];
     real obs = sdobs*obs_raw[observer[i]];
-   real strata = (sdstrata*strata_raw[strat[i]]) + STRATA;
   real ste = sdste*ste_raw[site[i]]; // site intercepts
 
-    E[i] =  smooth_pred[year[i],strat[i]] + strata + yeareffect[strat[i],year[i]] + ste + obs + noise;
+    E[i] =  yeareffect[strat[i],year[i]] + ste + obs + noise;
   }
   
   }
@@ -117,8 +119,8 @@ model {
   sdobs ~ normal(0,0.5); //prior on sd of observer effects
   sdste ~ std_normal(); //prior on sd of site effects
   sdyear ~ gamma(2,2); // prior on sd of yeareffects - stratum specific, and boundary-avoiding with a prior mode at 0.5 (1/2) - recommended by https://doi.org/10.1007/s11336-013-9328-2 
-  sdBETA ~ student_t(3,0,4); // prior on sd of GAM parameters
-  sdbeta ~ student_t(3,0,1); // prior on sd of GAM parameters
+  sdBETA ~ student_t(3,0,1); // prior on sd of yearly changes
+  sdbeta ~ student_t(3,0,1); // prior on sd of strata variation in yearly changes
   sdstrata ~ std_normal(); //prior on sd of intercept variation
   
   noise_raw ~ normal(0,1);
@@ -129,23 +131,24 @@ model {
   ste_raw ~ std_normal();//site effects
   sum(ste_raw) ~ normal(0,0.001*nsites);
  
- for(s in 1:nstrata){
 
-  yeareffect_raw[s,] ~ std_normal();
-  //soft sum to zero constraint on year effects within a stratum
-  sum(yeareffect_raw[s,]) ~ normal(0,0.001*nyears);
-  
- }
-  
   BETA_raw ~ std_normal();// prior on fixed effect mean GAM parameters
  
   STRATA ~ std_normal();// prior on fixed effect mean intercept
 
-
-for(k in 1:nknots_year){
-    beta_raw[,k] ~ icar_normal(nstrata, node1, node2);
+for(t in 1:(years-1)){
+    beta_raw[,t] ~ std_normal();
+  sum(beta_raw[,t]) ~ normal(0,0.001*nstrata);
+    
 }
-   strata_raw ~ icar_normal(nstrata, node1, node2);
+
+    strata_raw ~ std_normal();
+  sum(strata_raw) ~ normal(0,0.001*nstrata);
+  
+// for(t in 1:(years-1)){
+//     beta_raw[,t] ~ icar_normal(nstrata, node1, node2);
+// }
+//    strata_raw ~ icar_normal(nstrata, node1, node2);
 
   count ~ poisson_log(E); //vectorized count likelihood with log-transformation
 
@@ -155,7 +158,6 @@ for(k in 1:nknots_year){
  generated quantities {
 
    real<lower=0> n[nstrata,nyears];
-   real<lower=0> nsmooth[nstrata,nyears];
    real<lower=0> retrans_noise;
    real<lower=0> retrans_obs;
   // vector[ncounts] log_lik; // alternative value to track the observervation level log-likelihood
@@ -174,20 +176,17 @@ for(y in 1:nyears){
       for(s in 1:nstrata){
 
   real n_t[nsites_strata[s]];
-  real nsmooth_t[nsites_strata[s]];
   real retrans_yr = 0.5*(sdyear[s]^2);
-  real strata = (sdstrata*strata_raw[s]) + STRATA;
-  
+
         for(t in 1:nsites_strata[s]){
 
   real ste = sdste*ste_raw[ste_mat[s,t]]; // site intercepts
 
 
-      n_t[t] = exp(strata+ smooth_pred[y,s] + ste + yeareffect[s,y] + retrans_noise + retrans_obs);
-      nsmooth_t[t] = exp(strata + smooth_pred[y,s] + ste + retrans_yr + retrans_noise + retrans_obs);
-        }
+      n_t[t] = exp(ste + yeareffect[s,y] + retrans_noise + retrans_obs);
+
+       }
         n[s,y] = mean(n_t); //mean of exponentiated predictions across sites in a stratum
-        nsmooth[s,y] = mean(nsmooth_t); //mean of exponentiated predictions across sites in a stratum
         //using the mean of hte exponentiated values, instead of including the log-normal
         // retransformation factor (0.5*sdste^2), because this retransformation makes 2 questionable assumptions:
           // 1 - assumes that sites are exchangeable among strata - e.g., that sdste is equal among all strata
