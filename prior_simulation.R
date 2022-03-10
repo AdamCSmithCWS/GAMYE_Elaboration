@@ -294,7 +294,8 @@ save(list = "trends_sd",
 
 
 trends_sd_t <- trends_sd %>% 
-  filter(distribution == "t")
+  filter(distribution == "t",
+         nyears == 53)
 
 
 overp_t <- realised_long_bbs_hist +
@@ -311,7 +312,8 @@ print(overp_t)
 
 
 trends_sd_norm <- trends_sd %>% 
-  filter(distribution == "norm")
+  filter(distribution == "norm",
+         nyears == 53)
 
 
 overp_norm <- realised_long_bbs_hist +
@@ -329,7 +331,8 @@ print(overp_norm)
 
 
 trends_sd_gamma <- trends_sd %>% 
-  filter(distribution == "gamma")
+  filter(distribution == "gamma",
+         nyears == 53)
 
 
 overp_gamma <- realised_long_bbs_hist +
@@ -389,4 +392,92 @@ print(overp_gamma1)
 save(list = c("overp_gamma1","overp_norm1","overp_t1"),
      file = "data/sd_GAM_spatial_saved_long-term.RData")
 
+trends_long <- trends_sd %>% 
+  filter(nyears == 53)
 
+quant_long_tends <- trends_long %>% 
+  group_by(distribution,prior_scale) %>% 
+  summarise(median_sd_trends = median(sd_trends),
+            U80 = quantile(sd_trends,0.80),
+            U90 = quantile(sd_trends,0.90),
+            U99 = quantile(sd_trends,0.99),
+            pGTmax = length(which(sd_trends > G_long_usgs))/length(sd_trends))
+
+# kable(quant_long_tends, booktabs = TRUE,
+#       digits = 3) %>%
+#   kable_styling(font_size = 8)
+
+# Short-term comparison ---------------------------------------------------
+
+
+
+trends_sd_t_short <- trends_sd %>% 
+  filter(distribution == "t",
+         nyears == 10)
+
+
+overp_t_short <- realised_short_bbs_hist +
+  geom_freqpoly(data = trends_sd_t_short,
+                aes(sd_trends,after_stat(density),
+                    colour = scale_factor),
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                         "Prior Scale\nSD half-t df=3")+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_t_short)
+
+
+trends_sd_norm_short <- trends_sd %>% 
+  filter(distribution == "norm",
+         nyears == 10)
+
+
+overp_norm_short <- realised_short_bbs_hist +
+  geom_freqpoly(data = trends_sd_norm_short,
+                aes(sd_trends,after_stat(density),
+                    colour = scale_factor),
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                         "Prior Scale\nSD half-normal")+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_norm_short)
+
+
+
+trends_sd_gamma_short <- trends_sd %>% 
+  filter(distribution == "gamma",
+         nyears == 10)
+
+
+overp_gamma_short <- realised_short_bbs_hist +
+  geom_freqpoly(data = trends_sd_gamma_short,
+                aes(sd_trends,after_stat(density),
+                    colour = scale_factor),
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,direction = -1,
+                         "Prior Scale\nSD gamma shape = 2")+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_gamma_short)
+
+print(overp_t_short/overp_gamma_short/overp_norm_short)
+
+trends_short <- trends_sd %>% 
+  filter(nyears == 10)
+
+quant_short_tends <- trends_short %>% 
+  group_by(distribution,prior_scale) %>% 
+  summarise(median_sd_trends = median(sd_trends),
+            U80 = quantile(sd_trends,0.80),
+            U90 = quantile(sd_trends,0.90),
+            U99 = quantile(sd_trends,0.99),
+            pGTmax = length(which(sd_trends > G_short_canada))/length(sd_trends))
+
+kable(quant_short_tends, booktabs = TRUE,
+      digits = 3) %>%
+  kable_styling(font_size = 8)

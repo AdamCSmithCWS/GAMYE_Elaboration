@@ -78,7 +78,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(5,10,11,16)){#1:nrow(fls)){
+for(i in c(1:nrow(fls))){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
