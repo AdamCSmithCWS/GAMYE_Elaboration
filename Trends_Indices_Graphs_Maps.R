@@ -212,6 +212,11 @@ for(i in c(1:nrow(fls))){
                                parameter = "n",
                                year_1 = year_1,
                                strat = st_n)
+  strat_inds_smooth <- index_function(fit = stanfit,
+                                      parameter = "nsmooth",
+                                      year_1 = year_1,
+                                      strat = st_n)
+  
   if(!reald){
     true_smooths <- log_true_traj %>% 
       ungroup() %>% 
@@ -225,23 +230,27 @@ for(i in c(1:nrow(fls))){
       inner_join(.,obs_means) %>% 
       left_join(.,true_smooths,by = c("true_year","Stratum_Factored"))
     
+    indices_smooth <- strat_inds_smooth$indices %>% 
+      inner_join(.,strat_df) %>% 
+      mutate(version = "smooth")%>% 
+      left_join(.,true_smooths,by = c("true_year","Stratum_Factored"))
+    
+    
   }else{
     indices <- strat_inds$indices %>% 
       inner_join(.,strat_df)%>% 
       mutate(version = "full") %>% 
       inner_join(.,obs_means) 
+    
+    indices_smooth <- strat_inds_smooth$indices %>% 
+      inner_join(.,strat_df) %>% 
+      mutate(version = "smooth")
+    
+    
   }
 
  
-  strat_inds_smooth <- index_function(fit = stanfit,
-                               parameter = "nsmooth",
-                               year_1 = year_1,
-                               strat = st_n)
-  indices_smooth <- strat_inds_smooth$indices %>% 
-    inner_join(.,strat_df) %>% 
-    mutate(version = "smooth")%>% 
-    left_join(.,true_smooths,by = c("true_year","Stratum_Factored"))
-  
+
   indices_all <- bind_rows(indices,
                            indices_smooth) %>% 
     rename_with(.,~gsub(st_n,replacement = "strat_plot",

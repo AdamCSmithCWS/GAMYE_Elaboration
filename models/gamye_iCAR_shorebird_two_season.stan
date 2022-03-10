@@ -130,11 +130,12 @@ model {
   // between 33% decrease and a 50% increase
   sdste ~ normal(0,2); //prior on scale of site level variation
   sdBETA ~ student_t(3,0,2); // prior on sd of GAM parameters
-#  sdbeta ~ student_t(3,0,1); // prior on sd of GAM parameters
 
 
-#  sdBETA ~ normal(0,1); //prior on sd of gam hyperparameters
-  sdbeta ~ gamma(2,2);//boundary avoiding prior 
+#  sdbeta ~ normal(0,1); //prior on sd of gam hyperparameters
+  #sdbeta ~ gamma(2,2);//boundary avoiding prior 
+  sdbeta ~ student_t(3,0,1);// prior on spatial variation of spline parameters 
+  
   sdseason ~ std_normal();//variance of GAM parameters
   beta_raw_season_1 ~ std_normal();//GAM parameters
   beta_raw_season_2 ~ std_normal();//GAM parameters
