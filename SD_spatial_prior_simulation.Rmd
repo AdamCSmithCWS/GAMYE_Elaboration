@@ -20,7 +20,7 @@ library(kableExtra)
 
 The stratum-level population trajectories are fit using a spatially explicit, hierarchical GAM smooth. This spatial hierarchical structure allows the model to share information on the shape of the population trajectory among neighbouring strata and across the full range of the sites monitored for a given species. The variation among strata in the shape of the population trajectory is estimated using an intrinsic conditional autoregressive (iCAR) structure. This iCAR component of the model estimates the parameters of the GAM smooth as drawn from a normal distribution centered on the means of the parameter values in the neighbouring strata and with an estimated standard deviation (SD). The value of the SD controls the amount of variation in the shape of the trajectories among strata.
 
-An appropriate prior for the SD parameter is not intuitive, because the GAM parameters do not directly reflect a biological process for which prior knowledge might provide an informative prior. Priors on variance parameters can be unintentionally informative if they put substantial prior mass at improbable levels of variation ([@gelman2006; @lemoine2019; @wesner2021]). Therefore, we conducted a prior simulation to translate the SD priors into a variation in long-term population trends, for which we do have some biological intuition. The simulation was designed to ensure that the prior on the spatial SD was largely uninformative, allowing for a reasonably broad range of long-term (1966-2019) population trend estimates across a species range, and that it did not contain substantial prior mass at highly improbable levels of variation.
+An appropriate prior for the SD parameter is not intuitive, because the GAM parameters do not directly reflect a biological process for which prior knowledge might provide an informative prior. Priors on variance parameters can be unintentionally informative if they put substantial prior mass at improbable levels of variation ([@gelman2006; @lemoine2019; @wesner2021]). Therefore, we conducted a prior simulation to translate the SD priors into a variation in long-term population trends, for which we do have some biological intuition. The simulation was designed to ensure that the prior on the spatial SD was largely uninformative, allowing for a reasonably broad variation in long-term (1966-2019 USGS analyses) and short-term (2007-2017 CWS analyses) population trend estimates across a species range, and that it did not contain substantial prior mass at highly improbable levels of variation.
 
 We compared the variation in stratum-level trends under the alternative priors to observed variation in trends from a collection of realised long-term trend estimates from a different statistical model applied to the North American Breeding Bird Survey ([@link2020]).
 
@@ -32,555 +32,673 @@ We compared three possible prior distributions for the Standard Deviation of the
 
 3.  gamma with shape parameter = 2
 
-And, for each of the prior distributions, we compared 5 different values to set the prior-scale: (0.5, 1, 2, 3, and 4). Given the log-link in the trend model and the scaling of the low-rank thin-plate regression spline with identifiability constraints ([@wood2020]), these 5-values of prior-scales should cover the range of plausible parameter values.
+And, for each of the prior distributions, we compared 5 different values to set the prior-scale (or the rate parameter, the inverse of the scale, for the gamma distributions): 0.5, 1, 2, 3, and 4. Given the log-link in the trend model and the basis function scaling of the low-rank thin-plate regression spline with identifiability constraints ([@wood2020]), these 5-values of prior-scales should cover the range of plausible parameter values.
 
-# Spoiler
+# Selected prior
 
-We suggest a half t-distribution, with a scale parameter = 1, fits the realised distributions of the SD in long-term trends among regions for most bird species surveyed by the BBS (i.e., most bird species with the best information on population trends at continental scales and for \~50 years). In addition, a half-normal prior with scale parameter = 2, or a gamma parameter with shape = 2 and scale = 2, seem to fit similarly well. The half-t prior results in prior distribution of SD in long-term trends that fit the realized distributions and includes long tails that cover the range of plausible trend estimates without including large amounts of prior probability mass at implausibly extreme values.
+We suggest a half t-distribution, with a scale parameter = 1, fits the realised distributions of the SD in long-term trends among regions for most bird species surveyed by the BBS (i.e., most bird species with the best information on population trends at continental scales and for \~50 years). In addition, a half-normal prior with scale parameter = 2, or a gamma parameter with shape = 2 and rate = 2, also seem to fit similarly well. The half-t prior results in prior distribution of SD in long-term trends that fit the realized distributions and includes long tails that cover the range of plausible trend estimates without including large amounts of prior probability mass at implausibly extreme values.
+For the short-term trends, the half t-distribution with scale = 1 includes some prior mass above the maximum realised values in the BBS data, although less than 1%. As such, this prior may be slightly more informative than desired in some situations. However, given the relatively close fit to the realised data and the general desirability of a mild regularizing effect on among-strata variation in trends, we suggest that this prior is sufficient for our purposes here. 
 
 ```{r load saved plots, echo=FALSE}
-load("data/sd_GAM_spatial_saved_long-term.RData")
+load("data/SD_prior_sim_graphs.RData")
 ```
 
-```{r plot spoiler, fig.show='asis', fig.dim = c(6,6), fig.cap= "Observed distributions of the SD of long-term population trends from the BBS data using non-GAM models (in black), and the simulated prior distribution (in green) of long- and short-term trends from the spline smooth basis used in this paper, with a half-t (df = 3 and scale parameter = 2) prior distribution on the standard deviation of the spline parameters"}
+```{r plot spoiler, echo=FALSE, fig.show='asis', fig.dim = c(6,6), fig.cap= "Observed distributions of the SD of long-term population trends from the BBS data using non-GAM models (in black), and the simulated prior distribution (in green) of long- and short-term trends from the spline smooth basis used in this paper, with a half-t (df = 3 and scale parameter = 1) prior distribution on the standard deviation of the spline parameters"}
 
-print(overp_t1/overp_gamma1/overp_norm1)
+print(overp_t1/overp_t_short1)
 
 ```
 
 \newpage
 
-------------------------------------------------------------------------
+Summary of the quantiles of the prior simulated distributions for the long-term trends.
+```{r realised trend header, echo=FALSE}
+kable(quant_long_tends, booktabs = TRUE,
+      digits = 3, 
+      col.names = c("Distribution",
+                    "Prior Scale (normal, t) or Rate (gamma)",
+                    "Median Prior Predicted Distribution",
+                    "80th percentile",
+                    "90th percentile",
+                    "99th percentile",
+                    "Proportion of prior distribution > realised maximum value"), 
+      caption = "Prior simulated distribution quantiles for the standard deviation of long-term trends among strata within species and proportion of the distributions greater than the realised maximum values from a separate analysis of the BBS data for > 400 species. Prior simulations for three prior distributions with 5 different scales (normal and t) or rates (gamma)") %>%
+  kable_styling(font_size = 8)%>%
+column_spec(column = 1:7,width = "2cm")
+
+```
+\newpage
+
+And the same for the short-term trends.
+```{r realised short trend header, echo=FALSE}
+kable(quant_short_tends, booktabs = TRUE,
+      digits = 3, 
+      col.names = c("Distribution",
+                    "Prior Scale (normal, t) or Rate (gamma)",
+                    "Median Prior Predicted Distribution",
+                    "80th percentile",
+                    "90th percentile",
+                    "99th percentile",
+                    "Proportion of prior distribution > realised maximum value",
+                    "Proportion of prior distribution > realised maximum value based on slope"),
+      caption = "Prior simulated distribution quantiles for the standard deviation of short-term trends among strata within species and proportion of the distributions greater than the realised maximum values from a separate analysis of the BBS data for > 400 species. Prior simulations for three prior distributions with 5 different scales (normal and t) or rates (gamma)") %>%
+  kable_styling(font_size = 8)%>%
+column_spec(column = 1:8,width = "1.8cm")
+```
+
+\newpage
+
+
+
+```{r plot full long-term, echo=FALSE, fig.show='asis', fig.dim = c(6,6), fig.cap= "Observed distributions of the SD of long-term population trends from the BBS data using non-GAM models (in black), and the simulated prior distributions (in viridis palette) of long-term trends from the spline smooth basis used in this paper, with a half-t (df = 3), half-normal, and gamma(shape = 2) prior distributions on the standard deviation of the spline parameters. The colours of the simulated prior distributions reflect alternative scale parameters (normal and t) and alternative rate parameters (gamma)"}
+
+print(overp_t/overp_norm/overp_gamma)
+
+```
+
+\newpage
+
+
+```{r plot full short-term, echo=FALSE, fig.show='asis', fig.dim = c(6,6), fig.cap= "Observed distributions of the SD of short-term population trends from the BBS data using non-GAM models (in black for end-point trends and in grey for slope-based estimates that reduce the influence of annual fluctuations), and the simulated prior distributions (in viridis palette) of short-term trends from the spline smooth basis used in this paper, with a half-t (df = 3), half-normal, and gamma(shape = 2) prior distributions on the standard deviation of the spline parameters. The colours of the simulated prior distributions reflect alternative scale parameters (normal and t) and alternative rate parameters (gamma)"}
+
+print(overp_t_short/overp_norm_short/overp_gamma_short)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+\newpage
 
 # Details on the prior simulations
 
-Here's the code that runs the simulations in Stan.
+Here's the full, not-yet well-annotated code that runs the simulations in Stan.
 
 ```{r run_simulations,eval=FALSE}
+### prior simulation of spatial GAM sd
 
-# this is all set-up
+library(bbsBayes)
 library(tidyverse)
 library(cmdstanr)
-library(mgcv) 
 library(patchwork)
 
+setwd("C:/GitHub/GAMYE_Elaboration")
 
-for(pp in c("norm","t")){
+
+# fit model with fixed data for all parameters except the local sm --------
+
+species <- "Yellow-headed Blackbird"
+species_f <- gsub(species,pattern = " ",replacement = "_")
+
+
+bbs_trends <- read.csv("data_basic/All BBS trends 2017 w reliab.csv")
+
+sd_trends_short <- bbs_trends %>% 
+  filter(trendtype == "short-term",
+         trendtime == "full",
+         region.type == "Stratum") %>% 
+  group_by(species) %>% 
+  summarise(sd_trends = sd(trend),
+            min_trend = min(trend),
+            max_trend = max(trend),
+            uci_trend = quantile(trend,0.95),
+            lci_trend = quantile(trend,0.05)) %>% 
+  mutate(range_trend = max_trend - min_trend,
+         span_90_trend = uci_trend-lci_trend) %>%
+  filter(!is.na(sd_trends)) %>% 
+  arrange(-span_90_trend)
+
+# hist(sd_trends_short$range_trend)
+# hist(sd_trends_short$span_90_trend)
+
+G_short_canada <- max(sd_trends_short$sd_trends,na.rm = T)
+
+realised_short_bbs_hist <- ggplot(data = sd_trends_short,
+                                  aes(sd_trends,after_stat(density)))+
+  geom_freqpoly(breaks = seq(0,G_short_canada,0.5),center = 0)+
+  xlab("SD of short-term BBS trends among regions from CWS models (2009-2019)")+
+  theme_bw()+
+  scale_y_continuous(limits = c(0,1))
+print(realised_short_bbs_hist)
+
+
+
+# slope based CWS trends --------------------------------------------------
+
+
+sd_slope_trends_short <- bbs_trends %>% 
+  filter(trendtype == "short-term",
+         trendtime == "full",
+         region.type == "Stratum") %>% 
+  group_by(species) %>% 
+  summarise(sd_trends = sd(slope.trend),
+            min_trend = min(slope.trend),
+            max_trend = max(slope.trend),
+            uci_trend = quantile(slope.trend,0.95),
+            lci_trend = quantile(slope.trend,0.05)) %>% 
+  mutate(range_trend = max_trend - min_trend,
+         span_90_trend = uci_trend-lci_trend) %>%
+  filter(!is.na(sd_trends)) %>% 
+  arrange(-span_90_trend)
+
+
+G_short_slope_canada <- max(sd_slope_trends_short$sd_trends,na.rm = T)
+
+realised_slope_short_bbs_hist <- ggplot(data = sd_slope_trends_short,
+                                  aes(sd_trends,after_stat(density)))+
+  geom_freqpoly(breaks = seq(0,G_short_canada,0.5),center = 0)+
+  xlab("SD of short-term BBS trends among regions from CWS models (2009-2019)")+
+  theme_bw()+
+  scale_y_continuous(limits = c(0,1))
+print(realised_slope_short_bbs_hist)
+
+# USGS trends -------------------------------------------------------------
+# download_bbs_data(sb_id = sb_items[6,2],
+#                   bbs_dir = "data/")
+
+
+
+bbs_trends_usgs <- read.csv("data/BBS_1966-2019_core_best_trend.csv")
+
+sd_trends_long_usgs <- bbs_trends_usgs %>% 
+  filter(Region.Name != "Survey-Wide",
+         Region.Name != "CA1",
+         Region.Name != "US1",
+         !grepl(pattern = "^unid",Species.Name)) %>% 
+  group_by(Species.Name) %>% 
+  summarise(sd_trends = sd(Trend),
+            min_trend = min(Trend),
+            max_trend = max(Trend),
+            uci_trend = quantile(Trend,0.95),
+            lci_trend = quantile(Trend,0.05)) %>% 
+  mutate(range_trend = max_trend - min_trend,
+         span_90_trend = uci_trend-lci_trend) %>% 
+  arrange(-span_90_trend)
+
+
+G_long_usgs <- max(sd_trends_long_usgs$sd_trends)
+
+realised_long_bbs_hist <- ggplot(data = sd_trends_long_usgs,
+                                 aes(sd_trends,after_stat(density)))+
+  geom_freqpoly(breaks = seq(0,G_long_usgs,0.5),center = 0)+
+  xlab("SD of long-term BBS trends among regions from USGS models (1966-2019)")+
+  theme_bw()+
+  scale_y_continuous(limits = c(0,1))
+print(realised_long_bbs_hist)
+
+
+
+for(pp in c("gamma","norm","t")){
   for(prior_scale in c(0.5,1,2,3,4)){
     
-  tp = paste0("GAM_",pp,prior_scale,"_rate")
-
-  #STRATA_True <- log(2)
-  output_dir <- "output/"
-  out_base <- tp
-  csv_files <- paste0(out_base,"-",1:3,".csv")
-  
-
-  if(pp == "norm"){
-    pnorm <- 1
-  }
-  if(pp == "t"){
-    pnorm <- 2
-  }
-  
-  if(!file.exists(paste0(output_dir,csv_files[1]))){
+    tp = paste0(pp,"_rate_",prior_scale)
     
-    nyears = 54 #to match the time-scales of BBS and CBC analyses
-  dat = data.frame(year = 1:nyears)
-  nknots = 13  
-  nknots_realised = nknots-1 
-  
-  M = mgcv::smoothCon(s(year,k = nknots, bs = "tp"),data = dat,
-                       absorb.cons=TRUE,#this drops the constant
-                       diagonal.penalty=TRUE) ## If TRUE then the smooth is reparameterized to turn the penalty into an identity matrix, with the final diagonal elements zeroed (corresponding to the penalty nullspace). This fits with the Bayesian interpretation of the complexity penalty as the inverse of the variance of the i.i.d. collection of parameters.
+    #STRATA_True <- log(2)
+    output_dir <- "output/"
+    out_base <- paste0(species_f,"_sim_",tp,"_BBS")
+    csv_files <- paste0(out_base,"-",1:3,".csv")
     
+    if(pp == "gamma"){
+      pnorm <- 0
+    }
+    if(pp == "norm"){
+      pnorm <- 1
+    }
+    if(pp == "t"){
+      pnorm <- 2
+    }
     
-    year_basis = M[[1]]$X
-    
-    
-    
-    
-    stan_data = list(#scalar indicators
-      nyears = nyears,
-
+    if(!file.exists(paste0(output_dir,csv_files[1]))){
       
-      #GAM structure
-      nknots_year = nknots_realised,
-      year_basis = year_basis,
+      load(paste0("Data/Real_data_",species_f,"_BBS.RData"))
       
-      prior_scale = prior_scale,
-      pnorm = pnorm
+      tmp_data = original_data_df
+      
+      nstrata = max(strata_df$Stratum_Factored)
+      nyears = max(tmp_data$Year_Index)
+      
+      
+      N_edges = neighbours$N_edges
+      node1 = neighbours$node1
+      node2 = neighbours$node2
+      
+      nknots_year = GAM_year$nknots_Year
+      year_basis = GAM_year$Year_basis
+      
+      stan_data = list(#scalar indicators
+        nstrata = nstrata,
+        nyears = nyears,
+        
+        
+        #spatial structure
+        N_edges = N_edges,
+        node1 = node1,
+        node2 = node2,
+        
+        #GAM structure
+        nknots_year = nknots_year,
+        year_basis = year_basis,
+        
+        prior_scale = prior_scale,
+        pnorm = pnorm
       )
+      
+      
+      
+      
+      # Fit model ---------------------------------------------------------------
+      
+      print(paste("beginning",tp,Sys.time()))
+      
+      mod.file = "models/gamye_iCAR_sd_prior_sim.stan"
+      
+      ## compile model
+      model <- cmdstan_model(mod.file)
+      
+      
+      # Initial Values ----------------------------------------------------------
+      
+      
+      init_def <- function(){ list(sdbeta = runif(nknots_year,0.01,0.1),
+                                   beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
+      
+      stanfit <- model$sample(
+        data=stan_data,
+        refresh=100,
+        chains=2, iter_sampling=1000,
+        iter_warmup=500,
+        parallel_chains = 2,
+        #pars = parms,
+        adapt_delta = 0.8,
+        max_treedepth = 14,
+        seed = 123,
+        init = init_def,
+        output_dir = output_dir,
+        output_basename = out_base)
+      
+      
+      #stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
+      
+      
+      save(list = c("stanfit","stan_data","csv_files",
+                    "out_base"),
+           file = paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+      
+      
+      
+    }
     
-    
-    
-    
-    # Fit model ---------------------------------------------------------------
-    
-    print(paste("beginning",tp,Sys.time()))
-    
-    mod.file = "models/GAM_prior_sim.stan"
-    
-    ## compile model
-    model <- cmdstan_model(mod.file)
-    
-    
-    # Initial Values ----------------------------------------------------------
-    
-    
-    init_def <- function(){ 
-      list(sdbeta = runif(1,0.01,0.1),
-           BETA_raw = rnorm(nknots_realised,0,0.01))}
-    
-    stanfit <- model$sample(
-      data=stan_data,
-      refresh=100,
-      chains=2, iter_sampling=1000,
-      iter_warmup=500,
-      parallel_chains = 2,
-      #pars = parms,
-      adapt_delta = 0.8,
-      max_treedepth = 14,
-      seed = 123,
-      init = init_def,
-      output_dir = output_dir,
-      output_basename = out_base)
-    
-    
-   save(list = c("stanfit","stan_data","csv_files",
-                  "out_base"),
-         file = paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
-    
-    
-    
-  }
-  
-}#end prior_scale loop
+  }#end prior_scale loop
 }#end pp loop
 
 
 
-```
+# post model summary of priors --------------------------------------------
 
-## The simulation model
-
-The Stan simulation model is very simple. We implemented it in Stan to match the implementation in the full model (although this simulation doesn't require MCMC sampling).
-
-```{stan, output.var = "GAM_prior_sim.stan", eval = FALSE}
-// simple GAM prior simulation
-
-data {
-  int<lower=1> nyears;
-  //scale of the prior distribution
-  real<lower=0>  prior_scale; 
-  // indicator for the prior distribution 0 = t, 1 = normal
-  int<lower=0,upper=1> pnorm; 
-// data for spline s(year)
-  // number of knots in the basis function for year
-  int<lower=1> nknots_year;  
-  // basis function matrix
-  matrix[nyears, nknots_year] year_basis; 
-}
-
-parameters {
-  real<lower=0> sdbeta;    // sd of spline coefficients 
-  // unscaled spline coefficients
-  vector[nknots_year] BETA_raw;         
-}
- 
-transformed parameters { 
-  vector[nknots_year] BETA;  //scaled spline parameters       
-  vector[nyears] smooth_pred;
-
-    BETA = sdbeta * BETA_raw; //scaling the spline parameters
-     smooth_pred = year_basis * BETA; //log-scale smooth trajectory
-  }
-  
-model {
-
-//Conditional statements to select the prior distribution
-if(pnorm == 1){
- sdbeta ~ normal(0,prior_scale); //prior on sd of GAM parameter 
-}
-if(pnorm == 0){
-  sdbeta ~ student_t(3,0,prior_scale); //prior on sd of GAM parameter
-}
-
-   BETA_raw ~ normal(0,1); //non-centered parameterisation
-
-}
-
- generated quantities {
-  //estimated smooth on a count-scale
-   vector[nyears] nsmooth = exp(smooth_pred);
-    
-  }
-
-
-```
-
-We then summarized the estimated trajectories as well as all possible 1-year, 10-year, and long-term trends from the alternative priors.
-
-```{r summarising,eval=FALSE}
-
-source("Functions/posterior_summary_functions.R") ## loads the saved simulation results
+source("Functions/posterior_summary_functions.R")
 
 nsmooth_out <- NULL
 trends_out <- NULL
 summ_out <- NULL
 
-for(pp in c("norm","t")){
+for(pp in c("gamma","norm","t")){
   for(prior_scale in c(0.5,1,2,3,4)){
     
-    tp = paste0("GAM_",pp,prior_scale,"_rate")
+    tp = paste0(pp,"_rate_",prior_scale)
     
     #STRATA_True <- log(2)
     output_dir <- "output/"
-    out_base <- tp
-   
-
-load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
-
-summ = stanfit$summary()
-
-summ <- summ %>% 
-  mutate(prior_scale = prior_scale,
-         distribution = pp)
-
-nsmooth_samples <- posterior_samples(stanfit,
-                                 parm = "nsmooth",
-                                 dims = c("Year_Index"))
-
-
-
-BETA_samples <- posterior_samples(stanfit,
-                                  parm = "BETA",
-                                  dims = c("k"))
-BETA_wide <- BETA_samples %>% 
-  pivot_wider(.,id_cols = .draw,
-              names_from = k,
-              names_prefix = "BETA",
-              values_from = .value)
-
-
-nsmooth_samples <- nsmooth_samples %>% 
-  left_join(., BETA_wide,by = ".draw") %>% 
-  mutate(prior_scale = prior_scale,
-         distribution = pp)
-
-
-
-nyears = max(nsmooth_samples$Year_Index)
-# function to calculate a %/year trend from a count-scale trajectory
-trs <- function(y1,y2,ny){
-  tt <- (((y2/y1)^(1/ny))-1)*100
-}
-
-for(tl in c(2,11,nyears)){ #estimating all possible 1-year, 10-year, and full trends
-  ny = tl-1
-  yrs1 <- seq(1,(nyears-ny),by = ny)
-  yrs2 <- yrs1+ny
-  for(j in 1:length(yrs1)){
-    y2 <- yrs2[j]
-    y1 <- yrs1[j]
+    out_base <- paste0(species_f,"_sim_",tp,"_BBS")
     
-nyh2 <- paste0("Y",y2)
-nyh1 <- paste0("Y",y1)
-trends <- nsmooth_samples %>% 
-  filter(Year_Index %in% c(y1,y2)) %>% 
-  select(.draw,.value,Year_Index) %>% 
-  pivot_wider(.,names_from = Year_Index,
-              values_from = .value,
-              names_prefix = "Y") %>%
-  rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
-  rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
-  group_by(.draw) %>% 
-  summarise(trend = trs(YS,YE,ny))%>% 
-  mutate(prior_scale = prior_scale,
-         distribution = pp,
-         first_year = y1,
-         last_year = y2,
-         nyears = ny)
-trends_out <- bind_rows(trends_out,trends)
-}
-}
-nsmooth_out <- bind_rows(nsmooth_out,nsmooth_samples)
-summ_out <- bind_rows(summ_out,summ)
-print(paste(pp,prior_scale))
-
+    
+    load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
+    
+    summ = stanfit$summary()
+    
+    summ <- summ %>% 
+      mutate(prior_scale = prior_scale,
+             distribution = pp)
+    
+    
+    nsmooth_samples <- posterior_samples(stanfit,
+                                         parm = "nsmooth",
+                                         dims = c("Stratum_Factored","Year_Index"))
+    
+    nsmooth <- nsmooth_samples %>% 
+      posterior_sums(.,
+                     dims = c("Stratum_Factored","Year_Index"))%>% 
+      mutate(prior_scale = prior_scale,
+             distribution = pp)
+    
+    
+    nyears = max(nsmooth_samples$Year_Index)
+    # function to calculate a %/year trend from a count-scale trajectory
+    trs <- function(y1,y2,ny){
+      tt <- (((y2/y1)^(1/ny))-1)*100
+    }
+    
+    for(tl in c(11,nyears)){ #estimating all possible 1-year, 10-year, and full trends
+      ny = tl-1
+      yrs1 <- seq(1,(nyears-ny),by = ny)
+      yrs2 <- yrs1+ny
+      for(j in 1:length(yrs1)){
+        y2 <- yrs2[j]
+        y1 <- yrs1[j]
+        
+        nyh2 <- paste0("Y",y2)
+        nyh1 <- paste0("Y",y1)
+        trends <- nsmooth_samples %>% 
+          filter(Year_Index %in% c(y1,y2)) %>% 
+          select(.draw,.value,Stratum_Factored,Year_Index) %>% 
+          pivot_wider(.,names_from = Year_Index,
+                      values_from = .value,
+                      names_prefix = "Y") %>%
+          rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
+          rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
+          group_by(.draw,Stratum_Factored) %>% 
+          summarise(trend = trs(YS,YE,ny))%>% 
+          mutate(prior_scale = prior_scale,
+                 distribution = pp,
+                 first_year = y1,
+                 last_year = y2,
+                 nyears = ny)
+        trends_out <- bind_rows(trends_out,trends)
+      }
+    }
+    
+    
+    
+    nsmooth_out <- bind_rows(nsmooth_out,nsmooth)
+    summ_out <- bind_rows(summ_out,summ)
+    print(paste(pp,prior_scale))
+    
   }#prior_scale
 }# pp
 
-save(file = "output/GAM_prior_sim_summary.RData",
+save(file = "output/prior_sim_summary.RData",
      list = c("nsmooth_out",
               "trends_out",
               "summ_out"))
 
 
-```
 
-# Comparing simulation priors to realised data
+# summarise ---------------------------------------------------------------
 
-## Realised trend estimates
-
-First, here is the distribution of long-term trends from a different model for the BBS data from 1966-2019, for 426 species.
-
-```{r realised bbs trends, fig.show='asis', fig.dim = c(8, 8)}
-bbs_trends_usgs <- read.csv("data/BBS_1966-2019_core_best_trend.csv")
+load("output/prior_sim_summary.RData")
 
 
-## selecting survey-wide trend estimates
-bbs_trends_usgs_long <-bbs_trends_usgs %>% 
-  filter(Region == "SU1")%>%  
-  select(Trend,Species.Name) %>% 
-  mutate(abs_trend = abs(Trend)) %>% #calculating absolute values of the trends
-  arrange(-abs_trend)
+trends_sd <- trends_out %>% 
+  group_by(.draw,prior_scale,distribution,nyears) %>% 
+  summarise(sd_trends = sd(trend),
+            min_trend = min(trend),
+            max_trend = max(trend),
+            lci95 = quantile(trend,0.025),
+            uci95 = quantile(trend,0.975),
+            span_95 = uci95 - lci95,
+            range_trend = max_trend - min_trend) %>% 
+  mutate(scale_factor = factor(prior_scale,levels = c(0.5,1,2,3,4),ordered = TRUE))
 
-G_long_usgs <- max(bbs_trends_usgs_long$abs_trend)
-  
-realised_long_bbs_hist <- ggplot(data = bbs_trends_usgs_long,
-                            aes(abs_trend,after_stat(density)))+
-  geom_freqpoly(breaks = seq(0,13,0.5),center = 0)+
-  xlab("Absolute value of long-term BBS trends USGS models (1966-2019)")+
-  theme_bw()+
-  scale_y_continuous(limits = c(0,1))
-print(realised_long_bbs_hist)
+save(list = "trends_sd",
+     file = "data/long_term_trendsd_prior_sim.RData")
 
-```
 
-The maximum absolute value of an observed long-term trends are for Cave Swallow and Eurasian Collared Dove, which have increased at an annual rate of `r round(G_long_usgs,1)` %/year. This annual rate of change implies an approximate `r signif(((((G_long_usgs/100)+1)^53)-1)*100,2)` % overall increase in the populations since 1966. As such, we feel this represents example of an "extreme" long-term trend that is unlikely to be observed in most of the BBS dataset. For example, the next largest values of trend in the data is a `r round((bbs_trends_usgs_long$abs_trend[3]),1)` %/year increase in Canada Goose populations.
+trends_sd_t <- trends_sd %>% 
+  filter(distribution == "t",
+         nyears == 53)
 
-```{r realised trend header}
 
-kable(bbs_trends_usgs_long[1:3,], booktabs = TRUE,
-      digits = 3) %>%
-  kable_styling(font_size = 8)
-
-```
-
-And the largest absolute value of trends for a declining species is \< 4%/year for King Rail, Bank Swallow, and Lark Bunting.
-
-```{r realised declines header}
-bbs_declines_usgs_long <-bbs_trends_usgs_long %>% 
-  filter(Trend < 0)%>%  
-  arrange(-abs_trend)
-
-kable(bbs_declines_usgs_long[1:3,], booktabs = TRUE,
-      digits = 3) %>%
-  kable_styling(font_size = 8)
-
-```
-
-## Summarize the long-term trends from the prior simulations
-
-```{r prior_trend_distributions}
- 
-load("output/GAM_prior_sim_summary.RData")
-
-trends_out <- trends_out %>% 
-  mutate(abs_trend = abs(trend),# absolute values of trends
-         scale_factor = factor(prior_scale,ordered = TRUE)) #just for plotting
-
-trends_long <- trends_out %>%  #select long-term trends only
-  filter(nyears == 53 ) 
-
-trends_normal <- trends_long %>% 
-  filter(distribution == "norm")
-```
-
-The distributions for the normal priors do a reasonable job of covering the range of possible long-term trend values, but the heavier-tailed t-distributions seem to better fit the shape of the distributions.
-
-```{r overplots long-term}
-
-  overp_normal <- realised_long_bbs_hist +
-    geom_freqpoly(data = trends_normal,
-                aes(abs_trend,after_stat(density),
+overp_t <- realised_long_bbs_hist +
+  geom_freqpoly(data = trends_sd_t,
+                aes(sd_trends,after_stat(density),
                     colour = scale_factor),
                 breaks = seq(0,100,1),center = 0,
                 alpha = 0.8)+
-    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
-                           "Prior Scale\nSD half-normal")+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                         "Prior Scale\nSD half-t df=3")+
   coord_cartesian(xlim = c(0,20))
-    
-  
-  trends_t <- trends_long %>% 
-  filter(distribution == "t")
+
+print(overp_t)
 
 
-  overp_t <- realised_long_bbs_hist +
-    geom_freqpoly(data = trends_t,
-                aes(abs_trend,after_stat(density),
+trends_sd_norm <- trends_sd %>% 
+  filter(distribution == "norm",
+         nyears == 53)
+
+
+overp_norm <- realised_long_bbs_hist +
+  geom_freqpoly(data = trends_sd_norm,
+                aes(sd_trends,after_stat(density),
                     colour = scale_factor),
                 breaks = seq(0,100,1),center = 0,
                 alpha = 0.8)+
-    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
-                           "Prior Scale\nSD half-t df=3")+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                         "Prior Scale\nSD half-normal")+
   coord_cartesian(xlim = c(0,20))
- 
-  
-  
-```
 
-```{r save plots for start long, echo=FALSE}
-trends_t2 <- trends_t %>% 
+print(overp_norm)
+
+
+
+trends_sd_gamma <- trends_sd %>% 
+  filter(distribution == "gamma",
+         nyears == 53)
+
+
+overp_gamma <- realised_long_bbs_hist +
+  geom_freqpoly(data = trends_sd_gamma,
+                aes(sd_trends,after_stat(density),
+                    colour = scale_factor),
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,direction = -1,
+                         "Prior Scale\nSD gamma shape = 2")+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_gamma)
+
+print(overp_t/overp_gamma/overp_norm)
+
+
+
+trends_sd_t1 <- trends_sd_t %>% 
+  filter(prior_scale == 1)
+trends_sd_norm1 <- trends_sd_norm %>% 
+  filter(prior_scale == 1)
+trends_sd_gamma1 <- trends_sd_gamma %>% 
   filter(prior_scale == 2)
 
-  overp_t2 <- realised_long_bbs_hist +
-    geom_freqpoly(data = trends_t2,
-                aes(abs_trend,after_stat(density)),
+
+overp_t1 <- realised_long_bbs_hist +
+  geom_freqpoly(data = trends_sd_t1,
+                aes(sd_trends,after_stat(density)),
+                    colour = "darkgreen",
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_t1)
+
+overp_norm1 <- realised_long_bbs_hist +
+  geom_freqpoly(data = trends_sd_norm1,
+                aes(sd_trends,after_stat(density)),
+                    colour = "darkgreen",
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_norm1)
+
+overp_gamma1 <- realised_long_bbs_hist +
+  geom_freqpoly(data = trends_sd_gamma1,
+                aes(sd_trends,after_stat(density)),
                 colour = "darkgreen",
                 breaks = seq(0,100,1),center = 0,
                 alpha = 0.8)+
   coord_cartesian(xlim = c(0,20))
- 
-  save(list = "overp_t2",file = "data/prior_t_sel_long.Rdata")
-```
 
-The half-t-distributions with a scale value of 2 or 3 fit the shape of the realised trend distribution reasonably well, and the long-tail includes significant prior mass at and beyond the observed maximum absolute values of trends.
+print(overp_gamma1)
 
-```{r plot_prior_trend_distributions, fig.show='asis', fig.dim = c(8, 10)}
- print(overp_normal / overp_t)
-```
+save(list = c("overp_gamma1","overp_norm1","overp_t1"),
+     file = "data/sd_GAM_spatial_saved_long-term.RData")
 
-In addition, each of the prior distributions include some prior mass at trend values beyond the realised maximum values. And the broadest priors (scales of 3 or 4), include prior mass at trend values that are extremely unlikely for a wild population to sustain over \>50 years. For example, more than 10% of the two widest distributions are at values larger than the largest observed value of long-term trends, and the 99th percentiles extend to values that are truly extreme (40 - 50%/year).
+trends_long <- trends_sd %>% 
+  filter(nyears == 53)
 
-```{r prior_table}
 quant_long_tends <- trends_long %>% 
   group_by(distribution,prior_scale) %>% 
-  summarise(median_abs_t = median(abs_trend),
-            U80 = quantile(abs_trend,0.80),
-            U90 = quantile(abs_trend,0.90),
-            U99 = quantile(abs_trend,0.99),
-            pGTmax = length(which(abs_trend > G_long_usgs))/length(abs_trend))
+  summarise(median_sim_sd_trends = median(sd_trends),
+            sim_80th = quantile(sd_trends,0.80),
+            sim_90th = quantile(sd_trends,0.90),
+            sim_99th = quantile(sd_trends,0.99),
+            proportion_sim_GT_max = length(which(sd_trends > G_long_usgs))/length(sd_trends))
+
 
 kable(quant_long_tends, booktabs = TRUE,
-      digits = 3) %>%
-  kable_styling(font_size = 8)
+      digits = 3,
+      caption = "Prior simulated distribution quantiles and proportion of the distributions greater than the realised maximum values, for three prior distributions with 5 different scales/rates",
+      format.args = list(width = 7), 
+      col.names = c("Distribution",
+                    "Prior Scale (normal t) or Rate (gamma)",
+                    "Median Prior Predicted Distribution",
+                    "80th percentile",
+                    "90th percentile",
+                    "99th percentile",
+                    "Proportion of prior distribution > realised maximum value")) %>%
+  kable_styling(font_size = 8)%>%
+column_spec(column = 1:7,width = "2cm")
 
- 
-```
-
-# Short-term trends
-
-The maximum observed short-term trend from the same USGS analysis of BBS trends is for Eurasian Collared-dove, which have a ten-year trend rate of 23.5%/year. Although the full set of short-term trends is not available for download, this extreme rate of short-term increase provides a useful benchmark against which we can compare the prior distributions of short-term trends. This ten-year trend rate implies a `r signif(((((23.5/100)+1)^10)-1)*100,2)` % overall increase in the population over this time. This is an extreme increase over a short-period of time.
-
-```{r short-term max}
-G_short_usgs <- 23.5 #Eurasian Collared Dove trend for short-term 2009-2019 analysis USGS
-    # short-term trends not included in Science Base, but visible here:
-    # https://www.mbr-pwrc.usgs.gov/bbs/reglist19v3.shtml
-```
-
-We can also use archived estimates from the Canadian Wildlife Service for 1970 - 2017, which were derived from a different model than the GAM used here.
-
-```{r canadian short term, cache=TRUE}
-bbs2017_Canada <- read.csv("data_basic/All BBS trends 2017 w reliab.csv")
-
-bbs_short_survey_wide <- bbs2017_Canada %>% 
-  filter(region.type == "Continental",
-         trendtype == "short-term",
-         startyear == 2007,
-         trendtime == "full") %>% 
-  select(species,trend) %>% 
-  mutate(abs_trend = abs(trend)) %>% 
-  arrange(-abs_trend)
-
-```
-
-The realised distribution of short-term trends from this archived analysis shows that short-term trends are generally more extreme than long-term trends.
-
-```{r short term hist , fig.show='asis', fig.dim = c(8, 8)}
-realised_short_bbs_hist <- ggplot(data = bbs_short_survey_wide,
-                            aes(abs_trend,after_stat(density)))+
-  geom_freqpoly(breaks = seq(0,20,0.5),center = 0)+
-  xlab("Absolute value of long-term BBS trends CWS model (2007-2017)")+
-  theme_bw()+
-  scale_y_continuous(limits = c(0,1))
-print(realised_short_bbs_hist)
-
-```
-
-The short-term trends from the prior distributions represent all possible ten-year trends, not just the final ten-years of the trajectory.
-
-```{r prior_short-term_trend_distributions}
- 
-
-trends_short <- trends_out %>%  #select long-term trends only
-  filter(nyears == 10 ) 
-
-trends_short_normal <- trends_short %>% 
-  filter(distribution == "norm")
-
-trends_short_t <- trends_short %>% 
-  filter(distribution == "t")
+# Short-term comparison ---------------------------------------------------
 
 
-```
 
-Overplotting the simulation prior distributions of short-term trends with the realised collection of short-term trends.
+trends_sd_t_short <- trends_sd %>% 
+  filter(distribution == "t",
+         nyears == 10)
 
-```{r overplots short-term}
 
-  overp_normal_short <- realised_short_bbs_hist +
-    geom_freqpoly(data = trends_short_normal,
-                aes(abs_trend,after_stat(density),
+overp_t_short <- realised_short_bbs_hist +
+  geom_freqpoly(data = sd_slope_trends_short,
+                breaks = seq(0,G_short_slope_canada,0.5),center = 0,
+                colour = grey(0.5))+
+  geom_freqpoly(data = trends_sd_t_short,
+                aes(sd_trends,after_stat(density),
                     colour = scale_factor),
                 breaks = seq(0,100,1),center = 0,
                 alpha = 0.8)+
-    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
-                           "Prior Scale\nSD half-normal")+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                         "Prior Scale\nSD half-t df=3")+
   coord_cartesian(xlim = c(0,20))
-    
+
+print(overp_t_short)
 
 
-  overp_t_short <- realised_short_bbs_hist +
-    geom_freqpoly(data = trends_short_t,
-                aes(abs_trend,after_stat(density),
+trends_sd_norm_short <- trends_sd %>% 
+  filter(distribution == "norm",
+         nyears == 10)
+
+
+overp_norm_short <- realised_short_bbs_hist +
+  geom_freqpoly(data = trends_sd_norm_short,
+                aes(sd_trends,after_stat(density),
                     colour = scale_factor),
                 breaks = seq(0,100,1),center = 0,
                 alpha = 0.8)+
-    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
-                           "Prior Scale\nSD half-t df=3")+
+  geom_freqpoly(data = sd_slope_trends_short,
+                breaks = seq(0,G_short_slope_canada,0.5),center = 0,
+                colour = grey(0.5))+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                         "Prior Scale\nSD half-normal")+
   coord_cartesian(xlim = c(0,20))
- 
-```
 
-```{r save plots for start, echo=FALSE}
-trends_short_t2 <- trends_short_t %>% 
-  filter(prior_scale == 2)
+print(overp_norm_short)
 
-  overp_short_t2 <- realised_short_bbs_hist +
-    geom_freqpoly(data = trends_short_t2,
-                aes(abs_trend,after_stat(density)),
+
+
+trends_sd_gamma_short <- trends_sd %>% 
+  filter(distribution == "gamma",
+         nyears == 10)
+
+
+overp_gamma_short <- realised_short_bbs_hist +
+  geom_freqpoly(data = trends_sd_gamma_short,
+                aes(sd_trends,after_stat(density),
+                    colour = scale_factor),
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  geom_freqpoly(data = sd_slope_trends_short,
+                breaks = seq(0,G_short_slope_canada,0.5),center = 0,
+                colour = grey(0.5))+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,direction = -1,
+                         "Prior Scale\nSD gamma shape = 2")+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_gamma_short)
+
+print(overp_t_short/overp_gamma_short/overp_norm_short)
+
+trends_short <- trends_sd %>% 
+  filter(nyears == 10)
+
+quant_short_tends <- trends_short %>% 
+  group_by(distribution,prior_scale) %>% 
+  summarise(median_sim_sd_trends = median(sd_trends),
+            sim_80th = quantile(sd_trends,0.80),
+            sim_90th = quantile(sd_trends,0.90),
+            sim_99th = quantile(sd_trends,0.99),
+            proportion_sim_GT_max = length(which(sd_trends > G_short_canada))/length(sd_trends),
+            proportion_sim_GT_max_slope = length(which(sd_trends > G_short_slope_canada))/length(sd_trends))
+
+kable(quant_short_tends, booktabs = TRUE,
+      digits = 3,
+      caption = "Prior simulated distribution quantiles for short-term trend variation and proportion of the distributions greater than the realised maximum values, for three prior distributions with 5 different scales/rates",
+      format.args = list(width = 7), 
+      col.names = c("Distribution",
+                    "Prior Scale (normal t) or Rate (gamma)",
+                    "Median Prior Predicted Distribution",
+                    "80th percentile",
+                    "90th percentile",
+                    "99th percentile",
+                    "Proportion of prior distribution > realised maximum value",
+                    "Proportion of prior distribution > realised maximum value based on slope trends")) %>%
+  kable_styling(font_size = 8)%>%
+column_spec(column = 1:8,width = "1.8cm")
+
+trends_sd_t_short1 <- trends_sd_t_short %>% 
+  filter(prior_scale == 1)
+overp_t_short1 <- realised_short_bbs_hist +
+  geom_freqpoly(data = sd_slope_trends_short,
+                breaks = seq(0,G_short_slope_canada,0.5),center = 0,
+                colour = grey(0.5))+
+  geom_freqpoly(data = trends_sd_t_short1,
+                aes(sd_trends,after_stat(density)),
                 colour = "darkgreen",
                 breaks = seq(0,100,1),center = 0,
                 alpha = 0.8)+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                         "Prior Scale\nSD half-t df=3")+
   coord_cartesian(xlim = c(0,20))
- 
-  save(list = "overp_short_t2",file = "data/prior_t_sel_short.Rdata")
-```
 
-The t-distribution scale parameter = 2, does a reasonably good job of covering the range of realistic short-term trends in the BBS data, and includes a long tail that includes much more extreme values when supported by the data. The distributions with larger scale parameters place significant prior density at rates of short-term change that are highly improbable at continental scales. For example, approximately 10% of the two widest distributions are at values larger than the largest observed value, and the 99th percentiles extend to values that are truly extreme (64 - 92%/year).
+print(overp_t_short1)
+save(list = c("quant_short_tends",
+              "overp_t1",
+              "overp_t_short",
+              "overp_gamma_short",
+              "overp_norm_short",
+              "overp_t_short1",
+              "quant_long_tends",
+              "overp_t",
+              "overp_gamma",
+              "overp_norm"),
+     file = "data/SD_prior_sim_graphs.RData")
 
-```{r plot_prior_short_trend_distributions, fig.show='asis', fig.dim = c(8, 10)}
- print(overp_normal_short / overp_t_short)
-```
-
-Below, you can see that the half-t-distribution with scale parameter = 2 has a long-tail that will allow for extreme trends when supported by the data (e.g., it has approximately 5% of the prior distribution covering values larger than the maximum observed value and a 99th percentile far beyond the most extreme observed value).
-
-```{r prior_table_short}
-quant_short_tends <- trends_short %>% 
-  group_by(distribution,prior_scale) %>% 
-  summarise(median_abs_t = median(abs_trend),
-            U80 = quantile(abs_trend,0.80),
-            U90 = quantile(abs_trend,0.90),
-            U99 = quantile(abs_trend,0.99),
-            pGTmax = length(which(abs_trend > G_short_usgs))/length(abs_trend))
-
-kable(quant_short_tends, booktabs = TRUE,
-      digits = 3) %>%
-  kable_styling(font_size = 8)
-
- 
 ```
 
 # References

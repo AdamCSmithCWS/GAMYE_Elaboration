@@ -34,7 +34,7 @@ We compared half normal and half t-distributions for the priors on the Standard 
 
 And, for each of the half-normal and half-t-distributions, we compared 5 different values to set the prior-scale: (0.5, 1, 2, 3, and 4). Given the log-link in the trend model and the scaling of the low-rank thin-plate regression spline with identifiability constraints ([@wood2020]), these 5-values of prior-scales should cover the range of plausible parameter values.
 
-# Spoiler
+# Selected prior
 
 We suggest a half t-distribution, with a scale parameter = 2, fits the realised distributions of both long and short-term trends for most bird species surveyed by the BBS (i.e., most bird species with the best information on population trends at continental scales and for \~50 years). This half-t prior results in prior distributions of long-term and short-term trends that fit the realized distributions and includes long tails that cover the range of plausible trend estimates without including large amounts of prior probability mass at implausibly extreme values.
 
@@ -43,7 +43,7 @@ load("data/prior_t_sel_long.Rdata")
 load("data/prior_t_sel_short.Rdata")
 ```
 
-```{r plot spoiler, fig.show='asis', fig.dim = c(6,6), fig.cap= "Observed distributions of the absolute values of long-term (top) and short-term (bottom) population trends from the BBS data using non-GAM models (in black), and the simulated prior distribution (in green) of long- and short-term trends from the spline smooth basis used in this paper, with a half-t (df = 3 and scale parameter = 2) prior distribution on the standard deviation of the spline parameters"}
+```{r plot spoiler,echo=FALSE, fig.show='asis', fig.dim = c(6,6), fig.cap= "Observed distributions of the absolute values of long-term (top) and short-term (bottom) population trends from the BBS data using non-GAM models (in black), and the simulated prior distribution (in green) of long- and short-term trends from the spline smooth basis used in this paper, with a half-t (df = 3 and scale parameter = 2) prior distribution on the standard deviation of the spline parameters"}
 
  print(overp_t2 / overp_short_t2)
 ```
@@ -350,23 +350,25 @@ print(realised_long_bbs_hist)
 
 The maximum absolute value of an observed long-term trends are for Cave Swallow and Eurasian Collared Dove, which have increased at an annual rate of `r round(G_long_usgs,1)` %/year. This annual rate of change implies an approximate `r signif(((((G_long_usgs/100)+1)^53)-1)*100,2)` % overall increase in the populations since 1966. As such, we feel this represents example of an "extreme" long-term trend that is unlikely to be observed in most of the BBS dataset. For example, the next largest values of trend in the data is a `r round((bbs_trends_usgs_long$abs_trend[3]),1)` %/year increase in Canada Goose populations.
 
-```{r realised trend header}
+```{r realised trend header,echo=FALSE}
 
 kable(bbs_trends_usgs_long[1:3,], booktabs = TRUE,
-      digits = 3) %>%
+      digits = 3,
+      caption = "Most extreme long-term BBS trends") %>%
   kable_styling(font_size = 8)
 
 ```
 
 And the largest absolute value of trends for a declining species is \< 4%/year for King Rail, Bank Swallow, and Lark Bunting.
 
-```{r realised declines header}
+```{r realised declines header,echo=FALSE}
 bbs_declines_usgs_long <-bbs_trends_usgs_long %>% 
   filter(Trend < 0)%>%  
   arrange(-abs_trend)
 
 kable(bbs_declines_usgs_long[1:3,], booktabs = TRUE,
-      digits = 3) %>%
+      digits = 3,
+      caption = "Most extreme long-term BBS declines") %>%
   kable_styling(font_size = 8)
 
 ```
@@ -438,7 +440,7 @@ trends_t2 <- trends_t %>%
 
 The half-t-distributions with a scale value of 2 or 3 fit the shape of the realised trend distribution reasonably well, and the long-tail includes significant prior mass at and beyond the observed maximum absolute values of trends.
 
-```{r plot_prior_trend_distributions, fig.show='asis', fig.dim = c(8, 10)}
+```{r plot_prior_trend_distributions,echo=FALSE, fig.show='asis', fig.dim = c(8, 10)}
  print(overp_normal / overp_t)
 ```
 
@@ -454,8 +456,18 @@ quant_long_tends <- trends_long %>%
             pGTmax = length(which(abs_trend > G_long_usgs))/length(abs_trend))
 
 kable(quant_long_tends, booktabs = TRUE,
-      digits = 3) %>%
-  kable_styling(font_size = 8)
+      digits = 3,
+      format.args = list(width = 7), 
+      col.names = c("Distribution",
+                    "Prior Scale",
+                    "Median Prior Predicted Distribution",
+                    "80th percentile",
+                    "90th percentile",
+                    "99th percentile",
+                    "Proportion of prior distribution > realised maximum value"),
+      caption = "Prior simulated distribution quantiles for the long-term trends  and proportion of the distributions greater than the realised maximum values from a separate analysis of the BBS data for > 400 species. Prior simulations for two prior distributions with 5 different scales (normal and t)") %>%
+  kable_styling(font_size = 8)%>%
+column_spec(column = 1:7,width = "2cm")
 
  
 ```
@@ -561,7 +573,7 @@ trends_short_t2 <- trends_short_t %>%
 
 The t-distribution scale parameter = 2, does a reasonably good job of covering the range of realistic short-term trends in the BBS data, and includes a long tail that includes much more extreme values when supported by the data. The distributions with larger scale parameters place significant prior density at rates of short-term change that are highly improbable at continental scales. For example, approximately 10% of the two widest distributions are at values larger than the largest observed value, and the 99th percentiles extend to values that are truly extreme (64 - 92%/year).
 
-```{r plot_prior_short_trend_distributions, fig.show='asis', fig.dim = c(8, 10)}
+```{r plot_prior_short_trend_distributions,echo=FALSE, fig.show='asis', fig.dim = c(8, 10)}
  print(overp_normal_short / overp_t_short)
 ```
 
@@ -577,8 +589,17 @@ quant_short_tends <- trends_short %>%
             pGTmax = length(which(abs_trend > G_short_usgs))/length(abs_trend))
 
 kable(quant_short_tends, booktabs = TRUE,
-      digits = 3) %>%
-  kable_styling(font_size = 8)
+      digits = 3,
+      format.args = list(width = 7),
+      col.names = c("Distribution",
+                    "Prior Scale",
+                    "Median Prior Predicted Distribution",
+                    "80th percentile",
+                    "90th percentile",
+                    "99th percentile",
+                    "Proportion of prior distribution > realised maximum value"), caption = "Prior simulated distribution quantiles for the short-term trends  and proportion of the distributions greater than the realised maximum values from a separate analysis of the BBS data for > 400 species. Prior simulations for two prior distributions with 5 different scales (normal and t)") %>%
+  kable_styling(font_size = 8)%>%
+column_spec(column = 1:7,width = "2cm")
 
  
 ```

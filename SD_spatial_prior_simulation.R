@@ -14,17 +14,18 @@ species <- "Yellow-headed Blackbird"
 species_f <- gsub(species,pattern = " ",replacement = "_")
 
 
-bbs_trends <- read.csv("data_basic/2019All BBS trends stratum.csv")
+bbs_trends <- read.csv("data_basic/All BBS trends 2017 w reliab.csv")
 
 sd_trends_short <- bbs_trends %>% 
-  filter(Trend_Time == "Short-term",
-         !grepl(pattern = "^unid",species)) %>% 
+  filter(trendtype == "short-term",
+         trendtime == "full",
+         region.type == "Stratum") %>% 
   group_by(species) %>% 
-  summarise(sd_trends = sd(Trend),
-            min_trend = min(Trend),
-            max_trend = max(Trend),
-            uci_trend = quantile(Trend,0.95),
-            lci_trend = quantile(Trend,0.05)) %>% 
+  summarise(sd_trends = sd(trend),
+            min_trend = min(trend),
+            max_trend = max(trend),
+            uci_trend = quantile(trend,0.95),
+            lci_trend = quantile(trend,0.05)) %>% 
   mutate(range_trend = max_trend - min_trend,
          span_90_trend = uci_trend-lci_trend) %>%
   filter(!is.na(sd_trends)) %>% 
@@ -42,6 +43,37 @@ realised_short_bbs_hist <- ggplot(data = sd_trends_short,
   theme_bw()+
   scale_y_continuous(limits = c(0,1))
 print(realised_short_bbs_hist)
+
+
+
+# slope based CWS trends --------------------------------------------------
+
+
+sd_slope_trends_short <- bbs_trends %>% 
+  filter(trendtype == "short-term",
+         trendtime == "full",
+         region.type == "Stratum") %>% 
+  group_by(species) %>% 
+  summarise(sd_trends = sd(slope.trend),
+            min_trend = min(slope.trend),
+            max_trend = max(slope.trend),
+            uci_trend = quantile(slope.trend,0.95),
+            lci_trend = quantile(slope.trend,0.05)) %>% 
+  mutate(range_trend = max_trend - min_trend,
+         span_90_trend = uci_trend-lci_trend) %>%
+  filter(!is.na(sd_trends)) %>% 
+  arrange(-span_90_trend)
+
+
+G_short_slope_canada <- max(sd_slope_trends_short$sd_trends,na.rm = T)
+
+realised_slope_short_bbs_hist <- ggplot(data = sd_slope_trends_short,
+                                  aes(sd_trends,after_stat(density)))+
+  geom_freqpoly(breaks = seq(0,G_short_canada,0.5),center = 0)+
+  xlab("SD of short-term BBS trends among regions from CWS models (2009-2019)")+
+  theme_bw()+
+  scale_y_continuous(limits = c(0,1))
+print(realised_slope_short_bbs_hist)
 
 # USGS trends -------------------------------------------------------------
 # download_bbs_data(sb_id = sb_items[6,2],
@@ -397,15 +429,18 @@ trends_long <- trends_sd %>%
 
 quant_long_tends <- trends_long %>% 
   group_by(distribution,prior_scale) %>% 
-  summarise(median_sd_trends = median(sd_trends),
-            U80 = quantile(sd_trends,0.80),
-            U90 = quantile(sd_trends,0.90),
-            U99 = quantile(sd_trends,0.99),
-            pGTmax = length(which(sd_trends > G_long_usgs))/length(sd_trends))
+  summarise(median_sim_sd_trends = median(sd_trends),
+            sim_80th = quantile(sd_trends,0.80),
+            sim_90th = quantile(sd_trends,0.90),
+            sim_99th = quantile(sd_trends,0.99),
+            proportion_sim_GT_max = length(which(sd_trends > G_long_usgs))/length(sd_trends))
 
-# kable(quant_long_tends, booktabs = TRUE,
-#       digits = 3) %>%
-#   kable_styling(font_size = 8)
+
+kable(quant_long_tends, booktabs = TRUE,
+      digits = 3) %>%
+  kable_styling(font_size = 8,
+repeat_header_text = "Prior simulated distribution quantiles and proportion of the distributions greater than the realised maximum values, for three prior distributions with 5 different scales/rates")
+
 
 # Short-term comparison ---------------------------------------------------
 
@@ -417,6 +452,9 @@ trends_sd_t_short <- trends_sd %>%
 
 
 overp_t_short <- realised_short_bbs_hist +
+  geom_freqpoly(data = sd_slope_trends_short,
+                breaks = seq(0,G_short_slope_canada,0.5),center = 0,
+                colour = grey(0.5))+
   geom_freqpoly(data = trends_sd_t_short,
                 aes(sd_trends,after_stat(density),
                     colour = scale_factor),
@@ -440,6 +478,9 @@ overp_norm_short <- realised_short_bbs_hist +
                     colour = scale_factor),
                 breaks = seq(0,100,1),center = 0,
                 alpha = 0.8)+
+  geom_freqpoly(data = sd_slope_trends_short,
+                breaks = seq(0,G_short_slope_canada,0.5),center = 0,
+                colour = grey(0.5))+
   scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
                          "Prior Scale\nSD half-normal")+
   coord_cartesian(xlim = c(0,20))
@@ -459,6 +500,9 @@ overp_gamma_short <- realised_short_bbs_hist +
                     colour = scale_factor),
                 breaks = seq(0,100,1),center = 0,
                 alpha = 0.8)+
+  geom_freqpoly(data = sd_slope_trends_short,
+                breaks = seq(0,G_short_slope_canada,0.5),center = 0,
+                colour = grey(0.5))+
   scale_colour_viridis_d(begin = 0.5,alpha = 0.8,direction = -1,
                          "Prior Scale\nSD gamma shape = 2")+
   coord_cartesian(xlim = c(0,20))
@@ -472,12 +516,42 @@ trends_short <- trends_sd %>%
 
 quant_short_tends <- trends_short %>% 
   group_by(distribution,prior_scale) %>% 
-  summarise(median_sd_trends = median(sd_trends),
-            U80 = quantile(sd_trends,0.80),
-            U90 = quantile(sd_trends,0.90),
-            U99 = quantile(sd_trends,0.99),
-            pGTmax = length(which(sd_trends > G_short_canada))/length(sd_trends))
+  summarise(median_sim_sd_trends = median(sd_trends),
+            sim_80th = quantile(sd_trends,0.80),
+            sim_90th = quantile(sd_trends,0.90),
+            sim_99th = quantile(sd_trends,0.99),
+            proportion_sim_GT_max = length(which(sd_trends > G_short_canada))/length(sd_trends),
+            proportion_sim_GT_max_slope = length(which(sd_trends > G_short_slope_canada))/length(sd_trends))
 
 kable(quant_short_tends, booktabs = TRUE,
       digits = 3) %>%
-  kable_styling(font_size = 8)
+  kable_styling(font_size = 8,
+                repeat_header_text = "Prior simulated distribution quantiles and proportion of the distributions greater than the realised maximum values, for three prior distributions with 5 different scales/rates")
+
+trends_sd_t_short1 <- trends_sd_t_short %>% 
+  filter(prior_scale == 1)
+overp_t_short1 <- realised_short_bbs_hist +
+  geom_freqpoly(data = sd_slope_trends_short,
+                breaks = seq(0,G_short_slope_canada,0.5),center = 0,
+                colour = grey(0.5))+
+  geom_freqpoly(data = trends_sd_t_short1,
+                aes(sd_trends,after_stat(density)),
+                colour = "darkgreen",
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                         "Prior Scale\nSD half-t df=3")+
+  coord_cartesian(xlim = c(0,20))
+
+print(overp_t_short1)
+save(list = c("quant_short_tends",
+              "overp_t1",
+              "overp_t_short",
+              "overp_gamma_short",
+              "overp_norm_short",
+              "overp_t_short1",
+              "quant_long_tends",
+              "overp_t",
+              "overp_gamma",
+              "overp_norm"),
+     file = "data/SD_prior_sim_graphs.RData")
