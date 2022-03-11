@@ -78,7 +78,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(1:nrow(fls))){
+for(i in c(5,10,11,16)){#c(1:nrow(fls))){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -89,16 +89,19 @@ for(i in c(1:nrow(fls))){
   st_n = fls[i,"strat_map_name"]
   if(reald){
     load(paste0("Data/",species_f,dd,"_data.RData"))
+    ma <- -5
   }else{
     if(i < 11){
     ma <- MAs[i-4]
   load(paste0("Data/Simulated_data_",ma,"_breakpoint_cycle_BBS.RData"))
   realized_strata_map = strata_map
+  modl <- "Spatial"
     }else{
       
       ma <- MAs[i-(4+length(MAs))]
       load(paste0("Data/Simulated_data_",ma,"_breakpoint_cycle_BBS.RData"))
       realized_strata_map = strata_map 
+      modl <- "Non-Spatial"
     }
   }
   
@@ -249,7 +252,7 @@ for(i in c(1:nrow(fls))){
     
   }
 
- 
+ if(reald){rd = "real"}else{rd = "simulated"}
 
   indices_all <- bind_rows(indices,
                            indices_smooth) %>% 
@@ -257,7 +260,11 @@ for(i in c(1:nrow(fls))){
                         .x)) %>% 
     mutate(original_strat_name = strat_plot,
            species = species,
-           region_type = "Stratum") %>% 
+           region_type = "Stratum",
+           simulated_data = rd,
+           mean_abundance = signif(exp(ma),2),
+           data = dd,
+           model = modl) %>% 
     rename_with(.,~gsub(replacement = st_n,pattern = "strat_plot",
                         .x))
   indices_all_out <- bind_rows(indices_all_out,indices_all)
@@ -407,7 +414,11 @@ for(j in 1:length(tyrs)){
     mutate(species = species,
            first_year = yy,
            last_year = yy2,
-           region_type = "Stratum")
+           region_type = "Stratum",
+           simulated_data = rd,
+           mean_abundance = signif(exp(ma),2),
+           data = dd,
+           model = modl)
   
  ttmd <- realized_strata_map %>% 
     left_join(.,tt,by = st_n) %>% 
@@ -462,7 +473,11 @@ if(dd == "Shorebird"){
                             strat = NULL,
                             first_dim = "y")
   Inds <- sw_inds$indices %>% 
-    mutate(version = "full")
+    mutate(version = "full",
+           simulated_data = rd,
+           mean_abundance = signif(exp(ma),2),
+           data = dd,
+           model = modl)
   
   sw_smooth <- index_function(fit = stanfit,
                                       parameter = "NSmooth",
@@ -474,7 +489,11 @@ if(dd == "Shorebird"){
        file = "output/Red_Knot_SW_indices.RData")
   
   Inds_smooth <- sw_smooth$indices %>% 
-    mutate(version = "smooth")
+    mutate(version = "smooth",
+           simulated_data = rd,
+           mean_abundance = signif(exp(ma),2),
+           data = dd,
+           model = modl)
   
   Indices_all <- bind_rows(Inds,
                            Inds_smooth)  %>% 
@@ -504,7 +523,11 @@ if(dd == "Shorebird"){
                                area = "AREA_1",#"Area",
                                summary_regions = NULL)
   Inds <- sw_inds$indices %>% 
-    mutate(version = "full")
+    mutate(version = "full",
+           simulated_data = rd,
+           mean_abundance = signif(exp(ma),2),
+           data = dd,
+           model = modl)
   
   sw_smooth <- index_function(fit = stanfit,
                                       parameter = "nsmooth",
@@ -514,7 +537,11 @@ if(dd == "Shorebird"){
                                       area = "AREA_1",#"Area",
                                       summary_regions = NULL)
   Inds_smooth <- sw_smooth$indices %>% 
-    mutate(version = "smooth")
+    mutate(version = "smooth",
+           simulated_data = rd,
+           mean_abundance = signif(exp(ma),2),
+           data = dd,
+           model = modl)
   
   Indices_all <- bind_rows(Inds,
                            Inds_smooth) %>% 
@@ -583,92 +610,3 @@ save(list = c("all_trends",
      file = "output/real_data_summaries.RData")
 
 
-
-
-
-failed_rhat <- conv_summaries %>% 
-  filter(rhat > 1.05)
-
-failed_ess_bulk <- conv_summaries %>% 
-  filter(ess_bulk < 100)
-
-
-
-
-sdbetas <- conv_summaries %>% 
-  filter(grepl("sdbeta",x = variable)) %>% 
-  arrange(ess_bulk)
-
-sdb_ess_plot = ggplot(data = sdbetas,aes(x = ess_bulk))+
-  geom_histogram(bins = 50)+
-  facet_wrap(vars(model),
-             nrow = 4,
-             ncol = 5)+
-  geom_vline(xintercept = 500)
-print(sdb_ess_plot)
-
-
-sdbetas <- conv_summaries %>% 
-  filter(grepl("sdbeta",x = variable),
-         grepl(x = model, pattern = "sim_breakpoint")) %>% 
-  arrange(ess_bulk)
-
-sdbetas <- conv_summaries %>% 
-  filter(grepl("sdbeta",x = variable),
-         grepl(x = model, pattern = "nonSpatial")) %>% 
-  arrange(ess_bulk)
-
-BETAs <- conv_summaries %>% 
-  filter(grepl("BETA",x = variable),
-         grepl(x = model, pattern = "sim_breakpoint")) %>% 
-  arrange(ess_bulk)
-
-betas <- conv_summaries %>% 
-  filter(grepl("^beta\\[",x = variable))%>% 
-  arrange(ess_bulk)
-
-b_ess_plot = ggplot(data = betas,aes(x = ess_bulk))+
-  geom_histogram(bins = 50)+
-  facet_wrap(vars(model),
-             nrow = 4,
-             ncol = 5)+
-  geom_vline(xintercept = 500)
-print(b_ess_plot)
-
-BETAs <- conv_summaries %>% 
-  filter(grepl("^BETA\\[",x = variable))%>% 
-  arrange(ess_bulk)
-
-B_ess_plot = ggplot(data = BETAs,aes(x = ess_bulk))+
-  geom_histogram(bins = 10)+
-  facet_wrap(vars(model),
-             nrow = 4,
-             ncol = 5)+
-  geom_vline(xintercept = 500)
-print(B_ess_plot)
-
-
-smooths <- conv_summaries %>% 
-  filter(grepl("^nsmooth\\[",x = variable))%>% 
-  arrange(ess_bulk)
-
-smooth_ess_plot = ggplot(data = smooths,aes(x = ess_bulk))+
-  geom_histogram(bins = 20)+
-  facet_wrap(vars(model),
-             nrow = 4,
-             ncol = 5)+
-  geom_vline(xintercept = 500)
-print(smooth_ess_plot)
-
-
-trajs <- conv_summaries %>% 
-  filter(grepl("^n\\[",x = variable))%>% 
-  arrange(ess_bulk)
-
-trajs_ess_plot = ggplot(data = trajs,aes(x = ess_bulk))+
-  geom_histogram(bins = 20)+
-  facet_wrap(vars(model),
-             nrow = 4,
-             ncol = 5)+
-  geom_vline(xintercept = 500)
-print(trajs_ess_plot)
