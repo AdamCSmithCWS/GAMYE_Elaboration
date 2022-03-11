@@ -228,25 +228,25 @@ for(i in c(5,10,11,16)){#c(1:nrow(fls))){
       rename(true_year = Year) 
     
     indices <- strat_inds$indices %>% 
-      inner_join(.,strat_df)%>% 
+      left_join(.,strat_df)%>% 
       mutate(version = "full") %>% 
-      inner_join(.,obs_means) %>% 
+      left_join(.,obs_means) %>% 
       left_join(.,true_smooths,by = c("true_year","Stratum_Factored"))
     
     indices_smooth <- strat_inds_smooth$indices %>% 
-      inner_join(.,strat_df) %>% 
+      left_join(.,strat_df) %>% 
       mutate(version = "smooth")%>% 
       left_join(.,true_smooths,by = c("true_year","Stratum_Factored"))
     
     
   }else{
     indices <- strat_inds$indices %>% 
-      inner_join(.,strat_df)%>% 
+      left_join(.,strat_df)%>% 
       mutate(version = "full") %>% 
-      inner_join(.,obs_means) 
+      left_join(.,obs_means) 
     
     indices_smooth <- strat_inds_smooth$indices %>% 
-      inner_join(.,strat_df) %>% 
+      left_join(.,strat_df) %>% 
       mutate(version = "smooth")
     
     

@@ -65,8 +65,89 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
 output_dir <- "output/"
 load("output/real_data_summaries.RData")
 
+
+
+# Compare spatial and nonspatial for BBS and CBC --------------------------
+
+for(species in c("Yellow-headed Blackbird",
+                 "Cinclus_mexicanus")){
+  dd <- ifelse(species == "Yellow-headed Blackbird","BBS","CBC")
+  
+  species_f <- gsub(pattern = " ",replacement = "_",
+                    species)
+  
+  load(paste0("Data/",species_f,dd,"_data.RData"))
+  ma <- -5
+  mean_ab <- signif(exp(ma),2)
+  
+  
+  
+  strat_grid <- geofacet::grid_auto(realized_strata_map,
+                                    #codes = "Stratum_Factored",
+                                    names = "Stratum",
+                                    seed = 2019)
+  
+  ind_sel <- indices_all_out %>% 
+    filter(is.na(True_scaled_smooth),
+           mean_abundance == mean_ab,
+           species == species,
+           data == dd)
+  
+  ind_sel$model <- c(rep("Spatial",nrow(ind_sel)/2),
+                     rep("Non-Spatial",nrow(ind_sel)/2))
+  
+  mean_obs <- indices_all_out %>% 
+    filter(!is.na(True_scaled_smooth),
+           mean_abundance == mean_ab,
+           version == "full") %>% 
+    select(true_year,mean_obs,zero,
+           n_surveys,Stratum,Stratum_Factored,
+           Year) %>% 
+    distinct()
+  
+  
+  g_inds <- suppressMessages(ggplot(data = ind_sel,aes(x = true_year,y = median))+
+                               geom_point(data = mean_obs,
+                                          aes(x = true_year,y = mean_obs*zero,
+                                              alpha = n_surveys),
+                                          size = 0.3,
+                                          inherit.aes = FALSE)+
+                               geom_ribbon(aes(ymin = lci,ymax = uci,fill = model),
+                                           alpha = 0.3)+
+                               geom_line(aes(colour = model))+
+                               scale_colour_viridis_d(end = 0.85,begin = 0.2,
+                                                      aesthetics = c("fill","colour"))+
+                               #labs(title = paste("Simulated data mean Abundance",mean_ab))+
+                               scale_y_continuous(limits = c(0,NA))+
+                               geofacet::facet_geo(~Stratum,grid = strat_grid,
+                                                   scales = "free_y")+
+                               theme_bw()+
+                               xlab("Mean annual abundance")+
+                               ylab("")+
+                               theme(strip.text = element_text(size = 6),
+                                     strip.background = element_blank(),
+                                     panel.spacing = unit(0.1,"mm"),
+                                     axis.text.x = element_text(size = 5))) 
+  
+  #print(g_inds)
+  
+  pdf(paste0("Figures/Geofacet_",species_f,"_spatial_vs_non.pdf"),
+      width = 8.5,
+      height = 11)
+  print(g_inds)
+  dev.off()
+  
+  
+  
+  
+  
+  
+}
+
+
+
 # Explore predicted vs true trajectories and trends for simulations -----------------------
-ma <- MAs[6]
+
 for(ma in MAs){
 mean_ab <- signif(exp(ma),2)
 load(paste0("Data/Simulated_data_",ma,"_breakpoint_cycle_BBS.RData"))
