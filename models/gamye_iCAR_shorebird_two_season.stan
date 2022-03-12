@@ -132,8 +132,8 @@ model {
   sdBETA ~ student_t(3,0,2); // prior on sd of GAM parameters
 
 
-#  sdbeta ~ normal(0,1); //prior on sd of gam hyperparameters
-  #sdbeta ~ gamma(2,2);//boundary avoiding prior 
+ // sdbeta ~ normal(0,1); //prior on sd of gam hyperparameters
+  //sdbeta ~ gamma(2,2);//boundary avoiding prior 
   sdbeta ~ student_t(3,0,1);// prior on spatial variation of spline parameters 
   
   sdseason ~ std_normal();//variance of GAM parameters

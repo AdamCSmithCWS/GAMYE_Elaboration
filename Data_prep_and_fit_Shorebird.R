@@ -195,16 +195,16 @@ nyears = max(dts$yr)
 
 # GAM seasonal basis function ---------------------------------------------
 
-nknots_season = 10
+nknots_seasont = 10
 season_df <- data.frame(date = min(dts$date):max(dts$date))
 
 GAM_season <- gam_basis(season_df$date,
-                          nknots = nknots_season,
+                          nknots = nknots_seasont,
                           sm_name = "season")
 
 ndays <- max(season_df$date)
 season_basis <- GAM_season$season_basis
-# 
+nknots_season <- GAM_season$nknots_season # 
 
 # GAM year basis function ---------------------------------------------
 years_df <- data.frame(Year = min(dts$yr):max(dts$yr))
