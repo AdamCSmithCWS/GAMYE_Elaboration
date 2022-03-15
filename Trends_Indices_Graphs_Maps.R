@@ -78,7 +78,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(5,10,11,16)){#c(1:nrow(fls))){
+for(i in c(1,2,17,18)){#c(1:nrow(fls))){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -90,6 +90,7 @@ for(i in c(5,10,11,16)){#c(1:nrow(fls))){
   if(reald){
     load(paste0("Data/",species_f,dd,"_data.RData"))
     ma <- -5
+    modl <- ifelse(i < 3,"Spatial","Non-Spatial")
   }else{
     if(i < 11){
     ma <- MAs[i-4]

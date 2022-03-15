@@ -68,8 +68,7 @@ transformed parameters {
   matrix[nstrata,nyears] beta;         // spatial effect slopes (0-centered deviation from continental mean slope B)
 
   matrix[nstrata,nyears] yeareffect;
-  vector[nyears_m1] BETA;
-  vector[nstrata] strata;
+ vector[nstrata] strata;
   
   strata = (sdstrata*strata_raw) + STRATA;
   beta[,midyear] = zero_betas;

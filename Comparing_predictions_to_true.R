@@ -81,30 +81,64 @@ for(species in c("Yellow-headed Blackbird",
   mean_ab <- signif(exp(ma),2)
   
   
+  if(dd == "BBS"){
+    ind_sel <- indices_all_out %>% 
+      filter(species == species,
+             data == dd,
+             simulated_data == "real",
+             version == "smooth")
+    
+    ind_sel_f <- indices_all_out %>% 
+      filter(species == species,
+             data == dd,
+             simulated_data == "real",
+             version == "full")
+    
+    
+    mean_obs <- ind_sel_f %>% 
+      filter(mean_abundance == mean_ab,
+             version == "full") %>% 
+      select(true_year,mean_obs,zero,
+             n_surveys,Stratum,Stratum_Factored,
+             Year) %>% 
+      distinct()
+    
+
+  }else{
+    realized_strata_map <- realized_strata_map %>% 
+      mutate(Stratum = strat)
+    
+    ind_sel <- indices_all_out %>% 
+      filter(species == species,
+             data == dd,
+             simulated_data == "real",
+             version == "smooth")%>% 
+      mutate(Stratum = strat)
+    
+    ind_sel_f <- indices_all_out %>% 
+      filter(species == species,
+             data == dd,
+             simulated_data == "real",
+             version == "full")%>% 
+      mutate(Stratum = strat)
+    
+    
+    mean_obs <- ind_sel_f %>% 
+      filter(mean_abundance == mean_ab,
+             version == "full") %>% 
+      select(true_year,mean_obs,zero,
+             n_surveys,Stratum,Stratum_Factored,
+             Year) %>% 
+      distinct()
+    
+  }
   
   strat_grid <- geofacet::grid_auto(realized_strata_map,
                                     #codes = "Stratum_Factored",
                                     names = "Stratum",
                                     seed = 2019)
   
-  ind_sel <- indices_all_out %>% 
-    filter(is.na(True_scaled_smooth),
-           mean_abundance == mean_ab,
-           species == species,
-           data == dd)
-  
-  ind_sel$model <- c(rep("Spatial",nrow(ind_sel)/2),
-                     rep("Non-Spatial",nrow(ind_sel)/2))
-  
-  mean_obs <- indices_all_out %>% 
-    filter(!is.na(True_scaled_smooth),
-           mean_abundance == mean_ab,
-           version == "full") %>% 
-    select(true_year,mean_obs,zero,
-           n_surveys,Stratum,Stratum_Factored,
-           Year) %>% 
-    distinct()
-  
+ 
   
   g_inds <- suppressMessages(ggplot(data = ind_sel,aes(x = true_year,y = median))+
                                geom_point(data = mean_obs,
