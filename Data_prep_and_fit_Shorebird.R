@@ -209,7 +209,7 @@ nknots_season <- GAM_season$nknots_season #
 # GAM year basis function ---------------------------------------------
 years_df <- data.frame(Year = min(dts$yr):max(dts$yr))
 
-nknots = floor(nrow(years_df)/4)
+nknots = floor(nrow(years_df)/6)
 
 GAM_year <- gam_basis(years_df$Year,
                       nknots = nknots,

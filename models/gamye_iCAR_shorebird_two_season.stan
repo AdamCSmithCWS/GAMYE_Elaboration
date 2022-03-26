@@ -128,8 +128,11 @@ model {
   sdyear ~ normal(0,0.2); //prior on scale of annual fluctuations - 
   // above is informative so that 95% of the prior includes yearly fluctuations fall
   // between 33% decrease and a 50% increase
-  sdste ~ normal(0,2); //prior on scale of site level variation
-  sdBETA ~ student_t(3,0,2); // prior on sd of GAM parameters
+  //sdste ~ normal(0,2); //prior on scale of site level variation
+  
+  sdste ~ student_t(3,0,3); //prior on scale of site level variation
+  sdBETA ~ gamma(2,2); // prior on sd of GAM parameters
+  //sdBETA ~ student_t(3,0,1); // prior on sd of GAM parameters
 
 
  // sdbeta ~ normal(0,1); //prior on sd of gam hyperparameters

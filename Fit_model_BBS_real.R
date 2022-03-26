@@ -36,7 +36,7 @@ species_f <- gsub(species,pattern = " ",replacement = "_")
         csv_files <- paste0(out_base,"-",1:3,".csv")
         
         
-        if(!file.exists(paste0(output_dir,csv_files[1]))){
+        #if(!file.exists(paste0(output_dir,csv_files[1]))){
           
           load(paste0("Data/Real_data_",species_f,"_BBS.RData"))
           
@@ -186,6 +186,6 @@ save(list = c("stanfit","stan_data","csv_files",
 
 
 
-}
+#}
 
 

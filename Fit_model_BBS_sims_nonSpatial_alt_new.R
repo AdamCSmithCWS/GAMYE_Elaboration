@@ -28,7 +28,7 @@ for(ma in MAs[c(2)]){
         
         
         
-        if(!file.exists(paste0(output_dir,csv_files[1]))){
+      #  if(!file.exists(paste0(output_dir,csv_files[1]))){
           
           
 tmp_data = realised
@@ -162,7 +162,7 @@ save(list = c("stanfit","stan_data","csv_files",
 
 
 
-}
+#}
 
 }#end ma loop
 

@@ -1,5 +1,14 @@
 ### a function to calculate the basis function(s) for a GAM component of a stan model
 
+#### consider adding an option to separate out the linear component and to treat it 
+#### separately in the model
+#### e.g., X_linear could have it's own fixed-effect prior, instead of being
+#### part of the random effects of the "smooth"
+#### at least for the trend component this makes a lot of sense
+#### could provide an much more informative prior on the linear component
+#### and then explore different priors on the non-linear bits
+#### also explore this in the main GAM priors supplement
+
 gam_basis <- function(orig.preds = dts[,"yr"],
                            nknots = 6,#number of internal knots
                            predpoints = NULL,
