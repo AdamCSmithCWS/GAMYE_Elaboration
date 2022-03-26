@@ -49,7 +49,7 @@ gam_basis <- function(orig.preds = dts[,"yr"],
     gamx.basispred = M_pred[[1]]$X
     
     
-    
+    linear_col = ncol(gamx.basis)
     
    outlist <- list(gamx.basis = gamx.basis,
                   gamx.basispred = gamx.basispred,
@@ -58,7 +58,8 @@ gam_basis <- function(orig.preds = dts[,"yr"],
                   nknots = (nknots-1),
                   npredpoints = npredpoints,
                   M = M,
-                  M_pred = M_pred)
+                  M_pred = M_pred,
+                  linear_col = linear_col)
   names(outlist) <- c(paste0(sm_name,"_basis"),
                       paste0(sm_name,"_basispred"),
                       "original_predictor_values",
@@ -66,7 +67,8 @@ gam_basis <- function(orig.preds = dts[,"yr"],
                       paste0("nknots_",sm_name),
                       paste0("npredpoints_",sm_name),
                       paste0(sm_name,"_smoothCon"),
-                      paste0(sm_name,"_smoothCon_pred"))
+                      paste0(sm_name,"_smoothCon_pred"),
+                      paste0(sm_name,"_linear_col"))
   
   
   return(outlist)

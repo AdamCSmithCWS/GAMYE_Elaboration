@@ -9,28 +9,26 @@ setwd("C:/GitHub/GAMYE_Elaboration")
 
 species = "Yellow-headed Blackbird"  
 
-species_f <- gsub(species,pattern = " ",replacement = "_")
-
-tp = "non_linear"
-
+  species_f <- gsub(species,pattern = " ",replacement = "_")
+ 
+  tp = "breakpoint_cycle"
+  
 MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
 
-for(ma in MAs[c(2)]){  
+for(ma in MAs[c(6,1,2,3,4,5)]){  
   
-         #STRATA_True <- log(2)
-        output_dir <- "output/"
-        out_base <- paste0("sim_nonSpatial_alt_",tp,"_",ma,"_BBS")
+  
+  output_dir <- "output/"
+        out_base <- paste0("sim_fixed_slope",tp,"_",ma,"_BBS")
         csv_files <- paste0(out_base,"-",1:3,".csv")
         
         load(paste0("Data/Simulated_data_",ma,"_",tp,"_BBS.RData"))
         
         
-        
-        
-      #  if(!file.exists(paste0(output_dir,csv_files[1]))){
+        if(!file.exists(paste0(output_dir,csv_files[1]))){
           
-          
+        
 tmp_data = realised
   
 nsites = max(routes_df$Route_Factored)
@@ -43,8 +41,14 @@ strat = tmp_data$Stratum_Factored
 year = tmp_data$Year_Index
 site = tmp_data$Route_Factored
 
-nknots_year = GAM_year$nknots_Year
+N_edges = neighbours$N_edges
+node1 = neighbours$node1
+node2 = neighbours$node2
+
+year_linear_col <- GAM_year$Year_linear_col
 year_basis = GAM_year$Year_basis
+nknots_year = GAM_year$nknots_Year
+nknots_year_smooth = nknots_year-1
 
 nobservers = max(tmp_data$Observer_Factored)
 observer = tmp_data$Observer_Factored
@@ -82,14 +86,16 @@ stan_data = list(#scalar indicators
                  year = year,
                  site = site,
                  
-                 # #spatial structure
-                 # N_edges = N_edges,
-                 # node1 = node1,
-                 # node2 = node2,
+                 #spatial structure
+                 N_edges = N_edges,
+                 node1 = node1,
+                 node2 = node2,
                  
                  #GAM structure
                  nknots_year = nknots_year,
                  year_basis = year_basis,
+                 year_linear_col = year_linear_col,
+                 nknots_year_smooth = nknots_year_smooth,
                  
                  #Observer information
                  nobservers = nobservers,
@@ -113,9 +119,11 @@ stan_data = list(#scalar indicators
 print(paste("beginning",out_base,Sys.time()))
 
 
-  mod.file = "models/gamye_nonSpatial_sim_alt.stan"
+  mod.file = "models/gamye_iCAR_fixed_slope_sim.stan"
   
   
+ 
+
   init_def <- function(){ list(noise_raw = rnorm(ncounts,0,0.1),
                                strata_raw = rnorm(nstrata,0,0.1),
                                STRATA = 0,
@@ -127,11 +135,14 @@ print(paste("beginning",out_base,Sys.time()))
                                sdnoise = runif(1,0.01,0.2),
                                sdobs = runif(1,0.01,0.1),
                                sdste = runif(1,0.01,0.2),
-                               sdbeta = runif(nstrata,0.01,0.1),
+                               sdbeta_1 = runif(1,0.01,0.1),
+                               sdbeta_s = runif(nknots_year_smooth,0.01,0.1),
                                sdBETA = runif(1,0.01,0.1),
                                sdyear = runif(nstrata,0.01,0.1),
-                               BETA_raw = rnorm(nknots_year,0,0.1),
-                               beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year))}
+                               beta_1_raw = rnorm(nstrata,0,0.1),
+                               BETA_1 = rnorm(1,0,0.1),
+                               BETA_raw = rnorm(nknots_year_smooth,0,0.1),
+                               beta_raw = matrix(rnorm(nknots_year_smooth*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year_smooth))}
   
 
 ## compile model
@@ -162,7 +173,7 @@ save(list = c("stanfit","stan_data","csv_files",
 
 
 
-#}
+}
 
 }#end ma loop
 
