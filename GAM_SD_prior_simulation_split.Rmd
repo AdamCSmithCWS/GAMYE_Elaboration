@@ -18,7 +18,7 @@ library(kableExtra)
 
 # Prior Simulation of the SD of GAM parameters
 
-Running a prior simulation for alternative prior distributions on the SD of the GAM BETA parameters, which are the hyperparameters that control the shape and wiggliness of the survey-wide mean smoothed population trajectory. This simulation compares the effects of alternative priors on derived estimates of the 5, 10 and 20 year population trend estimates that would result from a population trajectory estimated with the same spline basis function used in this paper.
+Running a prior simulation for alternative prior distributions on the SD of the GAM BETA parameters, which are the hyperparameters that control the shape and wiggliness of the survey-wide mean smoothed population trajectory. This simulation compares the effects of alternative priors on derived estimates of the 1,2, 5, 10 and 20 year population trend estimates that would result from a population trajectory estimated with the same spline basis function used in this paper.
 
 This application of the thin-plate regression spline basis (pg 215, \[@wood2017a\]), treats the linear component of the basis as an unpenalized part of the model "null space". Therefore, in this simulation, the linear parameter is fixed at 0 (stable population), and only the penalized parameters that affect the non-linear component of the trajectory are simulated.
 
@@ -43,13 +43,13 @@ And, for each of the half-normal and half-t-distributions, we compared 5 differe
 We suggest a half t-distribution, with a scale parameter = 2, fits the realised distributions of 1, 5, 10, and 20 year trends for most bird species surveyed by the BBS (i.e., most bird species with the best information on population trends at continental scales and for \~50 years). This half-t prior results in prior distributions of trends that encompass the realized distributions and includes long tails that cover the range of plausible trend estimates without including large amounts of prior probability mass at implausibly extreme values.
 
 ```{r load saved plots, echo=FALSE}
-load("data/prior_t_sel_long.Rdata")
-load("data/prior_t_sel_short.Rdata")
+load("data/prior_t_sel_split.RData")
+
 ```
 
-```{r plot spoiler,echo=FALSE, fig.show='asis', fig.dim = c(6,6), fig.cap= "Observed distributions of the absolute values of long-term (top) and short-term (bottom) population trends from the BBS data using non-GAM models (in black), and the simulated prior distribution (in green) of long- and short-term trends from the spline smooth basis used in this paper, with a half-t (df = 3 and scale parameter = 2) prior distribution on the standard deviation of the spline parameters"}
+```{r plot spoiler,echo=FALSE, fig.show='asis', fig.dim = c(6,6), fig.cap= "Observed distributions of the absolute values of 1, 5, 10, and 20-year population trends from the BBS data using non-GAM models (in black), and the simulated prior distribution (in green) of trends from the spline smooth basis used in this paper, with a half-t (df = 3 and scale parameter = 1) prior distribution on the standard deviation of the spline parameters"}
 
- print(overp_t2 / overp_short_t2)
+ print(overp_t2)
 ```
 
 \newpage
@@ -343,18 +343,18 @@ bbs_indices_usgs <- read.csv("data/Index_best_1966-2019_core_best.csv",
                                             "numeric"))
 
 bbs_continental_inds <- bbs_indices_usgs %>% 
-  filter(Region == "SU1")
+  filter(Region == "SU1") #just hte continental estimates
 
 # function to calculate a %/year trend from a count-scale trajectory
 trs <- function(y1,y2,ny){
   tt <- (((y2/y1)^(1/ny))-1)*100
 }
 
-bbs_continental_trends <- NULL
 miny = min(bbs_continental_inds$Year)
 maxy = max(bbs_continental_inds$Year)
+bbs_continental_trends <- NULL
 
-for(tl in c(2,3,6,11,21)){ #estimating all possible 1-year, 10-year, and full trends
+for(tl in c(2,6,11,21)){ #estimating all possible 1-year, 2-year, 5-year, 10-year, and 20-year trends, with no uncertainty, just the point estimates based on the comparison of posterior means fo annual indices
   ny = tl-1
   yrs1 <- seq(miny,(maxy-ny),by = 1)
   yrs2 <- yrs1+ny
@@ -378,21 +378,166 @@ tmp <- bbs_continental_inds %>%
   summarise(trend = trs(YS,YE,ny))%>% 
   mutate(first_year = y1,
          last_year = y2,
-         nyears = ny)
+         nyears = ny,
+         abs_trend = abs(trend),
+         t_years = paste0(ny,"-year trends"))
 
 bbs_continental_trends <- bind_rows(bbs_continental_trends,tmp)
 }
 }
 
 t_quants <- bbs_continental_trends %>% 
-  group_by(nyears) %>% 
-  summarise(x995 = quantile(trend,0.995))
+  group_by(t_years) %>% 
+  summarise(x99 = quantile(abs_trend,0.99),
+            x995 = quantile(abs_trend,0.995))
 
-t_quants
+bbs_continental_trends <- bbs_continental_trends %>% 
+  mutate(t_years = factor(t_years,
+                          levels = c("1-year trends",
+                                     "5-year trends",
+                                     "10-year trends",
+                                     "20-year trends"),
+                          ordered = TRUE))
+
+realised_long_bbs_hist <- ggplot(data = bbs_continental_trends,
+                            aes(abs_trend,after_stat(density),
+                                colour = t_years))+
+  geom_freqpoly(breaks = seq(0,20,0.5),center = 0)+
+  xlab("Absolute value of long-term BBS trends USGS models (1966-2019)")+
+  theme_bw()+
+  scale_y_continuous(limits = c(0,1))+
+scale_colour_viridis_d(begin = 0.1,end = 0.9)
+print(realised_long_bbs_hist)
+
+```
+
+## Summarize the long-term trends from the prior simulations
+
+```{r prior_trend_distributions}
+ 
+realised_long_bbs_hist <- ggplot(data = bbs_continental_trends,
+                            aes(abs_trend,after_stat(density)))+
+  geom_freqpoly(breaks = seq(0,20,0.5),center = 0,
+                alpha = 1,size = 1)+
+  xlab("Absolute value of all possible trends from USGS models (1966-2019)")+
+  theme_bw()+
+  scale_y_continuous(limits = c(0,0.75))+
+facet_wrap(vars(t_years))
+
+
+load("output/GAM_split_prior_sim_summary.RData")
+
+trends_out <- trends_out %>% 
+  mutate(abs_trend = abs(trend),# absolute values of trends
+         scale_factor = factor(prior_scale,ordered = TRUE))%>% 
+  mutate(t_years = factor(paste0(nyears,"-year trends"),
+                          levels = c("1-year trends",
+                                     "5-year trends",
+                                     "10-year trends",
+                                     "20-year trends"),
+                          ordered = TRUE)) #just for plotting
+
+
+trends_normal <- trends_out %>% 
+  filter(distribution == "norm")
+
+trends_t <- trends_out %>% 
+  filter(distribution == "t")
+
+```
+
+The distributions for the normal priors do a reasonable job of covering the range of possible long-term trend values, but the heavier-tailed t-distributions seem to better fit the shape of the distributions.
+
+```{r overplots long-term}
+
+  overp_normal <- realised_long_bbs_hist +
+    geom_freqpoly(data = trends_normal,
+                aes(abs_trend,after_stat(density),
+                    colour = scale_factor),
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.5)+
+    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                           "Prior Scale\nSD half-normal")+
+  coord_cartesian(xlim = c(0,20))
+    
+  #print(overp_normal)
+ 
+
+  overp_t <- realised_long_bbs_hist +
+    geom_freqpoly(data = trends_t,
+                aes(abs_trend,after_stat(density),
+                    colour = scale_factor),
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.5)+
+    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                           "Prior Scale\nSD half-t df=3")+
+  coord_cartesian(xlim = c(0,20))
+ 
+  #print(overp_t)
+ 
+  
+```
+
+```{r save plots for start long, echo=FALSE}
+trends_t2 <- trends_t %>% 
+  filter(prior_scale == 1)
+
+  overp_t2 <- realised_long_bbs_hist +
+    geom_freqpoly(data = trends_t2,
+                aes(abs_trend,after_stat(density)),
+                colour = "darkgreen",
+                breaks = seq(0,100,1),center = 0,
+                alpha = 0.8)+
+  coord_cartesian(xlim = c(0,20))
+ 
+  save(list = "overp_t2",file = "data/prior_t_sel_split.Rdata")
+```
+
+The half-t-distributions with a scale value of 1 or 2 fit the shape of the realised trend distribution reasonably well, and the long-tail includes significant prior mass at and beyond the observed maximum absolute values of trends.
+
+```{r plot_prior_trend_distributions,echo=FALSE, fig.show='asis', fig.dim = c(8, 10)}
+ print(overp_normal / overp_t)
+```
+
+In addition, each of the prior distributions include some prior mass at relatively extreme values, so that these priors are unlikely to overwhelm data that support a steep rate of change. The broader priors (scales of 3 or 4), include prior mass at trend values that are extremely unlikely for a wild population to sustain over more than a few years. For example, the 99th percentiles extend to values that are truly extreme (40 - 50%/year).
+
+```{r prior_table}
+quant_long_tends <- trends_out %>% 
+  group_by(distribution,prior_scale) %>% 
+  summarise(median_abs_t = median(abs_trend),
+            U80 = quantile(abs_trend,0.80),
+            U90 = quantile(abs_trend,0.90),
+            U99 = quantile(abs_trend,0.99),
+            pGTmax = length(which(abs_trend > 30))/length(abs_trend))
+
+kable(quant_long_tends, booktabs = TRUE,
+      digits = 3,
+      format.args = list(width = 7), 
+      col.names = c("Distribution",
+                    "Prior Scale",
+                    "Median Prior Predicted Distribution",
+                    "80th percentile",
+                    "90th percentile",
+                    "99th percentile",
+                    "Proportion of prior distribution > 30%/year"),
+      caption = "Prior simulated distribution quantiles for all possible, 1-, 5-, 10-, and 20-year trends. Prior simulations for two prior distributions with 5 different scales (normal and t)") %>%
+  kable_styling(font_size = 8)%>%
+column_spec(column = 1:7,width = "2cm")
+
+ 
+```
+
+# Priors on the linear component of the trajectory
+
+The overall mean rate of change for a continental landbird population in North America, is something for which we have reasonably good prior information. For a 30-50 year time-period, sustained steep rates of population change are relatively rare. For example, the realised long-term population trends from a different BBS model suggest that long-term trends beyond 10%/year are very rare.
+
+```{r realised bbs long-term trends, fig.show='asis', fig.dim = c(8, 8)}
+
+bbs_trends_usgs <- read.csv("data/BBS_1966-2019_core_best_trend.csv")
 
 
 ## selecting survey-wide trend estimates
-bbs_tmp <-bbs_continental_inds %>% 
+bbs_trends_usgs_long <-bbs_trends_usgs %>% 
   filter(Region == "SU1")%>%  
   select(Trend,Species.Name) %>% 
   mutate(abs_trend = abs(Trend)) %>% #calculating absolute values of the trends
@@ -400,13 +545,13 @@ bbs_tmp <-bbs_continental_inds %>%
 
 G_long_usgs <- max(bbs_trends_usgs_long$abs_trend)
   
-realised_long_bbs_hist <- ggplot(data = bbs_trends_usgs_long,
+realised_long_bbs_freq1 <- ggplot(data = bbs_trends_usgs_long,
                             aes(abs_trend,after_stat(density)))+
   geom_freqpoly(breaks = seq(0,13,0.5),center = 0)+
   xlab("Absolute value of long-term BBS trends USGS models (1966-2019)")+
   theme_bw()+
   scale_y_continuous(limits = c(0,1))
-print(realised_long_bbs_hist)
+print(realised_long_bbs_freq1)
 
 ```
 
@@ -435,235 +580,112 @@ kable(bbs_declines_usgs_long[1:3,], booktabs = TRUE,
 
 ```
 
-## Summarize the long-term trends from the prior simulations
+We could reasonably use this realised distribution of trends to set a somewhat informative prior on the hyperparameter for the linear component of the model.
 
-```{r prior_trend_distributions}
- 
-load("output/GAM_prior_sim_summary.RData")
+For example, a simple normal or t-prior on the linear parameter, with a standard deviation between 0.025 and 0.05 would fit the realised distribution reasonably well, while excluding extremely unlikely values. Even priors with a SD value of 0.05 or 0.1, which may seem relatively informative compared to a "non-informative" or "flat" prior on the slope such as a standard normal distribution, will include some prior mass in regions that appear to be extremely unlikely (> 20%/year over 50 years).
 
-trends_out <- trends_out %>% 
-  mutate(abs_trend = abs(trend),# absolute values of trends
-         scale_factor = factor(prior_scale,ordered = TRUE)) #just for plotting
-
-trends_long <- trends_out %>%  #select long-term trends only
-  filter(nyears == 53 ) 
-
-trends_normal <- trends_long %>% 
-  filter(distribution == "norm")
-```
-
-The distributions for the normal priors do a reasonable job of covering the range of possible long-term trend values, but the heavier-tailed t-distributions seem to better fit the shape of the distributions.
-
-```{r overplots long-term}
-
-  overp_normal <- realised_long_bbs_hist +
-    geom_freqpoly(data = trends_normal,
-                aes(abs_trend,after_stat(density),
-                    colour = scale_factor),
-                breaks = seq(0,100,1),center = 0,
-                alpha = 0.8)+
-    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
-                           "Prior Scale\nSD half-normal")+
-  coord_cartesian(xlim = c(0,20))
-    
+```{r linear_priors, echo=FALSE}
+sds <- c(0.025,0.04,0.05,0.1)
+lin_priors_n <- NULL
+lin_priors_t <- NULL
+N = 10000
+for(ss in sds){
+  tn <- abs((exp(rnorm(N,0,1)*ss)-1)*100)
+  tmp <- data.frame(prior_scale = paste0(ss,"SD of normal"),
+                    distribution = "normal",
+                    abs_trend = tn)
+  lin_priors_n <- bind_rows(lin_priors_n,tmp)
   
-  trends_t <- trends_long %>% 
-  filter(distribution == "t")
+    tt <- abs((exp(rt(N,3)*ss)-1)*100)
+  tmpt <- data.frame(prior_scale = paste0(ss,"SD of t(df = 3)"),
+                    distribution = "t",
+                    abs_trend = tt)
+  lin_priors_t <- bind_rows(lin_priors_t,tmpt)
+  
+}
 
 
-  overp_t <- realised_long_bbs_hist +
-    geom_freqpoly(data = trends_t,
+
+overp_lin_t <- realised_long_bbs_freq1 +
+    geom_freqpoly(data = lin_priors_t,
                 aes(abs_trend,after_stat(density),
-                    colour = scale_factor),
+                    colour = prior_scale),
                 breaks = seq(0,100,1),center = 0,
-                alpha = 0.8)+
+                alpha = 0.5)+
     scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
                            "Prior Scale\nSD half-t df=3")+
   coord_cartesian(xlim = c(0,20))
- 
-  
-  
-```
-
-```{r save plots for start long, echo=FALSE}
-trends_t2 <- trends_t %>% 
-  filter(prior_scale == 2)
-
-  overp_t2 <- realised_long_bbs_hist +
-    geom_freqpoly(data = trends_t2,
-                aes(abs_trend,after_stat(density)),
-                colour = "darkgreen",
-                breaks = seq(0,100,1),center = 0,
-                alpha = 0.8)+
-  coord_cartesian(xlim = c(0,20))
- 
-  save(list = "overp_t2",file = "data/prior_t_sel_long.Rdata")
-```
-
-The half-t-distributions with a scale value of 2 or 3 fit the shape of the realised trend distribution reasonably well, and the long-tail includes significant prior mass at and beyond the observed maximum absolute values of trends.
-
-```{r plot_prior_trend_distributions,echo=FALSE, fig.show='asis', fig.dim = c(8, 10)}
- print(overp_normal / overp_t)
-```
-
-In addition, each of the prior distributions include some prior mass at trend values beyond the realised maximum values. And the broadest priors (scales of 3 or 4), include prior mass at trend values that are extremely unlikely for a wild population to sustain over \>50 years. For example, more than 10% of the two widest distributions are at values larger than the largest observed value of long-term trends, and the 99th percentiles extend to values that are truly extreme (40 - 50%/year).
-
-```{r prior_table}
-quant_long_tends <- trends_long %>% 
-  group_by(distribution,prior_scale) %>% 
-  summarise(median_abs_t = median(abs_trend),
-            U80 = quantile(abs_trend,0.80),
-            U90 = quantile(abs_trend,0.90),
-            U99 = quantile(abs_trend,0.99),
-            pGTmax = length(which(abs_trend > G_long_usgs))/length(abs_trend))
-
-kable(quant_long_tends, booktabs = TRUE,
-      digits = 3,
-      format.args = list(width = 7), 
-      col.names = c("Distribution",
-                    "Prior Scale",
-                    "Median Prior Predicted Distribution",
-                    "80th percentile",
-                    "90th percentile",
-                    "99th percentile",
-                    "Proportion of prior distribution > realised maximum value"),
-      caption = "Prior simulated distribution quantiles for the long-term trends  and proportion of the distributions greater than the realised maximum values from a separate analysis of the BBS data for > 400 species. Prior simulations for two prior distributions with 5 different scales (normal and t)") %>%
-  kable_styling(font_size = 8)%>%
-column_spec(column = 1:7,width = "2cm")
-
- 
-```
-
-# Short-term trends
-
-The maximum observed short-term trend from the same USGS analysis of BBS trends is for Eurasian Collared-dove, which have a ten-year trend rate of 23.5%/year. Although the full set of short-term trends is not available for download, this extreme rate of short-term increase provides a useful benchmark against which we can compare the prior distributions of short-term trends. This ten-year trend rate implies a `r signif(((((23.5/100)+1)^10)-1)*100,2)` % overall increase in the population over this time. This is an extreme increase over a short-period of time.
-
-```{r short-term max}
-G_short_usgs <- 23.5 #Eurasian Collared Dove trend for short-term 2009-2019 analysis USGS
-    # short-term trends not included in Science Base, but visible here:
-    # https://www.mbr-pwrc.usgs.gov/bbs/reglist19v3.shtml
-```
-
-We can also use archived estimates from the Canadian Wildlife Service for 1970 - 2017, which were derived from a different model than the GAM used here.
-
-```{r canadian short term, cache=TRUE}
-bbs2017_Canada <- read.csv("data_basic/All BBS trends 2017 w reliab.csv")
-
-bbs_short_survey_wide <- bbs2017_Canada %>% 
-  filter(region.type == "Continental",
-         trendtype == "short-term",
-         startyear == 2007,
-         trendtime == "full") %>% 
-  select(species,trend) %>% 
-  mutate(abs_trend = abs(trend)) %>% 
-  arrange(-abs_trend)
-
-```
-
-The realised distribution of short-term trends from this archived analysis shows that short-term trends are generally more extreme than long-term trends.
-
-```{r short term hist , fig.show='asis', fig.dim = c(8, 8)}
-realised_short_bbs_hist <- ggplot(data = bbs_short_survey_wide,
-                            aes(abs_trend,after_stat(density)))+
-  geom_freqpoly(breaks = seq(0,20,0.5),center = 0)+
-  xlab("Absolute value of long-term BBS trends CWS model (2007-2017)")+
-  theme_bw()+
-  scale_y_continuous(limits = c(0,1))
-print(realised_short_bbs_hist)
-
-```
-
-The short-term trends from the prior distributions represent all possible ten-year trends, not just the final ten-years of the trajectory.
-
-```{r prior_short-term_trend_distributions}
- 
-
-trends_short <- trends_out %>%  #select long-term trends only
-  filter(nyears == 10 ) 
-
-trends_short_normal <- trends_short %>% 
-  filter(distribution == "norm")
-
-trends_short_t <- trends_short %>% 
-  filter(distribution == "t")
 
 
-```
 
-Overplotting the simulation prior distributions of short-term trends with the realised collection of short-term trends.
-
-```{r overplots short-term}
-
-  overp_normal_short <- realised_short_bbs_hist +
-    geom_freqpoly(data = trends_short_normal,
+overp_lin_n <- realised_long_bbs_freq1 +
+    geom_freqpoly(data = lin_priors_n,
                 aes(abs_trend,after_stat(density),
-                    colour = scale_factor),
+                    colour = prior_scale),
                 breaks = seq(0,100,1),center = 0,
-                alpha = 0.8)+
+                alpha = 0.5)+
     scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
-                           "Prior Scale\nSD half-normal")+
+                           "Prior Scale\n normal")+
   coord_cartesian(xlim = c(0,20))
-    
+```
+
+```{r linear_priors_plot }
+print(overp_lin_n/overp_lin_t)
 
 
-  overp_t_short <- realised_short_bbs_hist +
-    geom_freqpoly(data = trends_short_t,
+```
+
+
+
+```{r linear_priors_show, eval=FALSE}
+sds <- c(0.025,0.04,0.05,0.1)
+lin_priors_n <- NULL
+lin_priors_t <- NULL
+N = 10000
+for(ss in sds){
+  tn <- abs((exp(rnorm(N,0,1)*ss)-1)*100)
+  tmp <- data.frame(prior_scale = paste0(ss,"SD of normal"),
+                    distribution = "normal",
+                    abs_trend = tn)
+  lin_priors_n <- bind_rows(lin_priors_n,tmp)
+  
+    tt <- abs((exp(rt(N,3)*ss)-1)*100)
+  tmpt <- data.frame(prior_scale = paste0(ss,"SD of t(df = 3)"),
+                    distribution = "t",
+                    abs_trend = tt)
+  lin_priors_t <- bind_rows(lin_priors_t,tmpt)
+  
+}
+
+
+
+overp_lin_t <- realised_long_bbs_freq1 +
+    geom_freqpoly(data = lin_priors_t,
                 aes(abs_trend,after_stat(density),
-                    colour = scale_factor),
+                    colour = prior_scale),
                 breaks = seq(0,100,1),center = 0,
-                alpha = 0.8)+
+                alpha = 0.5)+
     scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
                            "Prior Scale\nSD half-t df=3")+
   coord_cartesian(xlim = c(0,20))
- 
-```
 
-```{r save plots for start, echo=FALSE}
-trends_short_t2 <- trends_short_t %>% 
-  filter(prior_scale == 2)
 
-  overp_short_t2 <- realised_short_bbs_hist +
-    geom_freqpoly(data = trends_short_t2,
-                aes(abs_trend,after_stat(density)),
-                colour = "darkgreen",
+
+overp_lin_n <- realised_long_bbs_freq1 +
+    geom_freqpoly(data = lin_priors_n,
+                aes(abs_trend,after_stat(density),
+                    colour = prior_scale),
                 breaks = seq(0,100,1),center = 0,
-                alpha = 0.8)+
+                alpha = 0.5)+
+    scale_colour_viridis_d(begin = 0.5,alpha = 0.8,
+                           "Prior Scale\n normal")+
   coord_cartesian(xlim = c(0,20))
- 
-  save(list = "overp_short_t2",file = "data/prior_t_sel_short.Rdata")
+
+print(overp_lin_n/overp_lin_t)
+
+
 ```
 
-The t-distribution scale parameter = 2, does a reasonably good job of covering the range of realistic short-term trends in the BBS data, and includes a long tail that includes much more extreme values when supported by the data. The distributions with larger scale parameters place significant prior density at rates of short-term change that are highly improbable at continental scales. For example, approximately 10% of the two widest distributions are at values larger than the largest observed value, and the 99th percentiles extend to values that are truly extreme (64 - 92%/year).
 
-```{r plot_prior_short_trend_distributions,echo=FALSE, fig.show='asis', fig.dim = c(8, 10)}
- print(overp_normal_short / overp_t_short)
-```
-
-Below, you can see that the half-t-distribution with scale parameter = 2 has a long-tail that will allow for extreme trends when supported by the data (e.g., it has approximately 5% of the prior distribution covering values larger than the maximum observed value and a 99th percentile far beyond the most extreme observed value).
-
-```{r prior_table_short}
-quant_short_tends <- trends_short %>% 
-  group_by(distribution,prior_scale) %>% 
-  summarise(median_abs_t = median(abs_trend),
-            U80 = quantile(abs_trend,0.80),
-            U90 = quantile(abs_trend,0.90),
-            U99 = quantile(abs_trend,0.99),
-            pGTmax = length(which(abs_trend > G_short_usgs))/length(abs_trend))
-
-kable(quant_short_tends, booktabs = TRUE,
-      digits = 3,
-      format.args = list(width = 7),
-      col.names = c("Distribution",
-                    "Prior Scale",
-                    "Median Prior Predicted Distribution",
-                    "80th percentile",
-                    "90th percentile",
-                    "99th percentile",
-                    "Proportion of prior distribution > realised maximum value"), caption = "Prior simulated distribution quantiles for the short-term trends  and proportion of the distributions greater than the realised maximum values from a separate analysis of the BBS data for > 400 species. Prior simulations for two prior distributions with 5 different scales (normal and t)") %>%
-  kable_styling(font_size = 8)%>%
-column_spec(column = 1:7,width = "2cm")
-
- 
-```
 
 # References

@@ -42,6 +42,7 @@ data {
  
    // data for spline s(year)
   int<lower=1> nknots_year;  // number of knots in the basis function for year
+  int<lower=1> nknots_year_m1;  // number of knots in the basis function for year
   matrix[nyears, nknots_year] year_basis; // basis function matrix
    
   // data for spline s(date)
@@ -66,13 +67,17 @@ parameters {
   
   real<lower=0> sdnoise;    // sd of over-dispersion
   real<lower=0> sdste;    // sd of site effects
-  real<lower=0> sdbeta[nknots_year];    // sd of GAM coefficients among strata 
+  real<lower=0> sdbeta[nknots_year_m1];    // sd of GAM coefficients among strata 
+  real<lower=0> sdbeta_lin;    // sd of GAM linear coefficients among strata 
   real<lower=0> sdBETA;    // sd of GAM coefficients
   real<lower=0> sdyear;    // sd of year effects
   real<lower=0> sdseason[2];    // sd of season effects
 
-  vector[nknots_year] BETA_raw;//_raw; 
-  matrix[nstrata,nknots_year] beta_raw;         // GAM strata level parameters
+  vector[nknots_year_m1] BETA_raw;//_raw; 
+  matrix[nstrata,(nknots_year_m1)] beta_raw;         // GAM strata level parameters
+
+  real BETA_raw_lin;//_raw; 
+  vector[nstrata] beta_raw_lin;         // GAM strata level parameters
 
   vector[nknots_season] beta_raw_season_1;         // GAM coefficients
   vector[nknots_season] beta_raw_season_2;         // GAM coefficients
@@ -92,11 +97,14 @@ transformed parameters {
   matrix[ndays,2] season_smooth;
   vector[nyears] yeareffect;             // continental year-effects
  
-  BETA = sdBETA*BETA_raw;
+  BETA[1:(nknots_year_m1)] = sdBETA*BETA_raw;
+  BETA[nknots_year] = BETA_raw_lin;
   
-  for(k in 1:nknots_year){
+  for(k in 1:(nknots_year_m1)){
     beta[,k] = (sdbeta[k] * beta_raw[,k]) + BETA[k];
   }
+  beta[,nknots_year] = (sdbeta_lin * beta_raw_lin) + BETA[nknots_year];
+  
   SMOOTH_pred = year_basis * BETA; 
   
       for(s in 1:nstrata){
@@ -131,11 +139,13 @@ model {
   sdste ~ normal(0,2); //prior on scale of site level variation
   
   //sdste ~ student_t(3,0,2); //prior on scale of site level variation
-  sdBETA ~ student_t(4,0,1); // prior on sd of GAM parameters
+  //sdBETA ~ gamma(2,4); // prior on sd of GAM parameters
+  sdBETA ~ student_t(3,0,1); // prior on sd of GAM parameters
 
 
  // sdbeta ~ normal(0,1); //prior on sd of gam hyperparameters
   sdbeta ~ gamma(2,4);//boundary avoiding prior 
+  sdbeta_lin ~ gamma(2,100);//boundary avoiding prior 
   //sdbeta ~ student_t(3,0,1);// prior on spatial variation of spline parameters 
   
   sdseason ~ std_normal();//variance of GAM parameters
@@ -144,14 +154,16 @@ model {
   STRATA ~ std_normal();// overall species intercept 
  
   BETA_raw ~ std_normal();// prior on GAM hyperparameters
+  //BETA_raw_lin ~ normal(0,0.05);// prior on GAM hyperparameters
+  BETA_raw_lin ~ student_t(3,0,0.05);// prior on GAM hyperparameters
   yeareffect_raw ~ std_normal(); //prior on ▲annual fluctuations
   sum(yeareffect_raw) ~ normal(0,0.001*nyears);//sum to zero constraint on year-effects
 
   
-for(k in 1:nknots_year){
+for(k in 1:(nknots_year_m1)){
     beta_raw[,k] ~ icar_normal(nstrata, node1, node2);
 }
- 
+   beta_raw_lin ~ icar_normal(nstrata, node1, node2);
    count ~ poisson_log(E); //vectorized count likelihood
   
 
