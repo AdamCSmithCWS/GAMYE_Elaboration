@@ -140,7 +140,7 @@ model {
   
   //sdste ~ student_t(3,0,2); //prior on scale of site level variation
   //sdBETA ~ gamma(2,4); // prior on sd of GAM parameters
-  sdBETA ~ student_t(3,0,1); // prior on sd of GAM parameters
+  sdBETA ~ student_t(10,0,1); // prior on sd of GAM parameters
 
 
  // sdbeta ~ normal(0,1); //prior on sd of gam hyperparameters
