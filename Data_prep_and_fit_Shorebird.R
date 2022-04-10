@@ -296,11 +296,11 @@ year_basis = GAM_year$Year_basis
   stanfit <- model$sample(
     data=stan_data,
     refresh=200,
-    chains=3, iter_sampling=2000,
+    chains=3, iter_sampling=4000,
     iter_warmup=2000,
     parallel_chains = 3,
     #pars = parms,
-    adapt_delta = 0.95,
+    adapt_delta = 0.8,
     max_treedepth = 14,
     seed = 123,
     init = init_def,

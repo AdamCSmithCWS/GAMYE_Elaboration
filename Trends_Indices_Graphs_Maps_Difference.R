@@ -37,7 +37,7 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                            "BBS",
                            "CBC"),
                   out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
-                               paste0("Cinclus_mexicanus","_CBC_B"),
+                               paste0("Cinclus_mexicanus","_CBC"),
                                paste0("Red_Knot","_Shorebird"),
                                paste0("Dickcissel","_real_","BBS"),
                                paste0("sim_Spatial_Differencebreakpoint_cycle_",MAs,"_BBS"),
@@ -79,7 +79,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(5:22)){#c(1:nrow(fls))){
+for(i in c(1:nrow(fls))){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -488,15 +488,15 @@ if(dd == "Shorebird"){
            data = dd,
            model = modl)
   
-  # sw_smooth <- index_function(fit = stanfit,
-  #                                     parameter = "NSmooth",
-  #                                     year_1 = year_1,
-  #                                     strat = NULL,
-  #                                     first_dim = "y")
- ### one-off save of overall smooth indices for spaghetti plot
-   # save(list = "sw_smooth",
-   #     file = "output/Red_Knot_SW_indices.RData")
-   # 
+ sw_smooth <- index_function(fit = stanfit,
+                                     parameter = "NSmooth",
+                                     year_1 = year_1,
+                                     strat = NULL,
+                                     first_dim = "y")
+ ## one-off save of overall smooth indices for spaghetti plot
+ save(list = "sw_smooth",
+     file = "output/Red_Knot_SW_indices.RData")
+
   Inds_smooth <- sw_smooth$indices %>% 
     mutate(version = "smooth",
            simulated_data = rd,

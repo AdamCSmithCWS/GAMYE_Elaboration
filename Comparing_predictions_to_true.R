@@ -19,46 +19,59 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                                 "Dickcissel",
                                 rep("Yellow-headed_Blackbird",length(MAs)*2),
                                 "Yellow-headed_Blackbird",
-                                "Cinclus_mexicanus"),
+                                "Cinclus_mexicanus",
+                                "Red_Knot",
+                                "Red_Knot"),
                   species = c("Yellow-headed Blackbird",
                               "Cinclus_mexicanus",
                               "Red Knot",
                               "Dickcissel",
                               rep("Yellow-headed Blackbird",length(MAs)*2),
                               "Yellow-headed Blackbird",
-                              "Cinclus_mexicanus"),
+                              "Cinclus_mexicanus",
+                              "Red_Knot",
+                              "Red_Knot"),
                   data = c("BBS",
                            "CBC",
                            "Shorebird",
                            "BBS",
                            rep("BBS",length(MAs)*2),
                            "BBS",
-                           "CBC"),
+                           "CBC",
+                           "Shorebird",
+                           "Shorebird"),
                   out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
-                               paste0("Cinclus_mexicanus","_CBC_B"),
+                               paste0("Cinclus_mexicanus","_CBC"),
                                paste0("Red_Knot","_Shorebird"),
                                paste0("Dickcissel","_real_","BBS"),
                                paste0("sim_breakpoint_cycle_",MAs,"_BBS"),
                                paste0("sim_nonSpatial_alt_breakpoint_cycle_",MAs,"_BBS"),
                                paste0("Yellow-headed_Blackbird","_real_Non_spatial","BBS"),
-                               paste0("Cinclus_mexicanus","_CBC_Non_spatial")),
+                               paste0("Cinclus_mexicanus","_CBC_Non_spatial"),
+                               paste0("Red_Knot","_Shorebird_NonSpatial"),
+                               paste0("Red_Knot","_Shorebird_iCAR_split")),
                   y1 = c(1966,
                          1966,
                          1980,
                          1966,
                          rep(1966,length(MAs)*2),
                          1966,
-                         1966),
+                         1966,
+                         1980,
+                         1980),
                   strat_map_name = c("Stratum_Factored",
                                      "strata_vec",
                                      "stratn",
                                      "Stratum_Factored",
                                      rep("Stratum_Factored",length(MAs)*2),
                                      "Stratum_Factored",
-                                     "strata_vec"),
+                                     "strata_vec",
+                                     "stratn",
+                                     "stratn"),
                   real = c(TRUE,TRUE,TRUE,TRUE,
                            rep(FALSE,length(MAs)*2),
-                           TRUE,TRUE))
+                           TRUE,TRUE,TRUE,TRUE))
+
 
 
 
@@ -68,10 +81,18 @@ load("output/real_data_summaries.RData")
 
 
 # Compare spatial and nonspatial for BBS and CBC --------------------------
+indices_all_out <- indices_all_out %>% 
+  mutate(Species = species)
+         # ,
+         # model = ifelse(Species == "Red_Knot",model,"Spatial"),
+         # Species = ifelse(Species != "Red_Knot",Species,"Red Knot"))
+
 
 for(species in c("Yellow-headed Blackbird",
-                 "Cinclus_mexicanus")){
+                 "Cinclus_mexicanus",
+                 "Red Knot")){
   dd <- ifelse(species == "Yellow-headed Blackbird","BBS","CBC")
+  dd <- ifelse(species == "Red Knot","Shorebird",dd)
   
   species_f <- gsub(pattern = " ",replacement = "_",
                     species)
@@ -83,13 +104,13 @@ for(species in c("Yellow-headed Blackbird",
   
   if(dd == "BBS"){
     ind_sel <- indices_all_out %>% 
-      filter(species == species,
+      filter(Species == species,
              data == dd,
              simulated_data == "real",
              version == "smooth")
     
     ind_sel_f <- indices_all_out %>% 
-      filter(species == species,
+      filter(Species == species,
              data == dd,
              simulated_data == "real",
              version == "full")
@@ -104,19 +125,20 @@ for(species in c("Yellow-headed Blackbird",
       distinct()
     
 
-  }else{
+  }
+  if(dd == "CBC"){
     realized_strata_map <- realized_strata_map %>% 
       mutate(Stratum = strat)
     
     ind_sel <- indices_all_out %>% 
-      filter(species == species,
+      filter(Species == species,
              data == dd,
              simulated_data == "real",
              version == "smooth")%>% 
       mutate(Stratum = strat)
     
     ind_sel_f <- indices_all_out %>% 
-      filter(species == species,
+      filter(Species == species,
              data == dd,
              simulated_data == "real",
              version == "full")%>% 
@@ -128,6 +150,35 @@ for(species in c("Yellow-headed Blackbird",
              version == "full") %>% 
       select(true_year,mean_obs,zero,
              n_surveys,Stratum,Stratum_Factored,
+             Year) %>% 
+      distinct()
+    
+  }
+  
+  if(dd == "Shorebird"){
+    realized_strata_map <- realized_strata_map %>% 
+      mutate(Stratum = hex_name)
+    
+    ind_sel <- indices_all_out %>% 
+      filter(Species == species,
+             data == dd,
+             simulated_data == "real",
+             version == "smooth")%>% 
+      mutate(Stratum = hex_name)
+    
+    ind_sel_f <- indices_all_out %>% 
+      filter(Species == species,
+             data == dd,
+             simulated_data == "real",
+             version == "full")%>% 
+      mutate(Stratum = hex_name)
+    
+    
+    mean_obs <- ind_sel_f %>% 
+      filter(mean_abundance == mean_ab,
+             version == "full") %>% 
+      select(true_year,mean_obs,zero,
+             n_surveys,Stratum,stratn,
              Year) %>% 
       distinct()
     

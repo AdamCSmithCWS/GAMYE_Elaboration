@@ -20,46 +20,63 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                               "Dickcissel",
                               rep("Yellow-headed_Blackbird",length(MAs)*2),
                               "Yellow-headed_Blackbird",
-                              "Cinclus_mexicanus"),
+                              "Cinclus_mexicanus",
+                              "Red_Knot",
+                              "Red_Knot"),
                   species = c("Yellow-headed Blackbird",
                               "Cinclus_mexicanus",
                               "Red Knot",
                               "Dickcissel",
                               rep("Yellow-headed Blackbird",length(MAs)*2),
                               "Yellow-headed Blackbird",
-                              "Cinclus_mexicanus"),
+                              "Cinclus_mexicanus",
+                              "Red Knot",
+                              "Red Knot"),
                   data = c("BBS",
                            "CBC",
                            "Shorebird",
                            "BBS",
                            rep("BBS",length(MAs)*2),
                            "BBS",
-                           "CBC"),
+                           "CBC",
+                           "Shorebird",
+                           "Shorebird"),
                   out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
-                               paste0("Cinclus_mexicanus","_CBC_B"),
+                               paste0("Cinclus_mexicanus","_CBC"),
                                paste0("Red_Knot","_Shorebird"),
                                paste0("Dickcissel","_real_","BBS"),
                                paste0("sim_breakpoint_cycle_",MAs,"_BBS"),
                                paste0("sim_nonSpatial_alt_breakpoint_cycle_",MAs,"_BBS"),
                                paste0("Yellow-headed_Blackbird","_real_Non_spatial","BBS"),
-                               paste0("Cinclus_mexicanus","_CBC_Non_spatial")),
+                               paste0("Cinclus_mexicanus","_CBC_Non_spatial"),
+                               paste0("Red_Knot","_Shorebird_NonSpatial"),
+                               paste0("Red_Knot","_Shorebird_iCAR_split")),
+                  model = c(rep("Spatial",4),
+                            rep("Spatial",length(MAs)),
+                            rep("Non-Spatial",length(MAs)),
+                            rep("Non-Spatial",3),
+                            "Spatial-Split"),
                   y1 = c(1966,
                          1966,
                          1980,
                          1966,
                          rep(1966,length(MAs)*2),
                          1966,
-                         1966),
+                         1966,
+                         1980,
+                         1980),
                   strat_map_name = c("Stratum_Factored",
                                      "strata_vec",
                                      "stratn",
                                      "Stratum_Factored",
                                      rep("Stratum_Factored",length(MAs)*2),
                                      "Stratum_Factored",
-                                     "strata_vec"),
+                                     "strata_vec",
+                                     "stratn",
+                                     "stratn"),
                   real = c(TRUE,TRUE,TRUE,TRUE,
                            rep(FALSE,length(MAs)*2),
-                           TRUE,TRUE))
+                           TRUE,TRUE,TRUE,TRUE))
 
 
 
@@ -78,7 +95,7 @@ Ind_plots_list = tt_map_list
 
 conv_summaries <- NULL
 
-for(i in c(1,2,17,18)){#c(1:nrow(fls))){
+for(i in c(1:nrow(fls))){
 
   species = fls[i,"species"]
   species_f <- fls[i,"species_f"]
@@ -87,22 +104,20 @@ for(i in c(1,2,17,18)){#c(1:nrow(fls))){
   year_1 = fls[i,"y1"]
   reald = fls[i,"real"]
   st_n = fls[i,"strat_map_name"]
+  modl = fls[i,"model"]
   if(reald){
     load(paste0("Data/",species_f,dd,"_data.RData"))
     ma <- -5
-    modl <- ifelse(i < 3,"Spatial","Non-Spatial")
   }else{
     if(i < 11){
     ma <- MAs[i-4]
   load(paste0("Data/Simulated_data_",ma,"_breakpoint_cycle_BBS.RData"))
   realized_strata_map = strata_map
-  modl <- "Spatial"
     }else{
       
       ma <- MAs[i-(4+length(MAs))]
       load(paste0("Data/Simulated_data_",ma,"_breakpoint_cycle_BBS.RData"))
       realized_strata_map = strata_map 
-      modl <- "Non-Spatial"
     }
   }
   
@@ -486,9 +501,10 @@ if(dd == "Shorebird"){
                                       strat = NULL,
                                       first_dim = "y")
  ### one-off save of overall smooth indices for spaghetti plot
-   save(list = "sw_smooth",
+  if(out_base == "Red_Knot_Shorebird"){
+    save(list = "sw_smooth",
        file = "output/Red_Knot_SW_indices.RData")
-  
+  }
   Inds_smooth <- sw_smooth$indices %>% 
     mutate(version = "smooth",
            simulated_data = rd,
@@ -561,11 +577,9 @@ if(dd == "Shorebird"){
   
   
 }
-if(reald){
-pdf(file = paste0("Figures/",species_f,"_Indices.pdf"))
-}else{
+
 pdf(file = paste0("Figures/",out_base,"_Indices.pdf"))
-}
+
 print(pl_Inds)
 print(pl_inds)
 dev.off()
