@@ -133,13 +133,13 @@ for(s in 1:nstrata){
   
   
 model {
-  sdnoise ~ normal(0,0.5); //prior on scale of extra Poisson log-normal variance
-  //noise_raw ~ student_t(4,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
-   noise_raw ~ normal(0,1);
-  sdobs ~ normal(0,0.5); //prior on sd of observer effects
-  sdste ~ std_normal(); //prior on sd of site effects
+  sdnoise ~ student_t(3,0,0.5); //prior on scale of extra Poisson log-normal variance
+  noise_raw ~ student_t(3,0,1);//student_t(nu,0,1); //normal tailed extra Poisson log-normal variance
+   //noise_raw ~ normal(0,1);
+  sdobs ~ student_t(3,0,0.5); //prior on sd of observer effects
+  sdste ~ student_t(3,0,1); //prior on sd of site effects
   sdyear ~ gamma(2,2); // prior on sd of yeareffects - stratum specific, and boundary-avoiding with a prior mode at 0.5 (1/2) - recommended by https://doi.org/10.1007/s11336-013-9328-2 
-  sdBETA ~ student_t(3,0,2); // prior on sd of GAM parameters
+  sdBETA ~ student_t(3,0,1); // prior on sd of GAM parameters
   sdbeta ~ student_t(3,0,1); // prior on sd of GAM parameters
   
   //nu ~ gamma(2,0.1); // prior on df for t-distribution of heavy tailed site-effects from https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations#prior-for-degrees-of-freedom-in-students-t-distribution

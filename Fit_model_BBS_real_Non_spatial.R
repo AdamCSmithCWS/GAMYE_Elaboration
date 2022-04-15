@@ -169,7 +169,7 @@ stanfit <- model$sample(
   iter_warmup=1000,
   parallel_chains = 3,
   #pars = parms,
-  adapt_delta = 0.95,
+  adapt_delta = 0.8,
   max_treedepth = 14,
   seed = 123,
   init = init_def,

@@ -12,7 +12,6 @@ source("Functions/palettes.R")
 
 MAs <- round(log(c(0.1,0.5,1,5,10,50)),2)# true mean abundances for different simulations
 
-
 fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                                 "Cinclus_mexicanus",
                                 "Red_Knot",
@@ -35,7 +34,7 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                            "BBS",
                            "CBC"),
                   out_base = c(paste0("Yellow-headed_Blackbird","_real_","BBS"),
-                               paste0("Cinclus_mexicanus","_CBC_B"),
+                               paste0("Cinclus_mexicanus","_CBC"),
                                paste0("Red_Knot","_Shorebird"),
                                paste0("Dickcissel","_real_","BBS"),
                                paste0("sim_Spatial_Differencebreakpoint_cycle_",MAs,"_BBS"),
@@ -60,6 +59,7 @@ fls <- data.frame(species_f = c("Yellow-headed_Blackbird",
                   real = c(TRUE,TRUE,TRUE,TRUE,
                            rep(FALSE,length(MAs)*3),
                            TRUE,TRUE))
+
 
 
 
@@ -194,14 +194,12 @@ strat_grid <- geofacet::grid_auto(realized_strata_map,
                                   seed = 2019)
 
 ind_sel <- indices_all_out %>% 
-  filter(!is.na(True_scaled_smooth),
+  filter(!is.na(True_scaled_index),
          mean_abundance == mean_ab,
-         version == "smooth")
-ind_sel$model <- c(rep("Spatial",nrow(ind_sel)/2),
-                   rep("Non-Spatial",nrow(ind_sel)/2))
+         version == "full")
 
 mean_obs <- indices_all_out %>% 
-  filter(!is.na(True_scaled_smooth),
+  filter(!is.na(True_scaled_index),
          mean_abundance == mean_ab,
          version == "full") %>% 
   select(true_year,mean_obs,zero,
@@ -212,7 +210,7 @@ mean_obs <- indices_all_out %>%
 
 g_inds <- suppressMessages(ggplot(data = ind_sel,aes(x = true_year,y = median))+
                              geom_line(aes(x = true_year,
-                                           y = True_scaled_smooth),
+                                           y = True_scaled_index),
                                        colour = "black",
                                        alpha = 0.9,
                                        size = 1,
@@ -241,7 +239,7 @@ g_inds <- suppressMessages(ggplot(data = ind_sel,aes(x = true_year,y = median))+
   
   #print(g_inds)
 
-pdf(paste0("Figures/Geofacet",mean_ab,"spatial_vs_non.pdf"),
+pdf(paste0("Figures/Geofacet_Difference_",mean_ab,"spatial_vs_non.pdf"),
     width = 8.5,
     height = 11)
 print(g_inds)
@@ -355,7 +353,7 @@ for(ma in MAs){
     xlab("Length of trend (number of years)")+
     geom_abline(slope = 0,intercept = 0,colour = "blue")+
     theme_bw()
-  pdf("Figures/Difference_trend_error_Spatial_NonHier.pdf",
+  pdf("Figures/Difference_Difference_trend_error_Spatial_NonHier.pdf",
       width = 7,
       height = 8)
   print(box)
@@ -405,7 +403,7 @@ sdb_ess_plot = ggplot(data = sdbetas_sim,aes(x = ess_bulk))+
   geom_vline(xintercept = 500)+
   theme_bw()
 
-pdf("Figures/sd_beta_bulk_ess_simulated.pdf",
+pdf("Figures/Difference_sd_beta_bulk_ess_simulated.pdf",
     width = 8,
     height = 5)
 print(sdb_ess_plot)
@@ -433,7 +431,7 @@ BETAs_plot = ggplot(data = BETAs,aes(x = ess_bulk))+
   xlab("Effective Sample Sizes BETA for simulated data by model and mean abundance")+
   theme_bw()
 
-pdf("Figures/BETA_bulk_ess_simulated.pdf",
+pdf("Figures/Difference_BETA_bulk_ess_simulated.pdf",
     width = 8,
     height = 5)
 print(BETAs_plot)
@@ -459,7 +457,7 @@ BETAs_plot_r = ggplot(data = BETAsr,aes(x = ess_bulk))+
   xlab("Effective Sample Sizes BETA for real data by model and dataset")+
   theme_bw()
 
-pdf("Figures/BETA_bulk_ess_real.pdf",
+pdf("Figures/Difference_BETA_bulk_ess_real.pdf",
     width = 8,
     height = 5)
 print(BETAs_plot_r)
@@ -486,7 +484,7 @@ betas_plot = ggplot(data = betas,aes(x = ess_bulk))+
   xlab("Effective Sample Sizes, beta for simulated data by model and mean abundance")+
   theme_bw()
 
-pdf("Figures/betas_bulk_ess_simulated.pdf",
+pdf("Figures/Difference_betas_bulk_ess_simulated.pdf",
     width = 8,
     height = 5)
 print(betas_plot)
@@ -514,7 +512,7 @@ betas_plot_r = ggplot(data = betas_r,aes(x = ess_bulk))+
   xlab("Effective Sample Sizes, beta for real data by model and data")+
   theme_bw()
 
-pdf("Figures/betas_bulk_ess_real.pdf",
+pdf("Figures/Difference_betas_bulk_ess_real.pdf",
     width = 8,
     height = 5)
 print(betas_plot_r)
@@ -543,7 +541,7 @@ smooths_plot_r = ggplot(data = smooths_r,aes(x = ess_bulk))+
   xlab("Effective Sample Sizes, predicted smooth trajectories for real data by model and data")+
   theme_bw()
 
-pdf("Figures/smooth_trajectories_bulk_ess_real.pdf",
+pdf("Figures/Difference_smooth_trajectories_bulk_ess_real.pdf",
     width = 8,
     height = 5)
 print(smooths_plot_r)
@@ -577,7 +575,7 @@ smooths_plot = ggplot(data = smooths,aes(x = ess_bulk))+
        data by model and mean abundance")+
   theme_bw()
 
-pdf("Figures/smooth_trajectories_bulk_ess_simulated.pdf",
+pdf("Figures/Difference_smooth_trajectories_bulk_ess_simulated.pdf",
     width = 8,
     height = 5)
 print(smooths_plot)

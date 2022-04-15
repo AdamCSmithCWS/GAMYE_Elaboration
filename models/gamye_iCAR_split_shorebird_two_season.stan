@@ -144,7 +144,7 @@ model {
 
 
  // sdbeta ~ normal(0,1); //prior on sd of gam hyperparameters
-  sdbeta ~ gamma(2,4);//boundary avoiding prior 
+  sdbeta ~ gamma(2,2);//boundary avoiding prior 
   sdbeta_lin ~ gamma(2,100);//boundary avoiding prior 
   //sdbeta ~ student_t(3,0,1);// prior on spatial variation of spline parameters 
   
