@@ -1,0 +1,104 @@
+// simple GAM prior simulation
+
+
+functions {
+  real icar_normal_lpdf(vector bb, int ns, int[] n1, int[] n2) {
+    return -0.5 * dot_self(bb[n1] - bb[n2])
+      + normal_lpdf(sum(bb) | 0, 0.001 * ns); //soft sum to zero constraint on bb
+ }
+}
+
+data {
+    int<lower=1> nstrata;
+  int<lower=1> nyears;
+  int<lower=3> df;
+  real<lower=0>  prior_scale_B; //scale of the prior distribution
+  real<lower=0>  prior_scale_b; //scale of the prior distribution
+  int<lower=0,upper=1> pnorm; // indicator for the prior distribution 0 = t, 1 = normal
+  
+   // spatial neighbourhood information
+  int<lower=1> N_edges;
+  int<lower=1, upper=nstrata> node1[N_edges];  // node1[i] adjacent to node2[i]
+  int<lower=1, upper=nstrata> node2[N_edges];  // and node1[i] < node2[i]
+
+  // data for spline s(year)
+  int<lower=1> nknots_year;  // number of knots in the basis function for year
+  matrix[nyears, nknots_year] year_basis; // basis function matrix
+}
+
+parameters {
+  
+  real<lower=0> sdbeta[nstrata];    // sd of GAM coefficients among strata 
+  matrix[nstrata,nknots_year] beta_raw;         // GAM strata level parameters
+
+  real<lower=0> sdBETA;    // sd of spline coefficients  
+  vector[nknots_year] BETA_raw;         // unscaled spline coefficients
+}
+ 
+transformed parameters { 
+  vector[nknots_year] BETA;         // spatial effect slopes (0-centered deviation from continental mean slope B)
+  vector[nyears] SMOOTH_pred;
+
+  matrix[nstrata,nknots_year] beta;         // spatial effect slopes (0-centered deviation from continental mean slope B)
+  matrix[nyears,nstrata] smooth_pred;
+
+    BETA = sdBETA * BETA_raw; //scaling the spline parameters
+     SMOOTH_pred = year_basis * BETA; //log-scale smooth trajectory
+     
+   for(s in 1:nstrata){
+    beta[s,] = (sdbeta[s] * beta_raw[s,]) + transpose(BETA);
+  } 
+  
+      for(s in 1:nstrata){
+     smooth_pred[,s] = year_basis * transpose(beta[s,]);
+}
+
+
+  }
+  
+model {
+
+//Conditional statements to select the prior distribution
+if(pnorm == 1){
+ sdBETA ~ normal(0,prior_scale_B); //prior on sd of GAM parameter variation
+ sdbeta ~ normal(0,prior_scale_b); //prior on sd of GAM parameter variation
+}
+if(pnorm == 0){
+  sdBETA ~ student_t(df,0,prior_scale_B); //prior on sd of GAM parameter variation
+  sdbeta ~ student_t(df,0,prior_scale_b); //prior on sd of GAM parameter variation
+}
+
+   BETA_raw ~ normal(0,1); //non-centered parameterisation
+
+for(s in 1:nstrata){
+    beta_raw[s,] ~ normal(0,1);
+}
+
+
+}
+
+ generated quantities {
+  //estimated smooth on a count-scale
+   vector[nyears] NSMOOTH = exp(SMOOTH_pred);
+    
+    
+       real<lower=0> nsmooth[nstrata,nyears];
+
+for(y in 1:nyears){
+
+      for(s in 1:nstrata){
+
+ 
+      nsmooth[s,y] = exp(smooth_pred[y,s]);
+        }
+
+
+
+    }
+    
+  }
+
+
+
+ 
+
