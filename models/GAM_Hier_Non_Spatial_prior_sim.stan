@@ -9,9 +9,9 @@ functions {
 }
 
 data {
-    int<lower=1> nstrata;
+  int<lower=1> nstrata;
   int<lower=1> nyears;
-  int<lower=3> df;
+  int<lower=3> df; // df of t-prior
   real<lower=0>  prior_scale_B; //scale of the prior distribution
   real<lower=0>  prior_scale_b; //scale of the prior distribution
   int<lower=0,upper=1> pnorm; // indicator for the prior distribution 0 = t, 1 = normal
