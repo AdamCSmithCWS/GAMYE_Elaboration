@@ -16,7 +16,7 @@ species_f <- gsub(species,pattern = " ",replacement = "_")
 
 
 for(pp in c("t3","t4","t10")){
-  for(prior_scale in c(0.5,1,2,3)){
+  for(prior_scale in c(0.1,0.2,0.5)){
     
   
     if(pp == "t3"){
@@ -84,7 +84,7 @@ for(pp in c("t3","t4","t10")){
       
       # Fit model ---------------------------------------------------------------
       
-      print(paste("beginning",tp,Sys.time()))
+      print(paste("beginning",out_base,Sys.time()))
       
       mod.file = "models/Difference_NonSpatial_Prior_sim.stan"
       
