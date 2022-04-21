@@ -37,7 +37,7 @@ for(pp in c("t3","t4","t10")){
     
     #STRATA_True <- log(2)
     output_dir <- "output/"
-    out_base <- paste0("Prior_sim_Non_Spatial_Difference_",tp,"_BBS")
+    out_base <- paste0("Prior_sim_Spatial_Difference_",tp,"_BBS")
     csv_files <- paste0(out_base,"-",1:3,".csv")
     
    # if(!file.exists(paste0(output_dir,csv_files[1]))){
@@ -50,6 +50,10 @@ for(pp in c("t3","t4","t10")){
       nyears = max(tmp_data$Year_Index)
       nyears_m1 = nyears-1
       midyear = floor(nyears/2)
+  
+      N_edges = neighbours$N_edges
+      node1 = neighbours$node1
+      node2 = neighbours$node2
       
       Iy1 = c((midyear-1):1)
       Iy2 = c((midyear+1):nyears)
@@ -61,6 +65,10 @@ for(pp in c("t3","t4","t10")){
         nyears = nyears,
         nyears_m1 = nyears_m1,
         
+        #spatial structure
+        N_edges = N_edges,
+        node1 = node1,
+        node2 = node2,
         
         #temporal indexing
         midyear = midyear,
@@ -86,7 +94,7 @@ for(pp in c("t3","t4","t10")){
       
       print(paste("beginning",out_base,Sys.time()))
       
-      mod.file = "models/Difference_NonSpatial_Prior_sim.stan"
+      mod.file = "models/Difference_Spatial_Prior_sim.stan"
       
       ## compile model
       model <- cmdstan_model(mod.file)
@@ -161,7 +169,7 @@ for(pp in c("t3","t4","t10")){
     
     #STRATA_True <- log(2)
     output_dir <- "output/"
-    out_base <- paste0("Prior_sim_Non_Spatial_Difference_",tp,"_BBS")
+    out_base <- paste0("Prior_sim_Spatial_Difference_",tp,"_BBS")
     csv_files <- paste0(out_base,"-",1:3,".csv")
     
     
@@ -263,7 +271,7 @@ for(pp in c("t3","t4","t10")){
   }#prior_scale
 }# pp
 
-save(file = "output/Hier_Non_Spatial_Difference_prior_sim_summary.RData",
+save(file = "output/Hier_Spatial_Difference_prior_sim_summary.RData",
      list = c("n_out",
               "N_out",
               "trends_out",
@@ -273,7 +281,7 @@ save(file = "output/Hier_Non_Spatial_Difference_prior_sim_summary.RData",
 
 # summarise ---------------------------------------------------------------
 
-load("output/Hier_Non_Spatial_Difference_prior_sim_summary.RData")
+load("output/Hier_Spatial_Difference_prior_sim_summary.RData")
 
 
 trends_sd <- trends_out %>% 

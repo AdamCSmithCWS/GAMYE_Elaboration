@@ -37,7 +37,7 @@ for(pp in c("t3","t4","t10")){
     
     #STRATA_True <- log(2)
     output_dir <- "output/"
-    out_base <- paste0("Prior_sim_Non_Spatial_Difference_",tp,"_BBS")
+    out_base <- paste0("Prior_sim_Non_Hierarchical_Difference_",tp,"_BBS")
     csv_files <- paste0(out_base,"-",1:3,".csv")
     
    # if(!file.exists(paste0(output_dir,csv_files[1]))){
@@ -70,7 +70,6 @@ for(pp in c("t3","t4","t10")){
         nIy2 = nIy2,
         
         
-        prior_scale_B = prior_scale,
         prior_scale_b = prior_scale,
         pnorm = pnorm,
         df = df,
@@ -86,7 +85,7 @@ for(pp in c("t3","t4","t10")){
       
       print(paste("beginning",out_base,Sys.time()))
       
-      mod.file = "models/Difference_NonSpatial_Prior_sim.stan"
+      mod.file = "models/Difference_NonHierarchical_Prior_sim.stan"
       
       ## compile model
       model <- cmdstan_model(mod.file)
@@ -96,9 +95,7 @@ for(pp in c("t3","t4","t10")){
       
       
       init_def <- function(){ list(sdbeta = runif(nyears_m1,0.01,0.1),
-                                   beta_raw = matrix(rnorm(nyears_m1*nstrata,0,0.01),nrow = nstrata,ncol = nyears_m1),
-                                   sdBETA = runif(1,0.01,0.1),
-                                   BETA_raw = rnorm(nyears_m1,0,0.01))}
+                                   beta_raw = matrix(rnorm(nyears_m1*nstrata,0,0.01),nrow = nstrata,ncol = nyears_m1))}
       
       stanfit <- model$sample(
         data=stan_data,
@@ -161,7 +158,7 @@ for(pp in c("t3","t4","t10")){
     
     #STRATA_True <- log(2)
     output_dir <- "output/"
-    out_base <- paste0("Prior_sim_Non_Spatial_Difference_",tp,"_BBS")
+    out_base <- paste0("Prior_sim_Non_Hierarchical_Difference_",tp,"_BBS")
     csv_files <- paste0(out_base,"-",1:3,".csv")
     
     
@@ -186,17 +183,7 @@ for(pp in c("t3","t4","t10")){
              param = "n")
    
     
-    N_samples <- posterior_samples(stanfit,
-                                         parm = "N",
-                                         dims = c("Year_Index"))
-    
-    N <- N_samples %>% 
-      posterior_sums(.,
-                     dims = c("Year_Index"))%>% 
-      mutate(prior_scale = prior_scale,
-             distribution = pp,
-             param = "N")
-    
+
     
     nyears = max(n_samples$Year_Index)
     # function to calculate a %/year trend from a count-scale trajectory
@@ -233,39 +220,38 @@ for(pp in c("t3","t4","t10")){
         trends_out <- bind_rows(trends_out,trends)
         
         
-        TRENDS <- N_samples %>% 
-          filter(Year_Index %in% c(y1,y2)) %>% 
-          select(.draw,.value,Year_Index) %>% 
-          pivot_wider(.,names_from = Year_Index,
-                      values_from = .value,
-                      names_prefix = "Y") %>%
-          rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
-          rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
-          group_by(.draw) %>% 
-          summarise(trend = trs(YS,YE,ny))%>% 
-          mutate(prior_scale = prior_scale,
-                 distribution = pp,
-                 first_year = y1,
-                 last_year = y2,
-                 nyears = ny,
-                 param = "N")
-        trends_out <- bind_rows(trends_out,TRENDS)
+        # TRENDS <- N_samples %>% 
+        #   filter(Year_Index %in% c(y1,y2)) %>% 
+        #   select(.draw,.value,Year_Index) %>% 
+        #   pivot_wider(.,names_from = Year_Index,
+        #               values_from = .value,
+        #               names_prefix = "Y") %>%
+        #   rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
+        #   rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
+        #   group_by(.draw) %>% 
+        #   summarise(trend = trs(YS,YE,ny))%>% 
+        #   mutate(prior_scale = prior_scale,
+        #          distribution = pp,
+        #          first_year = y1,
+        #          last_year = y2,
+        #          nyears = ny,
+        #          param = "N")
+        # trends_out <- bind_rows(trends_out,TRENDS)
       }
     }
     
     
     
     n_out <- bind_rows(n_out,n)
-    N_out <- bind_rows(N_out,N)
-    summ_out <- bind_rows(summ_out,summ)
+    # N_out <- bind_rows(N_out,N)
+     summ_out <- bind_rows(summ_out,summ)
     print(paste(pp,prior_scale))
     
   }#prior_scale
 }# pp
 
-save(file = "output/Hier_Non_Spatial_Difference_prior_sim_summary.RData",
+save(file = "output/Non_Hierarchical_Difference_prior_sim_summary.RData",
      list = c("n_out",
-              "N_out",
               "trends_out",
               "summ_out"))
 
@@ -273,7 +259,7 @@ save(file = "output/Hier_Non_Spatial_Difference_prior_sim_summary.RData",
 
 # summarise ---------------------------------------------------------------
 
-load("output/Hier_Non_Spatial_Difference_prior_sim_summary.RData")
+load("output/Non_Hierarchical_Difference_prior_sim_summary.RData")
 
 
 trends_sd <- trends_out %>% 
