@@ -325,7 +325,7 @@ TRENDS_abs <- trends_out %>%
          distribution != "t4",
          prior_scale != 0.5) %>% 
   mutate(abs_trend = abs(trend),
-         scale_factor = factor(prior_scale,levels = c(0.5,1,2,3,4),ordered = TRUE),
+         scale_factor = factor(prior_scale,ordered = TRUE),
          nyears_factor = factor(nyears,levels = c(1,5,10,20,53),ordered = TRUE))
 
 trends_abs <- trends_out %>% 
@@ -333,7 +333,7 @@ trends_abs <- trends_out %>%
          distribution != "t4",
          prior_scale != 0.5) %>% 
   mutate(abs_trend = abs(trend),
-         scale_factor = factor(prior_scale,levels = c(0.5,1,2,3,4),ordered = TRUE),
+         scale_factor = factor(prior_scale,ordered = TRUE),
          nyears_factor = factor(nyears,levels = c(1,5,10,20,53),ordered = TRUE))
 
 
@@ -379,7 +379,7 @@ absplot_long <- ggplot(data = trends_abs,
   xlab("Absolute value of long-term trends from prior distribution")+
   theme_bw()+
   scale_y_continuous(limits = c(0,1))+
-  coord_cartesian(xlim = c(0,20))+
+  coord_cartesian(xlim = c(0,50))+
   scale_colour_viridis_d()+
   facet_wrap(vars(distribution,nyears_factor),ncol = 5,nrow = 2)
 

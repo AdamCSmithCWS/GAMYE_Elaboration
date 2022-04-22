@@ -298,20 +298,33 @@ absplot_long <- ggplot(data = trends_sd_t,
 print(absplot_long)        
 
 
-TRENDS_abs <- trends_out %>% 
-  filter(is.na(Stratum_Factored),
-         distribution != "t4",
-         prior_scale != 0.5) %>% 
-  mutate(abs_trend = abs(trend),
-         scale_factor = factor(prior_scale,levels = c(0.5,1,2,3,4),ordered = TRUE),
-         nyears_factor = factor(nyears,levels = c(1,5,10,20,53),ordered = TRUE))
+
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+
+
+# TRENDS_abs <- trends_out %>% 
+#   filter(is.na(Stratum_Factored),
+#          distribution != "t4",
+#          prior_scale != 0.5) %>% 
+#   mutate(abs_trend = abs(trend),
+#          scale_factor = factor(prior_scale,ordered = TRUE),
+#          nyears_factor = factor(nyears,levels = c(1,5,10,20,53),ordered = TRUE))
 
 trends_abs <- trends_out %>% 
   filter(!is.na(Stratum_Factored),
          distribution != "t4",
          prior_scale != 0.5) %>% 
   mutate(abs_trend = abs(trend),
-         scale_factor = factor(prior_scale,levels = c(0.5,1,2,3,4),ordered = TRUE),
+         scale_factor = factor(prior_scale,ordered = TRUE),
          nyears_factor = factor(nyears,levels = c(1,5,10,20,53),ordered = TRUE))
 
 
@@ -333,20 +346,20 @@ trends_abs <- trends_out %>%
 
 
       
-
-ABSplot_long <- ggplot(data = TRENDS_abs,
-                       aes(abs_trend,after_stat(density),
-                           group = scale_factor,
-                           colour = scale_factor))+
-  geom_freqpoly(breaks = seq(0,700,0.5),center = 0)+
-  xlab("Absolute value of long-term trends from prior distribution")+
-  theme_bw()+
-  #scale_y_continuous(limits = c(0,1))+
-  coord_cartesian(xlim = c(0,20))+
-  scale_colour_viridis_d()+
-  facet_wrap(vars(distribution,nyears_factor),ncol = 5,nrow = 2)
-
-print(ABSplot_long)
+# 
+# ABSplot_long <- ggplot(data = TRENDS_abs,
+#                        aes(abs_trend,after_stat(density),
+#                            group = scale_factor,
+#                            colour = scale_factor))+
+#   geom_freqpoly(breaks = seq(0,700,0.5),center = 0)+
+#   xlab("Absolute value of long-term trends from prior distribution")+
+#   theme_bw()+
+#   #scale_y_continuous(limits = c(0,1))+
+#   coord_cartesian(xlim = c(0,20))+
+#   scale_colour_viridis_d()+
+#   facet_wrap(vars(distribution,nyears_factor),ncol = 5,nrow = 2)
+# 
+# print(ABSplot_long)
 
 
 absplot_long <- ggplot(data = trends_abs,
@@ -357,12 +370,62 @@ absplot_long <- ggplot(data = trends_abs,
   xlab("Absolute value of long-term trends from prior distribution")+
   theme_bw()+
   scale_y_continuous(limits = c(0,1))+
-  coord_cartesian(xlim = c(0,20))+
+  coord_cartesian(xlim = c(0,50))+
   scale_colour_viridis_d()+
   facet_wrap(vars(distribution,nyears_factor),ncol = 5,nrow = 2)
 
 
 print(absplot_long)
+
+
+#### Generalize this plot for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+
+
+
+tplot_long <- ggplot(data = trends_abs,
+                     aes(trend,after_stat(density),
+                           group = scale_factor,
+                           colour = scale_factor))+
+  geom_freqpoly(breaks = seq(-99,700,0.5),center = 0)+
+  xlab("Absolute value of long-term trends from prior distribution")+
+  theme_bw()+
+  #scale_y_continuous(limits = c(0,1))+
+  coord_cartesian(xlim = c(-50,100))+
+  scale_colour_viridis_d()+
+  facet_wrap(vars(distribution,nyears_factor),ncol = 5,nrow = 2,
+             scales = "free")
+
+
+print(tplot_long)
+
+
+
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+#### Generalize this part for all simulations 
+
+
+
+
+
 
 
 
