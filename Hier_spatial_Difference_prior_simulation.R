@@ -192,7 +192,21 @@ for(pp in c("t3","t4","t10")){
       mutate(prior_scale = prior_scale,
              distribution = pp,
              param = "n")
-   
+    
+    
+    
+    ncomp_samples <- n_samples %>% 
+      group_by(.chain,.draw,.iteration,.variable,Year_Index) %>% 
+      summarise(.value = mean(.value),
+                .groups = "keep")
+    
+    NComp <- ncomp_samples %>% 
+      posterior_sums(.,
+                     dims = c("Year_Index"))%>% 
+      mutate(prior_scale = prior_scale,
+             distribution = pp,
+             param = "NComp")
+    
     
     N_samples <- posterior_samples(stanfit,
                                          parm = "N",
@@ -258,6 +272,28 @@ for(pp in c("t3","t4","t10")){
                  nyears = ny,
                  param = "N")
         trends_out <- bind_rows(trends_out,TRENDS)
+        
+        
+        TRENDSC <- ncomp_samples %>%
+          filter(Year_Index %in% c(y1,y2)) %>%
+          select(.draw,.value,Year_Index) %>%
+          pivot_wider(.,names_from = Year_Index,
+                      values_from = .value,
+                      names_prefix = "Y") %>%
+          rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>%
+          rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>%
+          group_by(.draw) %>%
+          summarise(trend = trs(YS,YE,ny),
+                    .groups = "keep")%>%
+          mutate(prior_scale = prior_scale,
+                 distribution = pp,
+                 first_year = y1,
+                 last_year = y2,
+                 nyears = ny,
+                 param = "NComp")
+        trends_out <- bind_rows(trends_out,TRENDSC)
+        
+        
       }
     }
     
@@ -265,6 +301,7 @@ for(pp in c("t3","t4","t10")){
     
     n_out <- bind_rows(n_out,n)
     N_out <- bind_rows(N_out,N)
+    N_out <- bind_rows(N_out,NComp)
     summ_out <- bind_rows(summ_out,summ)
     print(paste(pp,prior_scale))
     

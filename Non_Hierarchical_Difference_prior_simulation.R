@@ -181,9 +181,23 @@ for(pp in c("t3","t4","t10")){
       mutate(prior_scale = prior_scale,
              distribution = pp,
              param = "n")
-   
     
-
+    
+    
+    ncomp_samples <- n_samples %>% 
+      group_by(.chain,.draw,.iteration,.variable,Year_Index) %>% 
+      summarise(.value = mean(.value),
+                .groups = "keep")
+    
+    NComp <- ncomp_samples %>% 
+      posterior_sums(.,
+                     dims = c("Year_Index"))%>% 
+      mutate(prior_scale = prior_scale,
+             distribution = pp,
+             param = "NComp")
+    
+    
+    
     
     nyears = max(n_samples$Year_Index)
     # function to calculate a %/year trend from a count-scale trajectory
@@ -201,7 +215,8 @@ for(pp in c("t3","t4","t10")){
         
         nyh2 <- paste0("Y",y2)
         nyh1 <- paste0("Y",y1)
-        trends <- n_samples %>% 
+       
+         trends <- n_samples %>% 
           filter(Year_Index %in% c(y1,y2)) %>% 
           select(.draw,.value,Stratum_Factored,Year_Index) %>% 
           pivot_wider(.,names_from = Year_Index,
@@ -210,7 +225,8 @@ for(pp in c("t3","t4","t10")){
           rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
           rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
           group_by(.draw,Stratum_Factored) %>% 
-          summarise(trend = trs(YS,YE,ny))%>% 
+          summarise(trend = trs(YS,YE,ny),
+                    .groups = "keep")%>% 
           mutate(prior_scale = prior_scale,
                  distribution = pp,
                  first_year = y1,
@@ -220,30 +236,36 @@ for(pp in c("t3","t4","t10")){
         trends_out <- bind_rows(trends_out,trends)
         
         
-        # TRENDS <- N_samples %>% 
-        #   filter(Year_Index %in% c(y1,y2)) %>% 
-        #   select(.draw,.value,Year_Index) %>% 
-        #   pivot_wider(.,names_from = Year_Index,
-        #               values_from = .value,
-        #               names_prefix = "Y") %>%
-        #   rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
-        #   rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
-        #   group_by(.draw) %>% 
-        #   summarise(trend = trs(YS,YE,ny))%>% 
-        #   mutate(prior_scale = prior_scale,
-        #          distribution = pp,
-        #          first_year = y1,
-        #          last_year = y2,
-        #          nyears = ny,
-        #          param = "N")
-        # trends_out <- bind_rows(trends_out,TRENDS)
+        
+        trends_out <- bind_rows(trends_out,trends)
+        
+        
+        TRENDSC <- ncomp_samples %>%
+          filter(Year_Index %in% c(y1,y2)) %>%
+          select(.draw,.value,Year_Index) %>%
+          pivot_wider(.,names_from = Year_Index,
+                      values_from = .value,
+                      names_prefix = "Y") %>%
+          rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>%
+          rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>%
+          group_by(.draw) %>%
+          summarise(trend = trs(YS,YE,ny),
+                    .groups = "keep")%>%
+          mutate(prior_scale = prior_scale,
+                 distribution = pp,
+                 first_year = y1,
+                 last_year = y2,
+                 nyears = ny,
+                 param = "NComp")
+        trends_out <- bind_rows(trends_out,TRENDSC)
       }
     }
     
     
     
     n_out <- bind_rows(n_out,n)
-    # N_out <- bind_rows(N_out,N)
+    # 
+    N_out <- bind_rows(N_out,NComp)
      summ_out <- bind_rows(summ_out,summ)
     print(paste(pp,prior_scale))
     
@@ -251,7 +273,8 @@ for(pp in c("t3","t4","t10")){
 }# pp
 
 save(file = "output/Non_Hierarchical_Difference_prior_sim_summary.RData",
-     list = c("n_out",
+     list = c("N_out",
+              "n_out",
               "trends_out",
               "summ_out"))
 
