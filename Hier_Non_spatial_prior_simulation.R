@@ -167,7 +167,7 @@ for(pp in c("t3","t4","t10")){
         nknots_year = nknots_year,
         year_basis = year_basis,
         
-        prior_scale_B = 1,
+        prior_scale_B = prior_scale,
         prior_scale_b = prior_scale,
         pnorm = pnorm,
         df = df

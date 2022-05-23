@@ -26,7 +26,7 @@ data {
 
 parameters {
   
-  real<lower=0> sdbeta[nyears_m1];    // sd of annual changes among strata 
+  real<lower=0> sdbeta[nstrata];    // sd of annual changes among strata 
 
   matrix[nstrata,nyears_m1] beta_raw;         // strata level parameters
 
@@ -41,17 +41,18 @@ transformed parameters {
   beta[,midyear] = zero_betas;
   yeareffect[,midyear] = zero_betas;
 
+for(s in 1:nstrata){
   for(t in Iy1){
-    beta[,t] = (sdbeta[t] * beta_raw[,t]);
-    yeareffect[,t] = yeareffect[,t+1] + beta[,t];
+    beta[s,t] = (sdbeta[s] * beta_raw[s,t]);
+    yeareffect[s,t] = yeareffect[s,t+1] + beta[s,t];
   }
  
    for(t in Iy2){
-    beta[,t] = (sdbeta[t-1] * beta_raw[,t-1]);//t-1 indicators to match dimensionality
-    yeareffect[,t] = yeareffect[,t-1] + beta[,t];
+    beta[s,t] = (sdbeta[s] * beta_raw[s,t-1]);//t-1 indicators to match dimensionality
+    yeareffect[s,t] = yeareffect[s,t-1] + beta[s,t];
   }
  
-
+}
   
   }
   
@@ -69,9 +70,9 @@ if(pnorm == 0){
 
 
 
-for(t in 1:(nyears_m1)){
-    beta_raw[,t] ~ std_normal();
-  sum(beta_raw[,t]) ~ normal(0,0.001*nstrata);
+for(s in 1:(nstrata)){
+    beta_raw[s,] ~ std_normal();
+  //sum(beta_raw[s,]) ~ normal(0,0.001*nyears);
 
 }
 

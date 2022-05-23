@@ -43,7 +43,7 @@ data {
 
 parameters {
   
-  real<lower=0> sdbeta[nyears_m1];    // sd of annual changes among strata 
+  real<lower=0> sdbeta;    // sd of annual changes among strata 
   real<lower=0> sdBETA;    // sd of overall annual changes
 
   vector[nyears_m1] BETA_raw;//_raw; 
@@ -65,13 +65,13 @@ transformed parameters {
   YearEffect[midyear] = 0;
 
   for(t in Iy1){
-    beta[,t] = (sdbeta[t] * beta_raw[,t]) + BETA[t];
+    beta[,t] = (sdbeta * beta_raw[,t]) + BETA[t];
     yeareffect[,t] = yeareffect[,t+1] + beta[,t];
     YearEffect[t] = YearEffect[t+1] + BETA[t]; 
   }
  
    for(t in Iy2){
-    beta[,t] = (sdbeta[t-1] * beta_raw[,t-1]) + BETA[t-1];//t-1 indicators to match dimensionality
+    beta[,t] = (sdbeta * beta_raw[,t-1]) + BETA[t-1];//t-1 indicators to match dimensionality
     yeareffect[,t] = yeareffect[,t-1] + beta[,t];
     YearEffect[t] = YearEffect[t-1] + BETA[t-1]; 
   }

@@ -13,13 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Goals
 
-1.  Describe the spatial hierarchical version of a GAMYE
+1.  Describe hierarchical versions of the First Difference and the GAMYE
 
-2.  Consider if it's worth the effort to demonstrate the similarity of the alternative parameterisations of the hierarchical structure
-
-    1.  hierarchical beta-terms (similar to Smith and Edwards 2020)
-
-    2.  Global and local smooths (similar to Pedersen et al. 2020)
+2.  Describe spatial hierarchical versions of both.
 
 3.  Fake data simulation to demonstrate accuracy
 

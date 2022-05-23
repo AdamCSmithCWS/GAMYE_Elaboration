@@ -13,10 +13,106 @@ setwd("C:/GitHub/GAMYE_Elaboration")
 species <- "Yellow-headed Blackbird"
 species_f <- gsub(species,pattern = " ",replacement = "_")
 
+# 
+# bbs_trends <- read.csv("data_basic/All BBS trends 2017 w reliab.csv")
+# 
+# sd_trends_short <- bbs_trends %>% 
+#   filter(trendtype == "short-term",
+#          trendtime == "full",
+#          region.type == "Stratum") %>% 
+#   group_by(species) %>% 
+#   summarise(sd_trends = sd(trend),
+#             min_trend = min(trend),
+#             max_trend = max(trend),
+#             uci_trend = quantile(trend,0.95),
+#             lci_trend = quantile(trend,0.05)) %>% 
+#   mutate(range_trend = max_trend - min_trend,
+#          span_90_trend = uci_trend-lci_trend) %>%
+#   filter(!is.na(sd_trends)) %>% 
+#   arrange(-span_90_trend)
+# 
+# # hist(sd_trends_short$range_trend)
+# # hist(sd_trends_short$span_90_trend)
+# 
+# G_short_canada <- max(sd_trends_short$sd_trends,na.rm = T)
+# 
+# realised_short_bbs_hist <- ggplot(data = sd_trends_short,
+#                                   aes(sd_trends,after_stat(density)))+
+#   geom_freqpoly(breaks = seq(0,G_short_canada,0.5),center = 0)+
+#   xlab("SD of short-term BBS trends among regions from CWS models (2009-2019)")+
+#   theme_bw()+
+#   scale_y_continuous(limits = c(0,1))
+# print(realised_short_bbs_hist)
+# 
+# 
+# 
+# # slope based CWS trends --------------------------------------------------
+# 
+# 
+# sd_slope_trends_short <- bbs_trends %>% 
+#   filter(trendtype == "short-term",
+#          trendtime == "full",
+#          region.type == "Stratum") %>% 
+#   group_by(species) %>% 
+#   summarise(sd_trends = sd(slope.trend),
+#             min_trend = min(slope.trend),
+#             max_trend = max(slope.trend),
+#             uci_trend = quantile(slope.trend,0.95),
+#             lci_trend = quantile(slope.trend,0.05)) %>% 
+#   mutate(range_trend = max_trend - min_trend,
+#          span_90_trend = uci_trend-lci_trend) %>%
+#   filter(!is.na(sd_trends)) %>% 
+#   arrange(-span_90_trend)
+# 
+# 
+# G_short_slope_canada <- max(sd_slope_trends_short$sd_trends,na.rm = T)
+# 
+# realised_slope_short_bbs_hist <- ggplot(data = sd_slope_trends_short,
+#                                   aes(sd_trends,after_stat(density)))+
+#   geom_freqpoly(breaks = seq(0,G_short_canada,0.5),center = 0)+
+#   xlab("SD of short-term BBS trends among regions from CWS models (2009-2019)")+
+#   theme_bw()+
+#   scale_y_continuous(limits = c(0,1))
+# print(realised_slope_short_bbs_hist)
+# 
+# # USGS trends -------------------------------------------------------------
+# # download_bbs_data(sb_id = sb_items[6,2],
+# #                   bbs_dir = "data/")
+# 
+# 
+# 
+# bbs_trends_usgs <- read.csv("data/BBS_1966-2019_core_best_trend.csv")
+# 
+# sd_trends_long_usgs <- bbs_trends_usgs %>% 
+#   filter(Region.Name != "Survey-Wide",
+#          Region.Name != "CA1",
+#          Region.Name != "US1",
+#          !grepl(pattern = "^unid",Species.Name)) %>% 
+#   group_by(Species.Name) %>% 
+#   summarise(sd_trends = sd(Trend),
+#             min_trend = min(Trend),
+#             max_trend = max(Trend),
+#             uci_trend = quantile(Trend,0.95),
+#             lci_trend = quantile(Trend,0.05)) %>% 
+#   mutate(range_trend = max_trend - min_trend,
+#          span_90_trend = uci_trend-lci_trend) %>% 
+#   arrange(-span_90_trend)
+# 
+# 
+# G_long_usgs <- max(sd_trends_long_usgs$sd_trends)
+# 
+# realised_long_bbs_hist <- ggplot(data = sd_trends_long_usgs,
+#                                  aes(sd_trends,after_stat(density)))+
+#   geom_freqpoly(breaks = seq(0,G_long_usgs,0.5),center = 0)+
+#   xlab("SD of long-term BBS trends among regions from USGS models (1966-2019)")+
+#   theme_bw()+
+#   scale_y_continuous(limits = c(0,1))
+# print(realised_long_bbs_hist)
+# 
+# 
 
-
-for(pp in c("t3","t4","t10")){
-  for(prior_scale in c(0.1,0.2,0.3)){
+for(pp in c("t3")){
+  for(prior_scale in c(2,4,10)){
     
   
     if(pp == "t3"){
@@ -37,7 +133,7 @@ for(pp in c("t3","t4","t10")){
     
     #STRATA_True <- log(2)
     output_dir <- "output/"
-    out_base <- paste0("Prior_sim_Spatial_Difference_",tp,"_BBS")
+    out_base <- paste0(species_f,"_sim_Non_Spatial_hier_with_YE_",tp,"_BBS")
     csv_files <- paste0(out_base,"-",1:3,".csv")
     
    # if(!file.exists(paste0(output_dir,csv_files[1]))){
@@ -48,43 +144,34 @@ for(pp in c("t3","t4","t10")){
       
       nstrata = max(strata_df$Stratum_Factored)
       nyears = max(tmp_data$Year_Index)
-      nyears_m1 = nyears-1
-      midyear = floor(nyears/2)
-  
+      
+      
       N_edges = neighbours$N_edges
       node1 = neighbours$node1
       node2 = neighbours$node2
       
-      Iy1 = c((midyear-1):1)
-      Iy2 = c((midyear+1):nyears)
-      nIy1 = length(Iy1)
-      nIy2 = length(Iy2)
+      nknots_year = GAM_year$nknots_Year
+      year_basis = GAM_year$Year_basis
       
       stan_data = list(#scalar indicators
         nstrata = nstrata,
         nyears = nyears,
-        nyears_m1 = nyears_m1,
+        
         
         #spatial structure
         N_edges = N_edges,
         node1 = node1,
         node2 = node2,
         
-        #temporal indexing
-        midyear = midyear,
-        Iy1 = Iy1,
-        Iy2 = Iy2,
-        nIy1 = nIy1,
-        nIy2 = nIy2,
+        #GAM structure
+        nknots_year = nknots_year,
+        year_basis = year_basis,
         
-        
-        prior_scale_B = prior_scale,
-        prior_scale_b = prior_scale,
+        prior_scale_B = 1,
+        prior_scale_b = 1,
+        prior_scale_y = prior_scale,
         pnorm = pnorm,
-        df = df,
-        
-        #vector of zeros to fill midyear beta values
-        zero_betas = rep(0,nstrata)
+        df = df
       )
       
       
@@ -92,9 +179,9 @@ for(pp in c("t3","t4","t10")){
       
       # Fit model ---------------------------------------------------------------
       
-      print(paste("beginning",out_base,Sys.time()))
+      print(paste("beginning",tp,Sys.time()))
       
-      mod.file = "models/Difference_Spatial_Prior_sim.stan"
+      mod.file = "models/GAM_Hier_Non_Spatial_prior_sim_with_YE.stan"
       
       ## compile model
       model <- cmdstan_model(mod.file)
@@ -103,10 +190,12 @@ for(pp in c("t3","t4","t10")){
       # Initial Values ----------------------------------------------------------
       
       
-      init_def <- function(){ list(sdbeta = runif(nyears_m1,0.01,0.1),
-                                   beta_raw = matrix(rnorm(nyears_m1*nstrata,0,0.01),nrow = nstrata,ncol = nyears_m1),
+      init_def <- function(){ list(sdbeta = runif(nstrata,0.01,0.1),
+                                   beta_raw = matrix(rnorm(nknots_year*nstrata,0,0.01),nrow = nstrata,ncol = nknots_year),
                                    sdBETA = runif(1,0.01,0.1),
-                                   BETA_raw = rnorm(nyears_m1,0,0.01))}
+                                   BETA_raw = rnorm(nknots_year,0,0.01),
+                                   sdyear = runif(nstrata,0.01,0.1),
+                                   yeareffect_raw = matrix(rnorm(nyears*nstrata,0,0.01),nrow = nstrata,ncol = nyears) )}
       
       stanfit <- model$sample(
         data=stan_data,
@@ -123,10 +212,12 @@ for(pp in c("t3","t4","t10")){
         output_basename = out_base)
       
       
+      #stanfit1 <- as_cmdstan_fit(files = paste0(output_dir,csv_files))
+      
       
       save(list = c("stanfit","stan_data","csv_files",
                     "out_base"),
-           file = paste0(output_dir,"/",out_base,"_difference.RData"))
+           file = paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
       
       
       
@@ -141,14 +232,15 @@ for(pp in c("t3","t4","t10")){
 
 source("Functions/posterior_summary_functions.R")
 
-n_out <- NULL
-N_out <- NULL
+nsmooth_out <- NULL
+NSMOOTH_out <- NULL
 trends_out <- NULL
 summ_out <- NULL
+n_out <- NULL
+N_out <- NULL
 
-for(pp in c("t3","t4","t10")){
-  for(prior_scale in c(0.1,0.2,0.3)){
-    
+for(pp in c("t3")){
+  for(prior_scale in c(2,4,10)){
     
     
     if(pp == "t3"){
@@ -169,11 +261,11 @@ for(pp in c("t3","t4","t10")){
     
     #STRATA_True <- log(2)
     output_dir <- "output/"
-    out_base <- paste0("Prior_sim_Spatial_Difference_",tp,"_BBS")
+    out_base <- paste0(species_f,"_sim_Non_Spatial_hier_with_YE_",tp,"_BBS")
     csv_files <- paste0(out_base,"-",1:3,".csv")
     
     
-    load(paste0(output_dir,"/",out_base,"_difference.RData"))
+    load(paste0(output_dir,"/",out_base,"_gamye_iCAR.RData"))
     
     summ = stanfit$summary()
     
@@ -182,20 +274,21 @@ for(pp in c("t3","t4","t10")){
              distribution = pp)
     
     
-    n_samples <- posterior_samples(stanfit,
-                                         parm = "n",
+    nsmooth_samples <- posterior_samples(stanfit,
+                                         parm = "nsmooth",
                                          dims = c("Stratum_Factored","Year_Index"))
     
-    n <- n_samples %>% 
+    nsmooth <- nsmooth_samples %>% 
       posterior_sums(.,
                      dims = c("Stratum_Factored","Year_Index"))%>% 
       mutate(prior_scale = prior_scale,
              distribution = pp,
-             param = "n")
+             param = "nsmooth")
+   
     
     
     
-    ncomp_samples <- n_samples %>% 
+    ncomp_samples <- nsmooth_samples %>% 
       group_by(.chain,.draw,.iteration,.variable,Year_Index) %>% 
       summarise(.value = mean(.value),
                 .groups = "keep")
@@ -205,22 +298,52 @@ for(pp in c("t3","t4","t10")){
                      dims = c("Year_Index"))%>% 
       mutate(prior_scale = prior_scale,
              distribution = pp,
-             param = "NComp")
+             param = "NSmoothComp")
     
     
-    N_samples <- posterior_samples(stanfit,
-                                         parm = "N",
-                                         dims = c("Year_Index"))
     
-    N <- N_samples %>% 
+    
+    n_samples <- posterior_samples(stanfit,
+                                   parm = "n",
+                                   dims = c("Stratum_Factored","Year_Index"))
+    
+    n <- n_samples %>% 
+      posterior_sums(.,
+                     dims = c("Stratum_Factored","Year_Index"))%>% 
+      mutate(prior_scale = prior_scale,
+             distribution = pp,
+             param = "n")
+    
+    
+    ncomp_samples2 <- n_samples %>% 
+      group_by(.chain,.draw,.iteration,.variable,Year_Index) %>% 
+      summarise(.value = mean(.value),
+                .groups = "keep")
+    
+    NComp2 <- ncomp_samples %>% 
       posterior_sums(.,
                      dims = c("Year_Index"))%>% 
       mutate(prior_scale = prior_scale,
              distribution = pp,
-             param = "N")
+             param = "NComp")
     
     
-    nyears = max(n_samples$Year_Index)
+    
+    
+    
+    NSMOOTH_samples <- posterior_samples(stanfit,
+                                         parm = "NSMOOTH",
+                                         dims = c("Year_Index"))
+    
+    NSMOOTH <- NSMOOTH_samples %>% 
+      posterior_sums(.,
+                     dims = c("Year_Index"))%>% 
+      mutate(prior_scale = prior_scale,
+             distribution = pp,
+             param = "NSMOOTH")
+    
+    
+    nyears = max(nsmooth_samples$Year_Index)
     # function to calculate a %/year trend from a count-scale trajectory
     trs <- function(y1,y2,ny){
       tt <- (((y2/y1)^(1/ny))-1)*100
@@ -236,47 +359,91 @@ for(pp in c("t3","t4","t10")){
         
         nyh2 <- paste0("Y",y2)
         nyh1 <- paste0("Y",y1)
-        trends <- n_samples %>% 
+        trends <- nsmooth_samples %>% 
           filter(Year_Index %in% c(y1,y2)) %>% 
-          select(.draw,.value,Stratum_Factored,Year_Index) %>% 
+          select(.draw,.value,Stratum_Factored,Year_Index,
+                 .chain,.iteration,.variable) %>% 
           pivot_wider(.,names_from = Year_Index,
                       values_from = .value,
                       names_prefix = "Y") %>%
           rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
           rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
           group_by(.draw,Stratum_Factored) %>% 
-          summarise(trend = trs(YS,YE,ny))%>% 
+          summarise(trend = trs(YS,YE,ny),
+                    .groups = "keep")%>% 
+          mutate(prior_scale = prior_scale,
+                 distribution = pp,
+                 first_year = y1,
+                 last_year = y2,
+                 nyears = ny,
+                 param = "nsmooth")
+        trends_out <- bind_rows(trends_out,trends)
+        
+        trends2 <- n_samples %>% 
+          filter(Year_Index %in% c(y1,y2)) %>% 
+          select(.draw,.value,Stratum_Factored,Year_Index,
+                 .chain,.iteration,.variable) %>% 
+          pivot_wider(.,names_from = Year_Index,
+                      values_from = .value,
+                      names_prefix = "Y") %>%
+          rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
+          rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
+          group_by(.draw,Stratum_Factored) %>% 
+          summarise(trend = trs(YS,YE,ny),
+                    .groups = "keep")%>% 
           mutate(prior_scale = prior_scale,
                  distribution = pp,
                  first_year = y1,
                  last_year = y2,
                  nyears = ny,
                  param = "n")
-        trends_out <- bind_rows(trends_out,trends)
+        trends_out <- bind_rows(trends_out,trends2)
         
         
-        TRENDS <- N_samples %>% 
+        TRENDS <- NSMOOTH_samples %>% 
           filter(Year_Index %in% c(y1,y2)) %>% 
-          select(.draw,.value,Year_Index) %>% 
+          select(.draw,.value,Year_Index,
+                 .chain,.iteration,.variable) %>% 
           pivot_wider(.,names_from = Year_Index,
                       values_from = .value,
                       names_prefix = "Y") %>%
           rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>% 
           rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>% 
           group_by(.draw) %>% 
-          summarise(trend = trs(YS,YE,ny))%>% 
+          summarise(trend = trs(YS,YE,ny),
+                    .groups = "keep")%>% 
           mutate(prior_scale = prior_scale,
                  distribution = pp,
                  first_year = y1,
                  last_year = y2,
                  nyears = ny,
-                 param = "N")
+                 param = "NSMOOTH")
         trends_out <- bind_rows(trends_out,TRENDS)
-        
         
         TRENDSC <- ncomp_samples %>%
           filter(Year_Index %in% c(y1,y2)) %>%
-          select(.draw,.value,Year_Index) %>%
+          select(.draw,.value,Year_Index,
+                 .chain,.iteration,.variable) %>%
+          pivot_wider(.,names_from = Year_Index,
+                      values_from = .value,
+                      names_prefix = "Y") %>%
+          rename_with(.,~gsub(pattern = nyh2,replacement = "YE", .x)) %>%
+          rename_with(.,~gsub(pattern = nyh1,replacement = "YS", .x)) %>%
+          group_by(.draw) %>%
+          summarise(trend = trs(YS,YE,ny),
+                    .groups = "keep")%>%
+          mutate(prior_scale = prior_scale,
+                 distribution = pp,
+                 first_year = y1,
+                 last_year = y2,
+                 nyears = ny,
+                 param = "NSmoothComp")
+        trends_out <- bind_rows(trends_out,TRENDSC)
+        
+        TRENDSC2 <- ncomp_samples2 %>%
+          filter(Year_Index %in% c(y1,y2)) %>%
+          select(.draw,.value,Year_Index,
+                 .chain,.iteration,.variable) %>%
           pivot_wider(.,names_from = Year_Index,
                       values_from = .value,
                       names_prefix = "Y") %>%
@@ -291,26 +458,29 @@ for(pp in c("t3","t4","t10")){
                  last_year = y2,
                  nyears = ny,
                  param = "NComp")
-        trends_out <- bind_rows(trends_out,TRENDSC)
-        
+        trends_out <- bind_rows(trends_out,TRENDSC2)
         
       }
     }
     
     
     
+    nsmooth_out <- bind_rows(nsmooth_out,nsmooth)
+    NSMOOTH_out <- bind_rows(NSMOOTH_out,NSMOOTH)
+    NSMOOTH_out <- bind_rows(NSMOOTH_out,NComp)
     n_out <- bind_rows(n_out,n)
-    N_out <- bind_rows(N_out,N)
-    N_out <- bind_rows(N_out,NComp)
-    summ_out <- bind_rows(summ_out,summ)
+    N_out <- bind_rows(N_out,NComp2)
     
+    summ_out <- bind_rows(summ_out,summ)
     print(paste(pp,prior_scale))
     
   }#prior_scale
 }# pp
 
-save(file = "output/Hier_Spatial_Difference_prior_sim_summary.RData",
-     list = c("n_out",
+save(file = "output/Hier_Non_Spatial_with_YE_prior_sim_summary.RData",
+     list = c("nsmooth_out",
+              "NSMOOTH_out",
+              "n_out",
               "N_out",
               "trends_out",
               "summ_out"))
@@ -319,7 +489,7 @@ save(file = "output/Hier_Spatial_Difference_prior_sim_summary.RData",
 
 # summarise ---------------------------------------------------------------
 
-load("output/Hier_Spatial_Difference_prior_sim_summary.RData")
+load("output/Hier_Non_Spatial_with_YE_prior_sim_summary.RData")
 
 
 trends_sd <- trends_out %>% 
@@ -336,13 +506,13 @@ trends_sd <- trends_out %>%
             range_trend = max_trend - min_trend) %>% 
   mutate(scale_factor = factor(prior_scale,levels = c(0.5,1,2,3,4),ordered = TRUE))
 
-# save(list = "trends_sd",
-#      file = "data/long_term_trend_hier_Non_Spatial_sd_prior_sim.RData")
+save(list = "trends_sd",
+     file = "data/long_term_trend_hier_Non_Spatial_sd_prior_sim.RData")
 
 
 trends_sd_t <- trends_sd %>% 
   filter(nyears == 53,
-         param == "n")
+         param == "nsmooth")
 
 
 absplot_long <- ggplot(data = trends_sd_t,
@@ -363,7 +533,7 @@ TRENDS_abs <- trends_out %>%
          distribution != "t4",
          prior_scale != 0.5) %>% 
   mutate(abs_trend = abs(trend),
-         scale_factor = factor(prior_scale,ordered = TRUE),
+         scale_factor = factor(prior_scale,levels = c(0.5,1,2,3,4),ordered = TRUE),
          nyears_factor = factor(nyears,levels = c(1,5,10,20,53),ordered = TRUE))
 
 trends_abs <- trends_out %>% 
@@ -371,7 +541,7 @@ trends_abs <- trends_out %>%
          distribution != "t4",
          prior_scale != 0.5) %>% 
   mutate(abs_trend = abs(trend),
-         scale_factor = factor(prior_scale,ordered = TRUE),
+         scale_factor = factor(prior_scale,levels = c(0.5,1,2,3,4),ordered = TRUE),
          nyears_factor = factor(nyears,levels = c(1,5,10,20,53),ordered = TRUE))
 
 
@@ -417,7 +587,7 @@ absplot_long <- ggplot(data = trends_abs,
   xlab("Absolute value of long-term trends from prior distribution")+
   theme_bw()+
   scale_y_continuous(limits = c(0,1))+
-  coord_cartesian(xlim = c(0,50))+
+  coord_cartesian(xlim = c(0,20))+
   scale_colour_viridis_d()+
   facet_wrap(vars(distribution,nyears_factor),ncol = 5,nrow = 2)
 
@@ -522,8 +692,8 @@ overp_gamma1 <- realised_long_bbs_hist +
 
 print(overp_gamma1)
 
-# save(list = c("overp_gamma1","overp_norm1","overp_t1"),
-#      file = "data/sd_GAM_spatial_saved_long-term.RData")
+save(list = c("overp_gamma1","overp_norm1","overp_t1"),
+     file = "data/sd_GAM_spatial_saved_long-term.RData")
 
 trends_long <- trends_sd %>% 
   filter(nyears == 53)
@@ -645,14 +815,14 @@ overp_t_short1 <- realised_short_bbs_hist +
   coord_cartesian(xlim = c(0,20))
 
 print(overp_t_short1)
-# save(list = c("quant_short_tends",
-#               "overp_t1",
-#               "overp_t_short",
-#               "overp_gamma_short",
-#               "overp_norm_short",
-#               "overp_t_short1",
-#               "quant_long_tends",
-#               "overp_t",
-#               "overp_gamma",
-#               "overp_norm"),
-#      file = "data/SD_prior_sim_graphs.RData")
+save(list = c("quant_short_tends",
+              "overp_t1",
+              "overp_t_short",
+              "overp_gamma_short",
+              "overp_norm_short",
+              "overp_t_short1",
+              "quant_long_tends",
+              "overp_t",
+              "overp_gamma",
+              "overp_norm"),
+     file = "data/SD_prior_sim_graphs.RData")

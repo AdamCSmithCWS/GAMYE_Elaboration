@@ -111,7 +111,7 @@ species_f <- gsub(species,pattern = " ",replacement = "_")
 # 
 # 
 
-for(pp in c("t3","t4","t10")){
+for(pp in c("t3")){#},"t4","t10")){
   for(prior_scale in c(0.5,1,2,3)){
     
   
@@ -136,7 +136,7 @@ for(pp in c("t3","t4","t10")){
     out_base <- paste0(species_f,"_sim_hier_",tp,"_BBS")
     csv_files <- paste0(out_base,"-",1:3,".csv")
     
-    if(!file.exists(paste0(output_dir,csv_files[1]))){
+    #if(!file.exists(paste0(output_dir,csv_files[1]))){
       
       load(paste0("Data/Real_data_",species_f,"_BBS.RData"))
       
@@ -218,7 +218,7 @@ for(pp in c("t3","t4","t10")){
       
       
       
-    }
+    #}
     
   }#end prior_scale loop
 }#end pp loop
@@ -234,7 +234,7 @@ NSMOOTH_out <- NULL
 trends_out <- NULL
 summ_out <- NULL
 
-for(pp in c("t3","t4","t10")){
+for(pp in c("t3")){#},"t10")){
   for(prior_scale in c(0.5,1,2,3)){
     
     

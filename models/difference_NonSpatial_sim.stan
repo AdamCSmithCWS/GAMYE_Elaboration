@@ -56,7 +56,7 @@ parameters {
   real<lower=0> sdnoise;    // sd of over-dispersion
   real<lower=0> sdobs;    // sd of observer effects
   real<lower=0> sdste;    // sd of site effects
-  real<lower=0> sdbeta[nyears_m1];    // sd of annual changes among strata 
+  real<lower=0> sdbeta;    // sd of annual changes among strata 
   real<lower=0> sdstrata;    // sd of intercepts
   real<lower=0> sdBETA;    // sd of overall annual changes
 
@@ -79,12 +79,12 @@ transformed parameters {
   yeareffect[,midyear] = strata;
 
   for(t in Iy1){
-    beta[,t] = (sdbeta[t] * beta_raw[,t]) + BETA[t];
+    beta[,t] = (sdbeta * beta_raw[,t]) + BETA[t];
     yeareffect[,t] = yeareffect[,t+1] + beta[,t];
   }
  
    for(t in Iy2){
-    beta[,t] = (sdbeta[t-1] * beta_raw[,t-1]) + BETA[t-1];//t-1 indicators to match dimensionality
+    beta[,t] = (sdbeta * beta_raw[,t-1]) + BETA[t-1];//t-1 indicators to match dimensionality
     yeareffect[,t] = yeareffect[,t-1] + beta[,t];
   }
  

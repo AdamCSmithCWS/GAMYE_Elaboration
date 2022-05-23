@@ -15,7 +15,7 @@ species_f <- gsub(species,pattern = " ",replacement = "_")
 
 
 
-for(pp in c("t3","t4","t10")){
+for(pp in c("t3")){#},"t4","t10")){
   for(prior_scale in c(0.1,0.2,0.3)){
     
   
@@ -94,7 +94,7 @@ for(pp in c("t3","t4","t10")){
       # Initial Values ----------------------------------------------------------
       
       
-      init_def <- function(){ list(sdbeta = runif(nyears_m1,0.01,0.1),
+      init_def <- function(){ list(sdbeta = runif(nstrata,0.01,0.1),
                                    beta_raw = matrix(rnorm(nyears_m1*nstrata,0,0.01),nrow = nstrata,ncol = nyears_m1))}
       
       stanfit <- model$sample(
@@ -135,7 +135,7 @@ N_out <- NULL
 trends_out <- NULL
 summ_out <- NULL
 
-for(pp in c("t3","t4","t10")){
+for(pp in c("t3")){#,"t10")){
   for(prior_scale in c(0.1,0.2,0.3)){
     
     
@@ -237,9 +237,7 @@ for(pp in c("t3","t4","t10")){
         
         
         
-        trends_out <- bind_rows(trends_out,trends)
-        
-        
+     
         TRENDSC <- ncomp_samples %>%
           filter(Year_Index %in% c(y1,y2)) %>%
           select(.draw,.value,Year_Index) %>%
