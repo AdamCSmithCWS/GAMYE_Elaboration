@@ -27,10 +27,11 @@ index_function <- function(fit = stanfit,
                            year = "Year",
                            first_dim = "s",
                            quant = 0.95,
-                           weights_df = NULL,
+                           weights_df = NULL, # ifsupplied a composite summary estimate is generated
                            area = NULL,#"Area",
-                           summary_regions = NULL, # optional column to provide summary regions, if not supplied summarises across all strata
-                           year_1 = 1970
+                           summary_regions = NULL, # optional column to provide summary regions, if not supplied summarises across all strata if weights_df is upplied
+                           year_1 = 1970,
+                           to_summarise = FALSE # if TRUE provides summary indices across regions, otherwise jsut strata estimates
                             ){
   
   lu <- ((1-(quant))/2)
@@ -50,6 +51,16 @@ index_function <- function(fit = stanfit,
         stop("weights_df must include a column with a name that matches strat")
         return(NULL)
       }
+      if(!to_summarise){
+        to_summarise <- TRUE
+        warning("weights were supplied by to_summarise is FALSE, changing to_summaries to TRUE")
+      }
+    }
+    if(to_summarise){
+     if(is.null(weights_df) | is.null(strat)){
+       stop("to_summarise is TRUE but no weights were supplied or strat is NULL")
+       return(NULL)
+     }
     }
   if(tolower(substr(first_dim,1,1)) == "s"){
     dims <- c(strat,year)
@@ -127,7 +138,13 @@ index_function <- function(fit = stanfit,
         rename_with(., ~gsub(replacement = year,pattern = "yyy",.x,
                              fixed = TRUE))
       
-      smpls <- smpls %>%
+      smpls <- smpls %>% 
+        mutate(.value = .value*stratum_weight) %>% 
+        rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
+                             fixed = TRUE)) %>% 
+        group_by(yyy,summary_region,.draw) %>% 
+        summarise(.value = sum(.value),
+                  .groups = "keep") %>%
         rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
                              fixed = TRUE)) %>% 
         rename_with(., ~gsub(replacement = summary_regions,
@@ -210,31 +227,31 @@ index_function <- function(fit = stanfit,
                          fixed = TRUE))
   
     }else{
-      summary_regions <- "Survey_wide"
-      
-      inds <- smpls %>% 
+      summary_regions <- "Complete_pooling"
+
+      inds <- smpls %>%
         rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
-                             fixed = TRUE)) %>% 
-        group_by(yyy) %>% 
+                             fixed = TRUE)) %>%
+        group_by(yyy) %>%
         summarise(mean = mean(.value),
                   median = median(.value),
                   lci = quantile(.value,lu),
                   uci = quantile(.value,uu),
                   .groups = "keep") %>%
         mutate(true_year = yyy+year_1,
-               Survey_wide = "Survey_wide") %>% 
+               Survey_wide = "Survey_wide") %>%
         rename_with(., ~gsub(replacement = year,pattern = "yyy",.x,
                              fixed = TRUE))
-      
-    
-      smpls <- smpls %>% 
+
+
+      smpls <- smpls %>%
         rename_with(., ~gsub(pattern = year,replacement = "yyy",.x,
-                             fixed = TRUE)) %>% 
+                             fixed = TRUE)) %>%
         mutate(true_year = yyy+year_1,
-               Survey_wide = "Survey_wide") %>% 
+               Survey_wide = "Survey_wide") %>%
         rename_with(., ~gsub(pattern = "yyy",replacement = year,.x,
                              fixed = TRUE))
-      
+
 }
 }
   
@@ -251,6 +268,7 @@ inds <- inds %>%
               weights_df = weights_df,
               area = area,#"Area",
               summary_regions = summary_regions,
+              to_summarise = to_summarise,
               year_1 = year_1+1# optional column to provide summary regions, if not supplied summarises across all strata
   ))
 }
@@ -273,6 +291,7 @@ trends_function <- function(ind_list = ind_list,
   weights_df = ind_list$weights_df
   area = ind_list$area
   summary_regions = ind_list$summary_regions
+  to_summarise = ind_list$to_summarise
   
   if(is.null(end_year)){
     end_year <- max(samples$true_year)
@@ -285,12 +304,12 @@ trends_function <- function(ind_list = ind_list,
   lu <- ((1-(quant))/2)
   uu <- 1-((1-(quant))/2)
   
-  if(!is.null(weights_df)){
+  if(!is.null(weights_df) & to_summarise){
     
     
     indt <- samples %>% 
       filter(true_year %in% c(start_year,end_year)) %>% 
-      #ungroup() %>% 
+      ungroup() %>% 
       select(-matches(match = year,ignore.case = FALSE)) %>% 
       pivot_wider(names_from = true_year,
                   values_from = .value,
@@ -309,7 +328,9 @@ trends_function <- function(ind_list = ind_list,
     
     tt <- indt %>% 
       group_by(.draw,stratum_trend) %>% 
-      summarise(t = texp(end/start,ny = nyrs),
+      summarise(end = sum(end),
+                start = sum(start),
+                t = texp(end/start,ny = nyrs),
                 ch = chng(end/start),
                 .groups = "keep") %>% 
       group_by(stratum_trend) %>% 
